@@ -14,6 +14,13 @@
       "dependencies": {},
       "url": "https://package.openupm.com"
     },
+    "com.github-glitchenzo.nugetforunity": {
+      "version": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "46e771daa4b2b00db9bd7356ab3c8874c9d83cb4"
+    },
     "com.nsaintl.sven": {
       "version": "https://gitlab.lisn.upsaclay.fr/nsaintl/SVENUnity.git#upm",
       "depth": 0,
@@ -22,7 +29,7 @@
         "com.dbrizov.naughtyattributes": "2.1.4",
         "com.gamesoft.dotween": "1.0.0"
       },
-      "hash": "201254938bb660cccc6f4d2ac73b7df4e0d639cc"
+      "hash": "3280d72a869b8937d3521e5661cc7cbfae9bf8c7"
     },
     "com.unity.burst": {
       "version": "1.8.18",
