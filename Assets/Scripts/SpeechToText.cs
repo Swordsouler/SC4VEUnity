@@ -4,9 +4,8 @@ using Vosk;
 using NAudio.Wave;
 using System.IO;
 using NaughtyAttributes;
-using System.Collections;
-using Lucene.Net.Documents;
-using System.Text;
+using UnityEngine.Events;
+using System.Linq;
 
 namespace Sven.Multimodality.Vocal
 {
@@ -16,23 +15,11 @@ namespace Sven.Multimodality.Vocal
         French
     }
 
-    public enum Mode
-    {
-        Microphone,
-        Environment
-    }
-
     /// <summary>
     /// Speech to text using Vosk
     /// </summary>
-    public class SpeechToText : MonoBehaviour
+    public class SpeechToText : SaveAudioToWav
     {
-        #region Flags
-
-        private bool IsEnvironmentMode => _selectedMode == Mode.Environment;
-        private bool IsPlaying => Application.isPlaying;
-
-        #endregion
 
         #region Silence Fields
         /// <summary>
@@ -47,10 +34,6 @@ namespace Sven.Multimodality.Vocal
         /// The delta for silence threshold
         /// </summary> 
         [SerializeField] private int _deltaForSilenceThreshold = 10;
-        /// <summary>
-        /// Bit depth of the audio samples
-        /// </summary>
-        [SerializeField] private int _bitsPerSample = 16;
         #endregion
 
         /// <summary>
@@ -58,31 +41,14 @@ namespace Sven.Multimodality.Vocal
         /// </summary>
         [SerializeField, DisableIf("IsPlaying")] private Language _selectedLanguage = Language.English;
 
-        /// <summary>
-        /// The mode to use for speech recognition
-        /// </summary>
-        [SerializeField, DisableIf("IsPlaying")] private Mode _selectedMode = Mode.Microphone;
-
-        /// <summary>
-        /// The audio listener to use for environment mode
-        /// </summary>
-        [SerializeField, ShowIf("IsEnvironmentMode"), DisableIf("IsPlaying")] private AudioListener _audioListener;
+        [Serializable] public class SentenceCompleteEvent : UnityEvent<string> { }
 
         /// <summary>
         /// The action to call when a sentence is complete
         /// </summary>
-        public event Action<string> OnSentenceComplete;
+        public SentenceCompleteEvent OnSentenceComplete;
 
         private VoskRecognizer recognizer;
-        private WaveInEvent waveIn;
-
-        private void Awake()
-        {
-            OnSentenceComplete += (sentence) =>
-            {
-                Debug.Log(sentence);
-            };
-        }
 
         /// <summary>
         /// Load the recognizer for the language
@@ -90,7 +56,7 @@ namespace Sven.Multimodality.Vocal
         /// <param name="language">The language to load</param>
         private void LoadRecognizer(Language language)
         {
-            string modelPath = Path.Combine(Application.streamingAssetsPath, language == Language.English ? "vosk-model-small-en-us-0.15" : "vosk-model-small-fr-0.22");
+            string modelPath = Path.Combine(Application.streamingAssetsPath, language == Language.English ? "vosk-model-en-us-0.22" : "vosk-model-fr-0.22");
             Vosk.Vosk.SetLogLevel(0);
             if (!Directory.Exists(modelPath))
             {
@@ -99,7 +65,7 @@ namespace Sven.Multimodality.Vocal
             }
             try
             {
-                recognizer = new VoskRecognizer(new Model(modelPath), 16000.0f);
+                recognizer = new VoskRecognizer(new Model(modelPath), 16000);
             }
             catch (Exception ex)
             {
@@ -108,77 +74,47 @@ namespace Sven.Multimodality.Vocal
             }
         }
 
-        private void Start()
+        protected new void Start()
         {
             LoadRecognizer(_selectedLanguage);
-
-            if (_selectedMode == Mode.Microphone)
+            OnSentenceComplete.AddListener((sentence) =>
             {
-                waveIn = new WaveInEvent
-                {
-                    DeviceNumber = 0,
-                    WaveFormat = new WaveFormat(16000, 1)
-                };
-                waveIn.DataAvailable += OnDataAvailable;
-                waveIn.StartRecording();
-            }
-            else if (_selectedMode == Mode.Environment)
-            {
-                StartCoroutine(CaptureEnvironmentAudio());
-            }
+                //Debug.Log(sentence);
+            });
+            base.Start();
         }
 
         /// <summary>
-        /// Capture audio from the environment
+        /// Process audio data
         /// </summary>
-        private IEnumerator CaptureEnvironmentAudio()
+        /// <param name="data">The audio data</param>
+        /// <param name="channels">The number of channels</param>
+        protected override void ProcessAudioData(float[] data, int channels)
         {
-            yield return new WaitForSeconds(0.1f);
-            /*string filePath = Path.Combine(Application.persistentDataPath, "capturedAudio.wav");
-            Debug.Log("Capturing audio to: " + filePath);
-            using var fileStream = new FileStream(filePath, FileMode.Create);
-            using var binaryWriter = new BinaryWriter(fileStream);
-            WriteWavHeader(binaryWriter, 0, 16000);
+            base.ProcessAudioData(data, channels);
 
-            // save _audioListener data to a file
-            while (true)
+            // Log the audio data length and first few samples
+            //Debug.Log($"Audio data length: {data.Length}");
+            //Debug.Log($"First few samples: {string.Join(", ", data.Take(10))}");
+
+            byte[] wavData = ConvertToWav(data, channels, 16000);
+            //Debug.Log($"WAV data length: {string.Join(", ", wavData.Take(10))}");
+            //short[] wavData = new short[data.Length];
+            //for (int i = 0; i < data.Length; i++) wavData[i] = (short)Math.Floor(data[i] * short.MaxValue);
+            //Debug.Log($"WAV data length: {string.Join(", ", wavData.Take(10))}");
+
+            if (recognizer.AcceptWaveform(wavData, wavData.Length))
             {
-                yield return new WaitForSeconds(0.1f);
-                var audioData = new float[1024];
-                _audioListener.GetOutputData(audioData, 0);
-                foreach (var sample in audioData)
-                {
-                    var intSample = (short)(sample * short.MaxValue);
-                    binaryWriter.Write(intSample);
-                }
-            }*/
-
+                var result = recognizer.Result();
+                OnSentenceComplete?.Invoke(result);
+                Debug.Log($"Recognition result: {result}");
+            }
+            //else
+            //{
+            //    var partialResult = recognizer.PartialResult();
+            //    Debug.Log($"Partial result: {partialResult}");
+            //}
         }
-
-        /// <summary>
-        /// Write the WAV header
-        /// </summary>
-        /// <param name="bw">BinaryWriter to write the header</param>
-        /// <param name="length">Length of the audio data in samples</param>
-        /// <param name="sampleRate">Sample rate of the audio data</param>
-        /*private void WriteWavHeader(BinaryWriter bw, int length, int sampleRate)
-        {
-            // Simplification : The WAV header is written here without considering all the details
-            // For a complete implementation, include all necessary fields
-            bw.Write(new char[4] { 'R', 'I', 'F', 'F' });
-            bw.Write(36 + length * 2); // File size
-            bw.Write(new char[4] { 'W', 'A', 'V', 'E' });
-            bw.Write(new char[4] { 'f', 'm', 't', ' ' });
-            bw.Write(16); // Sub chunk size
-            bw.Write((short)1); // Audio format
-            bw.Write((short)1); // Number of channels
-            bw.Write(sampleRate); // Sample rate
-            bw.Write(sampleRate * _bitsPerSample / 8); // Byte rate
-            bw.Write((short)(_bitsPerSample / 8)); // Block align
-            bw.Write((short)_bitsPerSample); // Bits per sample
-            bw.Write(new char[4] { 'd', 'a', 't', 'a' });
-            bw.Write(length * 2); // Data size
-        }*/
 
         /// <summary>
         /// Capture audio from the environment
@@ -199,15 +135,16 @@ namespace Sven.Multimodality.Vocal
             }
         }
 
-        void OnDestroy()
+        protected new void OnDestroy()
         {
-            if (_selectedMode == Mode.Microphone)
+            base.OnDestroy();
+            switch (_selectedMode)
             {
-                if (waveIn != null)
-                {
-                    waveIn.StopRecording();
-                    waveIn.Dispose();
-                }
+                case RecordingMode.Microphone:
+                    break;
+                case RecordingMode.Environment:
+                    audioCapture.OnAudioFilterReadEvent.RemoveListener(ProcessAudioData);
+                    break;
             }
             recognizer?.Dispose();
         }

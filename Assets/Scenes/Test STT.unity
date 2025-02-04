@@ -583,7 +583,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1725725864}
-  - component: {fileID: 1725725863}
   - component: {fileID: 1725725865}
   m_Layer: 0
   m_Name: SpeechToText
@@ -592,25 +591,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1725725863
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1725725862}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0eccc69877f28314f87b510080977c18, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _silenceDuration: 300
-  _volumeHistoryTimeFrame: 5000
-  _deltaForSilenceThreshold: 10
-  _bitsPerSample: 16
-  _selectedLanguage: 0
-  _selectedMode: 1
-  _audioListener: {fileID: 1159565410}
 --- !u!4 &1725725864
 Transform:
   m_ObjectHideFlags: 0
@@ -635,10 +615,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 1725725862}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4b9f1d3e3677154f8bc3f70bbc467ad, type: 3}
+  m_Script: {fileID: 11500000, guid: 0eccc69877f28314f87b510080977c18, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _selectedMode: 1
   audioCapture: {fileID: 1159565414}
+  recordAudio: 1
+  fileName: recordedAudio
+  _silenceDuration: 300
+  _volumeHistoryTimeFrame: 5000
+  _deltaForSilenceThreshold: 10
+  _selectedLanguage: 1
+  OnSentenceComplete:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1923215666
 GameObject:
   m_ObjectHideFlags: 0
