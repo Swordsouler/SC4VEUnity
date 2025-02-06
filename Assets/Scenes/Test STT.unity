@@ -272,6 +272,9 @@ MonoBehaviour:
   OnAudioFilterReadEvent:
     m_PersistentCalls:
       m_Calls: []
+  OnAudioFilterReadWavEvent:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1346719382
 GameObject:
   m_ObjectHideFlags: 0
@@ -663,8 +666,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _recordingMode: 1
-  _audioCapture: {fileID: 1159565414}
   MicrophoneIndex: 0
+  _audioClip: {fileID: 8300000, guid: 8f076fee71db3764aa0cd4cee4b2f89e, type: 3}
   _minimumSpeakingSampleValue: 0.05
   _silenceTimer: 1
   _autoDetect: 0

@@ -21,7 +21,7 @@ public class VoskSpeechToText : MonoBehaviour
 
 	public VoiceProcessor VoiceProcessor;
 	[Tooltip("The Max number of alternatives that will be processed.")]
-	public int MaxAlternatives = 3;
+	public int MaxAlternatives = 1;
 
 	[Tooltip("How long should we record before restarting?")]
 	public float MaxRecordLength = 5;
@@ -43,7 +43,7 @@ public class VoskSpeechToText : MonoBehaviour
 	private bool _recognizerReady;
 
 	//Holds all of the audio data until the user stops talking.
-	private readonly List<short> _buffer = new List<short>();
+	private readonly List<short> _buffer = new();
 
 	//Called when the the state of the controller changes.
 	public Action<string> OnStatusUpdated;
@@ -291,6 +291,13 @@ public class VoskSpeechToText : MonoBehaviour
 	private void VoiceProcessorOnOnRecordingStop()
 	{
 		Debug.Log("Stopped");
+	}
+
+	private void OnDestroy()
+	{
+		VoiceProcessor.StopRecording();
+		VoiceProcessor.OnFrameCaptured -= VoiceProcessorOnOnFrameCaptured;
+		VoiceProcessor.OnRecordingStop -= VoiceProcessorOnOnRecordingStop;
 	}
 
 	//Feeds the autio logic into the vosk recorgnizer

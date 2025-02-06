@@ -1,5 +1,6 @@
 using UnityEngine;
 using TMPro;
+using System.Linq;
 
 public class VoskResultTMP : MonoBehaviour
 {
@@ -19,11 +20,12 @@ public class VoskResultTMP : MonoBehaviour
             if (result.Phrases[i].Text == "") continue;
             if (i > 0)
             {
-                ResultText.text += ", ";
+                ResultText.text += " |";
             }
 
             ResultText.text += result.Phrases[i].Text;
         }
-        ResultText.text += "\n";
+        if (!result.Phrases.All(p => p.Text == ""))
+            ResultText.text += "\n";
     }
 }

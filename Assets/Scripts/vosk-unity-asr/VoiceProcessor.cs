@@ -1,6 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using NAudio.Wave;
 using NaughtyAttributes;
 using Sven.Multimodality.Vocal;
 using UnityEngine;
@@ -8,7 +11,7 @@ using UnityEngine;
 public enum RecordingMode
 {
     Microphone,
-    Environment
+    AudioFile
 }
 
 public class VoiceProcessor : MonoBehaviour
@@ -17,15 +20,16 @@ public class VoiceProcessor : MonoBehaviour
     /// <summary>
     /// Indicates whether microphone is capturing or not
     /// </summary>
-    public bool IsRecording => (_recordingMode == RecordingMode.Microphone && _audioClip != null && Microphone.IsRecording(CurrentDeviceName)) || (_recordingMode == RecordingMode.Environment && _audioCapture != null && _audioCapture.OnAudioFilterReadEvent.GetPersistentEventCount() > 0);
+    public bool IsRecording => _audioClip != null && _recordCoroutine != null && ((_recordingMode == RecordingMode.Microphone && Microphone.IsRecording(CurrentDeviceName)) || _recordingMode == RecordingMode.AudioFile);
 
-    public bool IsEnvironmentMode => _recordingMode == RecordingMode.Environment;
+    public bool IsAudioFileMode => _recordingMode == RecordingMode.AudioFile;
     public bool IsMicrophoneMode => _recordingMode == RecordingMode.Microphone;
     #endregion
 
     [SerializeField] private RecordingMode _recordingMode;
-    [SerializeField, ShowIf("IsEnvironmentMode")] private AudioCapture _audioCapture;
+    //[SerializeField, ShowIf("IsAudioFileMode")] private AudioCapture _audioCapture;
     [SerializeField, ShowIf("IsMicrophoneMode")] private int MicrophoneIndex;
+    [SerializeField, ShowIf("IsAudioFileMode")] private AudioClip _audioClip;
 
     public int SampleRate { get; private set; }
     public int FrameLength { get; private set; }
@@ -60,7 +64,6 @@ public class VoiceProcessor : MonoBehaviour
     private bool _didDetect;
     private bool _transmit;
 
-    private AudioClip _audioClip;
     private event Action RestartRecording;
 
     void Awake()
@@ -129,13 +132,15 @@ public class VoiceProcessor : MonoBehaviour
         }
     }
 
+    private Coroutine _recordCoroutine;
+
     /// <summary>
     /// Start recording audio
     /// </summary>
     /// <param name="sampleRate">Sample rate to record at</param>
     /// <param name="frameSize">Size of audio frames to be delivered</param>
     /// <param name="autoDetect">Should the audio continuously record based on the volume</param>
-    public void StartRecording(int sampleRate = 16000, int frameSize = 512, bool? autoDetect = null)
+    public void StartRecording(int sampleRate = 0, int frameSize = 512, bool? autoDetect = null)
     {
         if (autoDetect != null)
         {
@@ -145,6 +150,7 @@ public class VoiceProcessor : MonoBehaviour
         switch (_recordingMode)
         {
             case RecordingMode.Microphone:
+                if (sampleRate == 0) sampleRate = 16000;
                 if (IsRecording)
                 {
                     // if sample rate or frame size have changed, restart recording
@@ -157,17 +163,15 @@ public class VoiceProcessor : MonoBehaviour
                         };
                         StopRecording();
                     }
-
                     return;
                 }
                 SampleRate = sampleRate;
                 FrameLength = frameSize;
-
                 _audioClip = Microphone.Start(CurrentDeviceName, true, 1, sampleRate);
-                StartCoroutine(RecordMicrophoneData());
+                _recordCoroutine = StartCoroutine(RecordMicrophoneData());
                 break;
-            case RecordingMode.Environment:
-                if (_audioCapture != null) _audioCapture.OnAudioFilterReadEvent.AddListener(ProcessAudioData);
+            case RecordingMode.AudioFile:
+                _recordCoroutine = StartCoroutine(RecordMicrophoneData());
                 break;
         }
     }
@@ -187,12 +191,34 @@ public class VoiceProcessor : MonoBehaviour
                 _audioClip = null;
                 _didDetect = false;
 
-                StopCoroutine(RecordMicrophoneData());
+                if (_recordCoroutine != null) StopCoroutine(RecordMicrophoneData());
                 break;
-            case RecordingMode.Environment:
-                if (_audioCapture != null) _audioCapture.OnAudioFilterReadEvent.RemoveListener(ProcessAudioData);
+            case RecordingMode.AudioFile:
+                Microphone.End(null);
+                _audioClip = null;
+                _didDetect = false;
+
+                if (_recordCoroutine != null) StopCoroutine(RecordMicrophoneData());
                 break;
         }
+    }
+
+    private byte[] GetAudioClipData(AudioClip clip)
+    {
+        // Get the audio samples from the AudioClip
+        float[] samples = new float[clip.samples * clip.channels];
+        clip.GetData(samples, 0);
+
+        // Convert the float samples to byte data
+        byte[] data = new byte[samples.Length * 2];
+        for (int i = 0; i < samples.Length; i++)
+        {
+            short sample = (short)(samples[i] * short.MaxValue);
+            data[i * 2] = (byte)(sample & 0xFF);
+            data[i * 2 + 1] = (byte)((sample >> 8) & 0xFF);
+        }
+
+        return data;
     }
 
     /// <summary>
@@ -204,6 +230,7 @@ public class VoiceProcessor : MonoBehaviour
         int startReadPos = 0;
 
         OnRecordingStart?.Invoke();
+        Debug.Log("Recording started");
 
         while (IsRecording)
         {
@@ -212,6 +239,8 @@ public class VoiceProcessor : MonoBehaviour
                 curClipPos += _audioClip.samples;
 
             int samplesAvailable = curClipPos - startReadPos;
+            Debug.Log($"Current clip position: {curClipPos}, Start read position: {startReadPos}, Samples available: {samplesAvailable}");
+
             if (samplesAvailable < FrameLength)
             {
                 yield return null;
@@ -235,23 +264,79 @@ public class VoiceProcessor : MonoBehaviour
                 // combine to form full frame
                 Buffer.BlockCopy(endClipSamples, 0, sampleBuffer, 0, numSamplesClipEnd);
                 Buffer.BlockCopy(startClipSamples, 0, sampleBuffer, numSamplesClipEnd, numSamplesClipStart);
+
+                Debug.Log($"Fragmented read: numSamplesClipEnd: {numSamplesClipEnd}, numSamplesClipStart: {numSamplesClipStart}");
             }
             else
             {
                 _audioClip.GetData(sampleBuffer, startReadPos);
+                Debug.Log($"Normal read: startReadPos: {startReadPos}, endReadPos: {endReadPos}");
             }
             startReadPos = endReadPos % _audioClip.samples;
 
+            Debug.Log($"Processing buffer, first 10 samples: {string.Join(", ", sampleBuffer.Take(10))}");
             ProcessAudioBuffer(sampleBuffer);
         }
 
         OnRecordingStop?.Invoke();
         RestartRecording?.Invoke();
+        Debug.Log("Recording stopped");
     }
 
-    private void ProcessAudioData(float[] data, int channels)
+    private void SaveWavFile(string filePath, byte[] data)
     {
-        ProcessAudioBuffer(data);
+        using var fileStream = new FileStream(filePath, FileMode.Create);
+        using var writer = new BinaryWriter(fileStream);
+        // Write WAV header
+        writer.Write(new char[4] { 'R', 'I', 'F', 'F' });
+        writer.Write(36 + data.Length);
+        writer.Write(new char[4] { 'W', 'A', 'V', 'E' });
+        writer.Write(new char[4] { 'f', 'm', 't', ' ' });
+        writer.Write(16);
+        writer.Write((short)1);
+        writer.Write((short)1);
+        writer.Write(16000);
+        writer.Write(16000 * 2);
+        writer.Write((short)2);
+        writer.Write((short)16);
+        writer.Write(new char[4] { 'd', 'a', 't', 'a' });
+        writer.Write(data.Length);
+        writer.Write(data);
+
+        Debug.Log("WAV file saved to " + filePath);
+    }
+
+
+    private void ProcessAudioData(byte[] data)
+    {
+
+
+
+        //ProcessAudioBuffer(data.Select(b => (float)b / byte.MaxValue).ToArray());
+
+        /*
+        // Split data into frames of length FrameLength
+        int dataLength = data.Length;
+        int numFrames = dataLength / FrameLength;
+        //Debug.Log($"ProcessAudioData called with dataLength: {dataLength}, FrameLength: {FrameLength}, numFrames: {numFrames}");
+
+        for (int i = 0; i < numFrames; i++)
+        {
+            float[] frame = new float[FrameLength];
+            Array.Copy(data, i * FrameLength, frame, 0, FrameLength);
+            //Debug.Log($"Processing frame {i + 1}/{numFrames}, first 10 samples: {string.Join(", ", frame.Take(10))}");
+            ProcessAudioBuffer(frame);
+        }
+
+        // Process any remaining data
+        int remainingDataLength = dataLength % FrameLength;
+        if (remainingDataLength > 0)
+        {
+            float[] remainingData = new float[remainingDataLength];
+            Array.Copy(data, numFrames * FrameLength, remainingData, 0, remainingDataLength);
+            //Debug.Log($"Processing remaining data, length: {remainingDataLength}, first 10 samples: {string.Join(", ", remainingData.Take(10))}");
+            ProcessAudioBuffer(remainingData);
+        }*/
     }
 
     private void ProcessAudioBuffer(float[] buffer)
@@ -288,6 +373,7 @@ public class VoiceProcessor : MonoBehaviour
             }
         }
 
+        //Debug.Log(_audioDetected + " " + _transmit);
         if (_audioDetected)
         {
             _didDetect = true;
@@ -300,7 +386,11 @@ public class VoiceProcessor : MonoBehaviour
 
             // raise buffer event
             if (OnFrameCaptured != null && _transmit)
+            {
+                // 10 first samples of the buffer
+                //Debug.Log("First 10 samples: " + string.Join(", ", new List<short>(pcmBuffer).GetRange(0, 10).ConvertAll(i => i.ToString()).ToArray()));
                 OnFrameCaptured.Invoke(pcmBuffer);
+            }
         }
         else
         {
