@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "SVENMultimodality.sln"
+    "dotnet.defaultSolution": "SVENMultimodailty.sln"
 }
