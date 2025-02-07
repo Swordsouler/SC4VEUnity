@@ -131,7 +131,6 @@ GameObject:
   - component: {fileID: 1159565411}
   - component: {fileID: 1159565410}
   - component: {fileID: 1159565413}
-  - component: {fileID: 1159565414}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -257,24 +256,6 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
---- !u!114 &1159565414
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1159565409}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 501d8e6aea20e924bbe7948dfb9fb5e1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  OnAudioFilterReadEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  OnAudioFilterReadWavEvent:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!1 &1346719382
 GameObject:
   m_ObjectHideFlags: 0
@@ -586,7 +567,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1725725864}
-  - component: {fileID: 1725725865}
   - component: {fileID: 1725725866}
   - component: {fileID: 1725725867}
   - component: {fileID: 1725725868}
@@ -612,29 +592,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1725725865
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1725725862}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0eccc69877f28314f87b510080977c18, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _selectedMode: 1
-  audioCapture: {fileID: 1159565414}
-  recordAudio: 1
-  fileName: recordedAudio
-  _silenceDuration: 300
-  _volumeHistoryTimeFrame: 5000
-  _deltaForSilenceThreshold: 10
-  _selectedLanguage: 1
-  OnSentenceComplete:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!114 &1725725866
 MonoBehaviour:
   m_ObjectHideFlags: 0
