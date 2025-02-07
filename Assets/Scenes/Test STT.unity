@@ -665,7 +665,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eda5858f3b62741449fdea2714381af9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _recordingMode: 0
+  _recordingMode: 1
   MicrophoneIndex: 0
   _audioClip: {fileID: 8300000, guid: 63d28632e7daff34abe5b80951af5206, type: 3}
   _minimumSpeakingSampleValue: 0.05

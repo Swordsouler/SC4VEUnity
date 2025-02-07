@@ -249,7 +249,7 @@ public class VoiceProcessor : MonoBehaviour
         int startReadPos = 0;
 
         OnRecordingStart?.Invoke();
-        Debug.Log("Recording started");
+        //Debug.Log("Recording started");
 
         while (IsRecording)
         {
@@ -258,7 +258,7 @@ public class VoiceProcessor : MonoBehaviour
                 curClipPos += _audioClip.samples;
 
             int samplesAvailable = curClipPos - startReadPos;
-            Debug.Log($"Current clip position: {curClipPos}, Start read position: {startReadPos}, Samples available: {samplesAvailable}");
+            //Debug.Log($"Current clip position: {curClipPos}, Start read position: {startReadPos}, Samples available: {samplesAvailable}");
 
             if (samplesAvailable < FrameLength)
             {
@@ -284,22 +284,22 @@ public class VoiceProcessor : MonoBehaviour
                 Buffer.BlockCopy(endClipSamples, 0, sampleBuffer, 0, numSamplesClipEnd);
                 Buffer.BlockCopy(startClipSamples, 0, sampleBuffer, numSamplesClipEnd, numSamplesClipStart);
 
-                Debug.Log($"Fragmented read: numSamplesClipEnd: {numSamplesClipEnd}, numSamplesClipStart: {numSamplesClipStart}");
+                //Debug.Log($"Fragmented read: numSamplesClipEnd: {numSamplesClipEnd}, numSamplesClipStart: {numSamplesClipStart}");
             }
             else
             {
                 _audioClip.GetData(sampleBuffer, startReadPos);
-                Debug.Log($"Normal read: startReadPos: {startReadPos}, endReadPos: {endReadPos}");
+                //Debug.Log($"Normal read: startReadPos: {startReadPos}, endReadPos: {endReadPos}");
             }
             startReadPos = endReadPos % _audioClip.samples;
 
-            Debug.Log($"Processing buffer, first 10 samples: {string.Join(", ", sampleBuffer.Take(10))}");
+            //Debug.Log($"Processing buffer, first 10 samples: {string.Join(", ", sampleBuffer.Take(10))}");
             ProcessAudioBuffer(sampleBuffer);
         }
 
         OnRecordingStop?.Invoke();
         RestartRecording?.Invoke();
-        Debug.Log("Recording stopped");
+        //Debug.Log("Recording stopped");
     }
 
     /// <summary>
@@ -313,7 +313,7 @@ public class VoiceProcessor : MonoBehaviour
         float startTime = Time.time;
 
         OnRecordingStart?.Invoke();
-        Debug.Log("Recording started");
+        //Debug.Log("Recording started");
         PlayAudioFile();
 
         while (IsRecording)
@@ -321,7 +321,7 @@ public class VoiceProcessor : MonoBehaviour
             float elapsedTime = Time.time - startTime;
             int curClipPos = Mathf.FloorToInt(elapsedTime / clipLength * _audioClip.samples);
             int samplesAvailable = curClipPos - startReadPos;
-            Debug.Log($"Elapsed time: {elapsedTime}, Current clip position: {curClipPos}, Start read position: {startReadPos}, Samples available: {samplesAvailable}");
+            //Debug.Log($"Elapsed time: {elapsedTime}, Current clip position: {curClipPos}, Start read position: {startReadPos}, Samples available: {samplesAvailable}");
 
             if (samplesAvailable < FrameLength)
             {
@@ -347,22 +347,22 @@ public class VoiceProcessor : MonoBehaviour
                 Buffer.BlockCopy(endClipSamples, 0, sampleBuffer, 0, numSamplesClipEnd);
                 Buffer.BlockCopy(startClipSamples, 0, sampleBuffer, numSamplesClipEnd, numSamplesClipStart);
 
-                Debug.Log($"Fragmented read: numSamplesClipEnd: {numSamplesClipEnd}, numSamplesClipStart: {numSamplesClipStart}");
+                //Debug.Log($"Fragmented read: numSamplesClipEnd: {numSamplesClipEnd}, numSamplesClipStart: {numSamplesClipStart}");
             }
             else
             {
                 _audioClip.GetData(sampleBuffer, startReadPos);
-                Debug.Log($"Normal read: startReadPos: {startReadPos}, endReadPos: {endReadPos}");
+                //Debug.Log($"Normal read: startReadPos: {startReadPos}, endReadPos: {endReadPos}");
             }
             startReadPos = endReadPos % _audioClip.samples;
 
-            Debug.Log($"Processing buffer, first 10 samples: {string.Join(", ", sampleBuffer.Take(10))}");
+            //Debug.Log($"Processing buffer, first 10 samples: {string.Join(", ", sampleBuffer.Take(10))}");
             ProcessAudioBuffer(sampleBuffer);
 
             // Check if the end of the clip has been reached
             if (curClipPos >= _audioClip.samples)
             {
-                Debug.Log("End of audio clip reached");
+                //Debug.Log("End of audio clip reached");
                 break;
             }
         }
@@ -370,7 +370,7 @@ public class VoiceProcessor : MonoBehaviour
         StopRecording();
         OnRecordingStop?.Invoke();
         RestartRecording?.Invoke();
-        Debug.Log("Recording stopped");
+        //Debug.Log("Recording stopped");
     }
 
     /// <summary>
