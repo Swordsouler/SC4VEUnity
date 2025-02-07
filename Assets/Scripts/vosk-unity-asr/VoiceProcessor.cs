@@ -240,24 +240,6 @@ public class VoiceProcessor : MonoBehaviour
         }
     }
 
-    private byte[] GetAudioClipData(AudioClip clip)
-    {
-        // Get the audio samples from the AudioClip
-        float[] samples = new float[clip.samples * clip.channels];
-        clip.GetData(samples, 0);
-
-        // Convert the float samples to byte data
-        byte[] data = new byte[samples.Length * 2];
-        for (int i = 0; i < samples.Length; i++)
-        {
-            short sample = (short)(samples[i] * short.MaxValue);
-            data[i * 2] = (byte)(sample & 0xFF);
-            data[i * 2 + 1] = (byte)((sample >> 8) & 0xFF);
-        }
-
-        return data;
-    }
-
     /// <summary>
     /// Loop for buffering incoming audio data and delivering frames of microphone data
     /// </summary>
@@ -391,58 +373,10 @@ public class VoiceProcessor : MonoBehaviour
         Debug.Log("Recording stopped");
     }
 
-    private void SaveWavFile(string filePath, byte[] data)
-    {
-        using var fileStream = new FileStream(filePath, FileMode.Create);
-        using var writer = new BinaryWriter(fileStream);
-        // Write WAV header
-        writer.Write(new char[4] { 'R', 'I', 'F', 'F' });
-        writer.Write(36 + data.Length);
-        writer.Write(new char[4] { 'W', 'A', 'V', 'E' });
-        writer.Write(new char[4] { 'f', 'm', 't', ' ' });
-        writer.Write(16);
-        writer.Write((short)1);
-        writer.Write((short)1);
-        writer.Write(16000);
-        writer.Write(16000 * 2);
-        writer.Write((short)2);
-        writer.Write((short)16);
-        writer.Write(new char[4] { 'd', 'a', 't', 'a' });
-        writer.Write(data.Length);
-        writer.Write(data);
-
-        Debug.Log("WAV file saved to " + filePath);
-    }
-
-    private void ProcessAudioData(byte[] data)
-    {
-        //ProcessAudioBuffer(data.Select(b => (float)b / byte.MaxValue).ToArray());
-
-        /*
-        // Split data into frames of length FrameLength
-        int dataLength = data.Length;
-        int numFrames = dataLength / FrameLength;
-        //Debug.Log($"ProcessAudioData called with dataLength: {dataLength}, FrameLength: {FrameLength}, numFrames: {numFrames}");
-
-        for (int i = 0; i < numFrames; i++)
-        {
-            float[] frame = new float[FrameLength];
-            Array.Copy(data, i * FrameLength, frame, 0, FrameLength);
-            //Debug.Log($"Processing frame {i + 1}/{numFrames}, first 10 samples: {string.Join(", ", frame.Take(10))}");
-            ProcessAudioBuffer(frame);
-        }
-
-        // Process any remaining data
-        int remainingDataLength = dataLength % FrameLength;
-        if (remainingDataLength > 0)
-        {
-            float[] remainingData = new float[remainingDataLength];
-            Array.Copy(data, numFrames * FrameLength, remainingData, 0, remainingDataLength);
-            //Debug.Log($"Processing remaining data, length: {remainingDataLength}, first 10 samples: {string.Join(", ", remainingData.Take(10))}");
-            ProcessAudioBuffer(remainingData);
-        }*/
-    }
-
+    /// <summary>
+    /// Process audio buffer and raise event for frame captured
+    /// </summary>
+    /// <param name="buffer">Audio buffer to process</param>
     private void ProcessAudioBuffer(float[] buffer)
     {
         if (_autoDetect == false)
@@ -523,6 +457,34 @@ public class VoiceProcessor : MonoBehaviour
         {
             Debug.LogError("No audio clip available to play");
         }
+    }
+
+    /// <summary>
+    /// Save a WAV file to disk
+    /// </summary>
+    /// <param name="filePath">Path to save the WAV file </param>
+    /// <param name="data">Audio data to save </param>
+    private void SaveWavFile(string filePath, byte[] data)
+    {
+        using var fileStream = new FileStream(filePath, FileMode.Create);
+        using var writer = new BinaryWriter(fileStream);
+        // Write WAV header
+        writer.Write(new char[4] { 'R', 'I', 'F', 'F' });
+        writer.Write(36 + data.Length);
+        writer.Write(new char[4] { 'W', 'A', 'V', 'E' });
+        writer.Write(new char[4] { 'f', 'm', 't', ' ' });
+        writer.Write(16);
+        writer.Write((short)1);
+        writer.Write((short)1);
+        writer.Write(16000);
+        writer.Write(16000 * 2);
+        writer.Write((short)2);
+        writer.Write((short)16);
+        writer.Write(new char[4] { 'd', 'a', 't', 'a' });
+        writer.Write(data.Length);
+        writer.Write(data);
+
+        Debug.Log("WAV file saved to " + filePath);
     }
 
     /// <summary>
