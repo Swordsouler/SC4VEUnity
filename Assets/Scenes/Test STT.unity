@@ -367,7 +367,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1397787987}
-  - component: {fileID: 1397787986}
+  - component: {fileID: 1397787988}
+  - component: {fileID: 1397787989}
   m_Layer: 0
   m_Name: PartOfSpeech
   m_TagString: Untagged
@@ -375,20 +376,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1397787986
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1397787985}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8bf8bdb4b2d15514194dec076ebaeffc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ModelPath: "P:\\Th\xE8se\\SVENMultimodality\\Assets\\StreamingAssets\\Models\\opennlp-en-ud-ewt-pos-1.2-2.5.0.bin"
-  text: Your text here
 --- !u!4 &1397787987
 Transform:
   m_ObjectHideFlags: 0
@@ -404,6 +391,65 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1397787988
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1397787985}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd6cc2e7a6e781447a13ceb477deb0d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tokenizerModel: Models/EnglishTok.nbin
+  posTaggerModel: Models/Parser/output.nbin
+  tagDict: Models/Parser/tagdict
+  sentence: "Ceci est une phrase qui va \xEAtre trait\xE9 en anglais. Elle \xE9tait
+    bien \xE9crite."
+  tokens:
+  - Ceci
+  - est
+  - une
+  - phrase
+  - qui
+  - va
+  - "\xEA"
+  - tre
+  - "trait\xE9"
+  - en
+  - anglais
+  - .
+  posTags:
+  - DT
+  - VBZ
+  - DT
+  - NN
+  - WDT
+  - VB
+  - VB
+  - VB
+  - VBN
+  - IN
+  - .
+  - .
+--- !u!114 &1397787989
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1397787985}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a7e9a5dd2bb84d4e94e169fa1cd663c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  trainingFile: fr-pos-training.txt
+  iterations: 5
+  cut: 2
+  outputFilePath: Models/Parser/output.nbin
 --- !u!1 &1676126961
 GameObject:
   m_ObjectHideFlags: 0
@@ -650,7 +696,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad9dac0bb99777244b1e26b52c3d27fc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ModelPath: "P:\\Th\xE8se\\SVENMultimodailty\\Assets\\StreamingAssets\\Models\\vosk-model-small-fr-0.22.zip"
+  ModelPath: P:\SVENMultimodailty\Assets\StreamingAssets\Models\vosk-model-small-fr-0.22.zip
   VoiceProcessor: {fileID: 1725725867}
   MaxAlternatives: 1
   MaxRecordLength: 5
@@ -668,7 +714,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eda5858f3b62741449fdea2714381af9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _recordingMode: 0
+  _recordingMode: 1
   MicrophoneIndex: 0
   _audioClip: {fileID: 8300000, guid: 63d28632e7daff34abe5b80951af5206, type: 3}
   _minimumSpeakingSampleValue: 0.05

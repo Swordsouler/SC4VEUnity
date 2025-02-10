@@ -1,0 +1,1 @@
+Ceci_DT est_VBZ une_DT phrase_NN qui_WDT va_VB être_VB traité_VBN en_IN anglais_NN ._.
