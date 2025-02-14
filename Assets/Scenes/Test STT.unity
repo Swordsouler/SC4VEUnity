@@ -421,6 +421,11 @@ MonoBehaviour:
   - en
   - anglais
   - .
+  - Elle
+  - "\xE9tait"
+  - bien
+  - "\xE9crite"
+  - .
   posTags:
   - DT
   - VBZ
@@ -433,6 +438,11 @@ MonoBehaviour:
   - VBN
   - IN
   - .
+  - .
+  - VB
+  - VB
+  - VBN
+  - VBN
   - .
 --- !u!114 &1397787989
 MonoBehaviour:
