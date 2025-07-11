@@ -1,0 +1,28 @@
+{
+  "Sven.Command.ColorizeCommand": {
+    "TriggerWords": [
+      "dd"
+    ]
+  },
+  "Sven.Command.MoveCommand": {
+    "TriggerWords": []
+  },
+  "Sven.Command.SelectCommand": {
+    "TriggerWords": [
+      "choose",
+      "sélection",
+      "sélectionne",
+      "sélectionner",
+      "select"
+    ]
+  },
+  "Sven.Command.UnselectCommand": {
+    "TriggerWords": [
+      "désélectionne",
+      "désélectionner",
+      "unselect",
+      "unchoose",
+      "désélection"
+    ]
+  }
+}

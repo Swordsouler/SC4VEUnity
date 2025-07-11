@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
-    "com.nsaintl.sven": "https://gitlab.lisn.upsaclay.fr/nsaintl/SVENUnity.git#upm",
+    "com.nsaintl.sven": "https://github.com/Swordsouler/SVENUnity.git#upm",
     "com.unity.collab-proxy": "2.6.0",
     "com.unity.feature.development": "1.0.2",
     "com.unity.inputsystem": "1.11.2",

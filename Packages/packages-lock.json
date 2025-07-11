@@ -22,14 +22,14 @@
       "hash": "46e771daa4b2b00db9bd7356ab3c8874c9d83cb4"
     },
     "com.nsaintl.sven": {
-      "version": "https://gitlab.lisn.upsaclay.fr/nsaintl/SVENUnity.git#upm",
+      "version": "https://github.com/Swordsouler/SVENUnity.git#upm",
       "depth": 0,
       "source": "git",
       "dependencies": {
         "com.dbrizov.naughtyattributes": "2.1.4",
         "com.gamesoft.dotween": "1.0.0"
       },
-      "hash": "ac6cafab6ad4b8574712a6ee31eddc9b5307b142"
+      "hash": "da9d630b0caed4bca8003c2795ee06267e44bd47"
     },
     "com.unity.burst": {
       "version": "1.8.18",
