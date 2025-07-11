@@ -1,0 +1,50 @@
+{
+  "Commands": {
+    "Sven.Command.ColorizeCommand": {
+      "TriggerWords": [
+        "colorie",
+        "colorier",
+        "colorize"
+      ]
+    },
+    "Sven.Command.AnnotationFilter": {
+      "TriggerWords": []
+    },
+    "Sven.Command.ColorFilter": {
+      "TriggerWords": []
+    },
+    "Sven.Command.PointerFilter": {
+      "TriggerWords": [
+        "test"
+      ]
+    },
+    "Sven.Command.PointOfViewFilter": {
+      "TriggerWords": []
+    },
+    "Sven.Command.MoveCommand": {
+      "TriggerWords": [
+        "déplace",
+        "déplacer",
+        "move"
+      ]
+    },
+    "Sven.Command.SelectCommand": {
+      "TriggerWords": [
+        "choose",
+        "sélection",
+        "sélectionne",
+        "sélectionner",
+        "select"
+      ]
+    },
+    "Sven.Command.UnselectCommand": {
+      "TriggerWords": [
+        "désélectionne",
+        "désélectionner",
+        "unselect",
+        "unchoose",
+        "désélection"
+      ]
+    }
+  }
+}
