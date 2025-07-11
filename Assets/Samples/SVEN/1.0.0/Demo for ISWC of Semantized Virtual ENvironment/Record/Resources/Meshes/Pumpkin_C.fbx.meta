@@ -1,23 +1,12 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:Assets/Resources/Meshes/Apple.fbx.meta
-guid: b0a9744a3a917f9499f4db4494901e15
-AssetOrigin:
-  serializedVersion: 1
-  productId: 284706
-  packageName: 'Match 3d Object Pack: Fruits & Vegetables'
-  packageVersion: 1.0
-  assetPath: Assets/ThreeBox/Match3D Object Pack - Fruits and Vegetables/Resources/Models/Fruits/Apple.fbx
-  uploadId: 666935
-========
-guid: 3a3c9c2dcac747343ac7e6a0b74afd10
+guid: f8030817bafa700479c598087e6c3d09
 AssetOrigin:
   serializedVersion: 1
   productId: 235573
   packageName: Halloween Pack | Cemetery Snap
   packageVersion: 1.0
-  assetPath: Assets/Halloween Pack-Cemetery Snap/FBX/Broom.fbx
+  assetPath: Assets/Halloween Pack-Cemetery Snap/FBX/Pumpkin_C.fbx
   uploadId: 533907
->>>>>>>> 57f9aece390296cb6c80fcf0e31753c710d29c11:Assets/Samples/SVEN/1.0.0/Demo for ISWC of Semantized Virtual ENvironment/Record/Resources/Meshes/Broom.fbx.meta
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -51,7 +40,7 @@ ModelImporter:
     isReadable: 1
   meshes:
     lODScreenPercentages: []
-    globalScale: 100
+    globalScale: 1
     meshCompression: 0
     addColliders: 0
     useSRGBMaterialColor: 1
@@ -106,7 +95,7 @@ ModelImporter:
     armStretch: 0.05
     legStretch: 0.05
     feetSpacing: 0
-    globalScale: 100
+    globalScale: 1
     rootMotionBoneName: 
     hasTranslationDoF: 0
     hasExtraRoot: 0

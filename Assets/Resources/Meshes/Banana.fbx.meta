@@ -1,4 +1,5 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Resources/Meshes/Banana.fbx.meta
 guid: 1922faa967875d5408fcd6048351a339
 AssetOrigin:
   serializedVersion: 1
@@ -7,12 +8,22 @@ AssetOrigin:
   packageVersion: 1.0
   assetPath: Assets/ThreeBox/Match3D Object Pack - Fruits and Vegetables/Resources/Models/Fruits/Banana.fbx
   uploadId: 666935
+========
+guid: df7c5548e3a58cc488015621519d63fb
+AssetOrigin:
+  serializedVersion: 1
+  productId: 235573
+  packageName: Halloween Pack | Cemetery Snap
+  packageVersion: 1.0
+  assetPath: Assets/Halloween Pack-Cemetery Snap/FBX/Rock_A.fbx
+  uploadId: 533907
+>>>>>>>> 57f9aece390296cb6c80fcf0e31753c710d29c11:Assets/Samples/SVEN/1.0.0/Demo for ISWC of Semantized Virtual ENvironment/Record/Resources/Meshes/Rock_A.fbx.meta
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
   externalObjects: {}
   materials:
-    materialImportMode: 2
+    materialImportMode: 0
     materialName: 0
     materialSearch: 1
     materialLocation: 1
@@ -46,14 +57,14 @@ ModelImporter:
     useSRGBMaterialColor: 1
     sortHierarchyByName: 1
     importPhysicalCameras: 1
-    importVisibility: 1
-    importBlendShapes: 1
-    importCameras: 1
-    importLights: 1
+    importVisibility: 0
+    importBlendShapes: 0
+    importCameras: 0
+    importLights: 0
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
-    generateSecondaryUV: 0
+    generateSecondaryUV: 1
     useFileUnits: 1
     keepQuads: 0
     weldVertices: 1
@@ -83,7 +94,7 @@ ModelImporter:
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
   referencedClips: []
-  importAnimation: 1
+  importAnimation: 0
   humanDescription:
     serializedVersion: 3
     human: []
@@ -102,7 +113,7 @@ ModelImporter:
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   autoGenerateAvatarMappingIfUnspecified: 1
-  animationType: 2
+  animationType: 0
   humanoidOversampling: 1
   avatarSetup: 0
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
