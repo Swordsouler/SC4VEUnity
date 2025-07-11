@@ -12,6 +12,7 @@ namespace Sven.Command
     public class MultimodalitySettingsWindow : EditorWindow
     {
         private readonly Dictionary<Type, CommandSettings> commandSettings = new();
+        private readonly Dictionary<Type, CommandSettings> filterSettings = new();
         private readonly List<Type> commandTypes = new();
 
         private int selectedMainTab = 0;
@@ -37,8 +38,16 @@ namespace Sven.Command
         {
             DrawMainTabs();
             List<Type> filteredTypes = GetFilteredCommandTypes();
-            DrawCommandTabs(filteredTypes);
-            DrawSettingsTabs(filteredTypes, commandSettings, ref selectedCommandTab);
+            if (selectedMainTab == 0)
+            {
+                DrawCommandTabs(filteredTypes);
+                DrawSettingsTabs(filteredTypes, filterSettings, ref selectedCommandTab);
+            }
+            else
+            {
+                DrawCommandTabs(filteredTypes);
+                DrawSettingsTabs(filteredTypes, commandSettings, ref selectedCommandTab);
+            }
         }
 
         private void DrawMainTabs()
@@ -280,16 +289,31 @@ namespace Sven.Command
 
                 foreach (var type in commandTypes)
                 {
-                    if (allSettings != null && allSettings.Commands.TryGetValue(type.FullName, out var loaded))
-                        commandSettings[type] = loaded;
+                    if (typeof(QueryFilter).IsAssignableFrom(type))
+                    {
+                        if (allSettings != null && allSettings.Filters.TryGetValue(type.FullName, out var loadedFilter))
+                            filterSettings[type] = loadedFilter;
+                        else
+                            filterSettings[type] = new CommandSettings();
+                    }
                     else
-                        commandSettings[type] = new CommandSettings();
+                    {
+                        if (allSettings != null && allSettings.Commands.TryGetValue(type.FullName, out var loadedCommand))
+                            commandSettings[type] = loadedCommand;
+                        else
+                            commandSettings[type] = new CommandSettings();
+                    }
                 }
             }
             else
             {
                 foreach (var type in commandTypes)
-                    commandSettings[type] = new CommandSettings();
+                {
+                    if (typeof(QueryFilter).IsAssignableFrom(type))
+                        filterSettings[type] = new CommandSettings();
+                    else
+                        commandSettings[type] = new CommandSettings();
+                }
             }
         }
 
@@ -304,6 +328,15 @@ namespace Sven.Command
                     TriggerWords = kvp.Value.TriggerWords.FindAll(w => !string.IsNullOrWhiteSpace(w))
                 };
                 allSettings.Commands[kvp.Key.FullName] = filtered;
+            }
+
+            foreach (var kvp in filterSettings)
+            {
+                var filtered = new CommandSettings
+                {
+                    TriggerWords = kvp.Value.TriggerWords.FindAll(w => !string.IsNullOrWhiteSpace(w))
+                };
+                allSettings.Filters[kvp.Key.FullName] = filtered;
             }
 
             string dir = Path.Combine(Application.streamingAssetsPath, "Multimodality");
@@ -351,6 +384,7 @@ namespace Sven.Command
     public class AllSettings
     {
         public Dictionary<string, CommandSettings> Commands { get; set; } = new();
+        public Dictionary<string, CommandSettings> Filters { get; set; } = new();
     }
 }
 #endif

@@ -7,20 +7,6 @@
         "colorize"
       ]
     },
-    "Sven.Command.AnnotationFilter": {
-      "TriggerWords": []
-    },
-    "Sven.Command.ColorFilter": {
-      "TriggerWords": []
-    },
-    "Sven.Command.PointerFilter": {
-      "TriggerWords": [
-        "test"
-      ]
-    },
-    "Sven.Command.PointOfViewFilter": {
-      "TriggerWords": []
-    },
     "Sven.Command.MoveCommand": {
       "TriggerWords": [
         "déplace",
@@ -45,6 +31,22 @@
         "unchoose",
         "désélection"
       ]
+    }
+  },
+  "Filters": {
+    "Sven.Command.AnnotationFilter": {
+      "TriggerWords": [
+        "test"
+      ]
+    },
+    "Sven.Command.ColorFilter": {
+      "TriggerWords": []
+    },
+    "Sven.Command.PointerFilter": {
+      "TriggerWords": []
+    },
+    "Sven.Command.PointOfViewFilter": {
+      "TriggerWords": []
     }
   }
 }
