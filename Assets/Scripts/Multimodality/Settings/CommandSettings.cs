@@ -112,7 +112,7 @@ namespace Sven.Command
                 }
                 else
                 {
-                    TriggerWords.Add(trimmed);
+                    TriggerWords.Add(trimmed.ToLower());
                     _duplicateError = "";
                     window.SaveSettings();
                 }

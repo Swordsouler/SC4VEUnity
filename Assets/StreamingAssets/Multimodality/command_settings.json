@@ -63,9 +63,10 @@
         "$values": [
           {
             "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-            "RedThreshold": 1.0,
-            "GreenThreshold": 0.0,
-            "BlueThreshold": 0.0,
+            "Red": 0.8,
+            "Green": 0.2,
+            "Blue": 0.2,
+            "Tolerance": 0.2,
             "TriggerWords": {
               "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
               "$values": [
@@ -76,14 +77,71 @@
           },
           {
             "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-            "RedThreshold": 0.0,
-            "GreenThreshold": 1.0,
-            "BlueThreshold": 0.0,
+            "Red": 0.2,
+            "Green": 0.8,
+            "Blue": 0.2,
+            "Tolerance": 0.2,
             "TriggerWords": {
               "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
               "$values": [
                 "vert",
                 "green"
+              ]
+            }
+          },
+          {
+            "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+            "Red": 0.2,
+            "Green": 0.2,
+            "Blue": 0.8,
+            "Tolerance": 0.2,
+            "TriggerWords": {
+              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+              "$values": [
+                "bleu",
+                "blue"
+              ]
+            }
+          },
+          {
+            "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+            "Red": 0.8,
+            "Green": 0.8,
+            "Blue": 0.2,
+            "Tolerance": 0.2,
+            "TriggerWords": {
+              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+              "$values": [
+                "jaune",
+                "yellow"
+              ]
+            }
+          },
+          {
+            "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+            "Red": 0.8,
+            "Green": 0.2,
+            "Blue": 0.8,
+            "Tolerance": 0.25,
+            "TriggerWords": {
+              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+              "$values": [
+                "rose",
+                "pink"
+              ]
+            }
+          },
+          {
+            "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+            "Red": 0.2,
+            "Green": 0.8,
+            "Blue": 0.8,
+            "Tolerance": 0.2,
+            "TriggerWords": {
+              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+              "$values": [
+                "cyan",
+                "teal"
               ]
             }
           }

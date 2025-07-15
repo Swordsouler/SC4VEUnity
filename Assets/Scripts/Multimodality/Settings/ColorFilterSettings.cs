@@ -19,13 +19,6 @@ namespace Sven.Command
 
             EditorGUILayout.LabelField("Color filter entries", EditorStyles.boldLabel);
 
-            // Add new entry
-            if (GUILayout.Button("Add color"))
-            {
-                Entries.Add(new ColorFilterEntry());
-                window.SaveSettings();
-            }
-
             EditorGUILayout.Space();
 
             // Avant la boucle for
@@ -38,27 +31,25 @@ namespace Sven.Command
             for (int i = 0; i < Entries.Count; i++)
             {
                 var entry = Entries[i];
+
+                Rect boxRect = EditorGUILayout.BeginVertical();
                 EditorGUILayout.BeginHorizontal("box");
 
                 EditorGUILayout.BeginVertical();
 
                 // RGB sliders
-                float oldR = entry.RedThreshold;
-                float oldG = entry.GreenThreshold;
-                float oldB = entry.BlueThreshold;
+                EditorGUI.BeginChangeCheck();
+                entry.Red = EditorGUILayout.Slider("Red", entry.Red, 0f, 1f);
+                entry.Green = EditorGUILayout.Slider("Green", entry.Green, 0f, 1f);
+                entry.Blue = EditorGUILayout.Slider("Blue", entry.Blue, 0f, 1f);
 
-                entry.RedThreshold = EditorGUILayout.Slider("Red", entry.RedThreshold, 0f, 1f);
-                entry.GreenThreshold = EditorGUILayout.Slider("Green", entry.GreenThreshold, 0f, 1f);
-                entry.BlueThreshold = EditorGUILayout.Slider("Blue", entry.BlueThreshold, 0f, 1f);
+                entry.Tolerance = EditorGUILayout.Slider("Tolerance", entry.Tolerance, 0f, 1f);
 
                 // Sauvegarde uniquement à la fin de l'édition du slider
-                if ((entry.RedThreshold != oldR || entry.GreenThreshold != oldG || entry.BlueThreshold != oldB)
-                    && (Event.current.type == EventType.MouseUp || Event.current.type == EventType.DragPerform))
+                if (EditorGUI.EndChangeCheck() && (Event.current.type == EventType.MouseUp || Event.current.type == EventType.Used))
                 {
                     window.SaveSettings();
                 }
-
-                EditorGUILayout.Space();
 
                 // Trigger words
                 entry.DrawTriggerWordsUI(window);
@@ -76,12 +67,32 @@ namespace Sven.Command
                     removeIndex = i;
 
                 EditorGUILayout.EndHorizontal();
+                EditorGUILayout.EndVertical();
+
+                if (Event.current.type == EventType.Repaint)
+                {
+                    var color = new Color(entry.Red, entry.Green, entry.Blue);
+                    int borderSize = 2;
+
+                    // Dessiner la bordure
+                    EditorGUI.DrawRect(new Rect(boxRect.x, boxRect.y, boxRect.width, borderSize), color); // Haut
+                    EditorGUI.DrawRect(new Rect(boxRect.x, boxRect.yMax - borderSize, boxRect.width, borderSize), color); // Bas
+                    EditorGUI.DrawRect(new Rect(boxRect.x, boxRect.y + borderSize, borderSize, boxRect.height - borderSize * 2), color); // Gauche
+                    EditorGUI.DrawRect(new Rect(boxRect.xMax - borderSize, boxRect.y + borderSize, borderSize, boxRect.height - borderSize * 2), color); // Droite
+                }
+
                 EditorGUILayout.Space();
             }
 
             if (removeIndex >= 0)
             {
                 Entries.RemoveAt(removeIndex);
+                window.SaveSettings();
+            }
+
+            if (GUILayout.Button("Add color"))
+            {
+                Entries.Add(new ColorFilterEntry());
                 window.SaveSettings();
             }
 
@@ -94,25 +105,32 @@ namespace Sven.Command
     {
         private string _controlName = System.Guid.NewGuid().ToString();
 
-        private float _redThreshold = 0.5f;
-        public float RedThreshold
+        private float _red = 0.5f;
+        public float Red
         {
-            get => _redThreshold;
-            set => _redThreshold = Mathf.Clamp01(value);
+            get => _red;
+            set => _red = Mathf.Clamp01(value);
         }
 
-        private float _greenThreshold = 0.5f;
-        public float GreenThreshold
+        private float _green = 0.5f;
+        public float Green
         {
-            get => _greenThreshold;
-            set => _greenThreshold = Mathf.Clamp01(value);
+            get => _green;
+            set => _green = Mathf.Clamp01(value);
         }
 
-        private float _blueThreshold = 0.5f;
-        public float BlueThreshold
+        private float _blue = 0.5f;
+        public float Blue
         {
-            get => _blueThreshold;
-            set => _blueThreshold = Mathf.Clamp01(value);
+            get => _blue;
+            set => _blue = Mathf.Clamp01(value);
+        }
+
+        private float _tolerance = 0.1f;
+        public float Tolerance
+        {
+            get => _tolerance;
+            set => _tolerance = Mathf.Clamp(value, 0f, 1f);
         }
 
         private List<string> _triggerWords = new();
@@ -120,6 +138,13 @@ namespace Sven.Command
         {
             get => _triggerWords ??= new List<string>();
             set => _triggerWords = value ?? new List<string>();
+        }
+
+        public bool IsMatching(Color color)
+        {
+            return Mathf.Abs(color.r - Red) <= _tolerance &&
+                   Mathf.Abs(color.g - Green) <= _tolerance &&
+                   Mathf.Abs(color.b - Blue) <= _tolerance;
         }
 
         [NonSerialized] private string _newTriggerWord = "";
@@ -145,8 +170,6 @@ namespace Sven.Command
                 };
                 EditorGUILayout.LabelField(_duplicateError, errorStyle);
             }
-
-            EditorGUILayout.Space();
 
             DrawTriggerWords(window);
         }
@@ -201,7 +224,7 @@ namespace Sven.Command
                 }
                 else
                 {
-                    TriggerWords.Add(trimmed);
+                    TriggerWords.Add(trimmed.ToLower());
                     _duplicateError = "";
                     window.SaveSettings();
                 }
