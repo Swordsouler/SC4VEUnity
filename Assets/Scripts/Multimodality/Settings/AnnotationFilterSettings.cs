@@ -7,9 +7,9 @@ namespace Sven.Command
     [Serializable]
     public class AnnotationFilterSettings : BaseCommandSettings
     {
-        public override void OnGUI(Action onChanged)
+        public override void OnGUI(MultimodalitySettingsWindow window)
         {
-            EditorGUILayout.LabelField("Annotation filter parameters here!");
+            EditorGUILayout.LabelField("Not yet developped");
         }
     }
 

@@ -5,6 +5,6 @@ namespace Sven.Command
     [Serializable]
     public abstract class BaseCommandSettings
     {
-        public abstract void OnGUI(Action onChanged);
+        public abstract void OnGUI(MultimodalitySettingsWindow window);
     }
 }

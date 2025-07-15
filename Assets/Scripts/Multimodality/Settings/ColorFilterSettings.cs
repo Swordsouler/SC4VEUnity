@@ -1,38 +1,118 @@
 using System;
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEngine;
 
 namespace Sven.Command
 {
     [Serializable]
     public class ColorFilterSettings : BaseCommandSettings
     {
-        public override void OnGUI(Action onChanged)
+        public List<ColorFilterEntry> Entries = new();
+
+        [NonSerialized] private Vector2 _scroll;
+        [NonSerialized] private List<float> _buttonHeights = new();
+
+        public override void OnGUI(MultimodalitySettingsWindow window)
         {
-            EditorGUILayout.LabelField("Color filter parameters here!");
+            _scroll = EditorGUILayout.BeginScrollView(_scroll);
+
+            EditorGUILayout.LabelField("Color filter entries", EditorStyles.boldLabel);
+
+            // Add new entry
+            if (GUILayout.Button("Add color"))
+            {
+                Entries.Add(new ColorFilterEntry());
+                window.SaveSettings();
+            }
+
+            EditorGUILayout.Space();
+
+            // Avant la boucle for
+            while (_buttonHeights.Count < Entries.Count)
+                _buttonHeights.Add(100f);
+            while (_buttonHeights.Count > Entries.Count)
+                _buttonHeights.RemoveAt(_buttonHeights.Count - 1);
+
+            int removeIndex = -1;
+            for (int i = 0; i < Entries.Count; i++)
+            {
+                var entry = Entries[i];
+                EditorGUILayout.BeginHorizontal("box");
+
+                EditorGUILayout.BeginVertical();
+
+                // RGB sliders
+                float oldR = entry.RedThreshold;
+                float oldG = entry.GreenThreshold;
+                float oldB = entry.BlueThreshold;
+
+                entry.RedThreshold = EditorGUILayout.Slider("Red", entry.RedThreshold, 0f, 1f);
+                entry.GreenThreshold = EditorGUILayout.Slider("Green", entry.GreenThreshold, 0f, 1f);
+                entry.BlueThreshold = EditorGUILayout.Slider("Blue", entry.BlueThreshold, 0f, 1f);
+
+                // Sauvegarde uniquement à la fin de l'édition du slider
+                if ((entry.RedThreshold != oldR || entry.GreenThreshold != oldG || entry.BlueThreshold != oldB)
+                    && (Event.current.type == EventType.MouseUp || Event.current.type == EventType.DragPerform))
+                {
+                    window.SaveSettings();
+                }
+
+                EditorGUILayout.Space();
+
+                // Trigger words
+                entry.DrawTriggerWordsUI(window);
+
+                EditorGUILayout.EndVertical();
+
+                // Après EndVertical()
+                Rect lastRect = GUILayoutUtility.GetLastRect();
+                if (Event.current.type == EventType.Repaint && lastRect.height > 1)
+                    _buttonHeights[i] = lastRect.height;
+
+                float buttonHeight = _buttonHeights[i];
+
+                if (GUILayout.Button("×", GUILayout.Width(24), GUILayout.Height(buttonHeight)))
+                    removeIndex = i;
+
+                EditorGUILayout.EndHorizontal();
+                EditorGUILayout.Space();
+            }
+
+            if (removeIndex >= 0)
+            {
+                Entries.RemoveAt(removeIndex);
+                window.SaveSettings();
+            }
+
+            EditorGUILayout.EndScrollView();
         }
     }
 
     [Serializable]
     public class ColorFilterEntry
     {
-        private float _redThreshold;
+        private string _controlName = System.Guid.NewGuid().ToString();
+
+        private float _redThreshold = 0.5f;
         public float RedThreshold
         {
             get => _redThreshold;
-            set => _redThreshold = value < 0f ? 0f : (value > 1f ? 1f : value);
+            set => _redThreshold = Mathf.Clamp01(value);
         }
-        private float _greenThreshold;
+
+        private float _greenThreshold = 0.5f;
         public float GreenThreshold
         {
             get => _greenThreshold;
-            set => _greenThreshold = value < 0f ? 0f : (value > 1f ? 1f : value);
+            set => _greenThreshold = Mathf.Clamp01(value);
         }
-        private float _blueThreshold;
+
+        private float _blueThreshold = 0.5f;
         public float BlueThreshold
         {
             get => _blueThreshold;
-            set => _blueThreshold = value < 0f ? 0f : (value > 1f ? 1f : value);
+            set => _blueThreshold = Mathf.Clamp01(value);
         }
 
         private List<string> _triggerWords = new();
@@ -42,9 +122,166 @@ namespace Sven.Command
             set => _triggerWords = value ?? new List<string>();
         }
 
-        public ColorFilterEntry()
+        [NonSerialized] private string _newTriggerWord = "";
+        [NonSerialized] private bool _requestFocus = false;
+        [NonSerialized] private string _duplicateError = "";
+
+        public void DrawTriggerWordsUI(MultimodalitySettingsWindow window)
         {
-            _triggerWords = new List<string>();
+            EditorGUILayout.LabelField("Trigger words", EditorStyles.boldLabel);
+
+            bool addRequested = HandleInputField();
+
+            if (addRequested)
+            {
+                TryAddTriggerWord(window);
+            }
+
+            if (!string.IsNullOrEmpty(_duplicateError))
+            {
+                GUIStyle errorStyle = new GUIStyle(EditorStyles.label)
+                {
+                    normal = { textColor = Color.red }
+                };
+                EditorGUILayout.LabelField(_duplicateError, errorStyle);
+            }
+
+            EditorGUILayout.Space();
+
+            DrawTriggerWords(window);
+        }
+
+        private bool HandleInputField()
+        {
+            Event e = Event.current;
+            bool addRequested = false;
+            EditorGUILayout.BeginHorizontal();
+            GUI.SetNextControlName(_controlName);
+            _newTriggerWord = EditorGUILayout.TextField(_newTriggerWord);
+
+            if (GUILayout.Button("Add", GUILayout.Width(60)))
+            {
+                addRequested = true;
+            }
+            EditorGUILayout.EndHorizontal();
+
+            // Ajout par touche Entrée
+            if (e.type == EventType.KeyUp &&
+                (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) &&
+                GUI.GetNameOfFocusedControl() == _controlName)
+            {
+                addRequested = true;
+                e.Use();
+            }
+
+            if (_requestFocus)
+            {
+                EditorApplication.delayCall += () =>
+                {
+                    EditorGUI.FocusTextInControl(_controlName);
+                };
+                _requestFocus = false;
+            }
+
+            return addRequested;
+        }
+
+        private void TryAddTriggerWord(MultimodalitySettingsWindow window)
+        {
+            string trimmed = _newTriggerWord.Trim();
+            if (!string.IsNullOrEmpty(trimmed))
+            {
+                if (TriggerWords.Contains(trimmed))
+                {
+                    _duplicateError = $"Word \"{_newTriggerWord}\" is already used in this block.";
+                }
+                else if (SettingsWordUtils.IsWordUsed(trimmed, window, out var foundInType))
+                {
+                    _duplicateError = $"Word \"{_newTriggerWord}\" is already used in {foundInType}.";
+                }
+                else
+                {
+                    TriggerWords.Add(trimmed);
+                    _duplicateError = "";
+                    window.SaveSettings();
+                }
+            }
+            _newTriggerWord = "";
+            _requestFocus = true;
+        }
+
+        private void DrawTriggerWords(MultimodalitySettingsWindow window)
+        {
+            float viewWidth = EditorGUIUtility.currentViewWidth - 40 - 24;
+            List<List<int>> lines = new();
+            List<int> currentLine = new();
+            float currentLineWidth = 0;
+
+            for (int i = 0; i < TriggerWords.Count; i++)
+            {
+                string tagText = TriggerWords[i];
+                GUIStyle tagStyle = GetTagStyle();
+                Vector2 textSize = tagStyle.CalcSize(new GUIContent(tagText));
+                float tagWidth = textSize.x + 18 + 6;
+
+                if (currentLine.Count > 0 && currentLineWidth + tagWidth > viewWidth)
+                {
+                    lines.Add(currentLine);
+                    currentLine = new();
+                    currentLineWidth = 0;
+                }
+                currentLine.Add(i);
+                currentLineWidth += tagWidth;
+            }
+            if (currentLine.Count > 0)
+                lines.Add(currentLine);
+
+            int removeIndex = -1;
+            foreach (var line in lines)
+            {
+                EditorGUILayout.BeginHorizontal();
+                GUILayout.Space(4);
+                foreach (var i in line)
+                {
+                    string tagText = TriggerWords[i];
+                    GUIStyle tagStyle = GetTagStyle();
+                    Color prevBg = GUI.backgroundColor;
+                    GUI.backgroundColor = new Color(0.85f, 0.92f, 1f, 1f);
+
+                    Vector2 textSize = tagStyle.CalcSize(new GUIContent(tagText));
+                    float tagWidth = textSize.x + 18;
+
+                    EditorGUILayout.BeginHorizontal(tagStyle, GUILayout.Width(tagWidth));
+                    EditorGUILayout.LabelField(tagText, GUILayout.MinWidth(tagWidth - 18 - 6), GUILayout.ExpandWidth(false));
+                    GUILayout.Space(2);
+                    if (GUILayout.Button("x", GUILayout.Width(18), GUILayout.Height(18)))
+                        removeIndex = i;
+                    EditorGUILayout.EndHorizontal();
+
+                    GUI.backgroundColor = prevBg;
+                    GUILayout.Space(4);
+                }
+                EditorGUILayout.EndHorizontal();
+                GUILayout.Space(4);
+            }
+
+            if (removeIndex >= 0)
+            {
+                TriggerWords.RemoveAt(removeIndex);
+                window.SaveSettings();
+            }
+        }
+
+        private GUIStyle GetTagStyle()
+        {
+            return new GUIStyle(EditorStyles.helpBox)
+            {
+                padding = new RectOffset(4, 4, 4, 4),
+                margin = new RectOffset(0, 0, 0, 0),
+                fontSize = 12,
+                alignment = TextAnchor.MiddleLeft,
+                fixedHeight = 0
+            };
         }
     }
 }

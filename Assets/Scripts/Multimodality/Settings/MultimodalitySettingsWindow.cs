@@ -11,10 +11,13 @@ namespace Sven.Command
 {
     public class MultimodalitySettingsWindow : EditorWindow
     {
+        public IReadOnlyDictionary<Type, BaseCommandSettings> CommandSettings => commandSettings;
         private readonly Dictionary<Type, BaseCommandSettings> commandSettings = new();
+        public IReadOnlyDictionary<Type, BaseCommandSettings> FilterSettings => filterSettings;
         private readonly Dictionary<Type, BaseCommandSettings> filterSettings = new();
         private readonly List<Type> filterTypes = new();
         private readonly List<Type> commandTypes = new();
+
 
         private int selectedMainTab = 0;
         private int selectedTypeTab = 0;
@@ -76,7 +79,7 @@ namespace Sven.Command
                 var setting = settingsDict[type];
                 if (setting != null)
                 {
-                    setting.OnGUI(() => SaveSettings());
+                    setting.OnGUI(this);
                 }
             }
         }
@@ -159,7 +162,7 @@ namespace Sven.Command
             }
         }
 
-        private void SaveSettings()
+        public void SaveSettings()
         {
             var allSettings = new AllSettings();
 

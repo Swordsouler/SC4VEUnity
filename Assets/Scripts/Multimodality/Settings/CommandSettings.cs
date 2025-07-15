@@ -24,11 +24,11 @@ namespace Sven.Command
         [NonSerialized] private bool _requestFocus = false;
         [NonSerialized] private string _duplicateError = "";
         [NonSerialized] private Vector2 _scroll;
+        [NonSerialized] private bool _wasTextFieldFocused = false;
+        [NonSerialized] private bool _forceFocus = false;
 
-        public override void OnGUI(Action onChanged)
+        public override void OnGUI(MultimodalitySettingsWindow window)
         {
-            EditorGUI.BeginChangeCheck();
-
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
 
             EditorGUILayout.LabelField("Trigger words", EditorStyles.boldLabel);
@@ -37,7 +37,8 @@ namespace Sven.Command
 
             if (addRequested)
             {
-                TryAddTriggerWord();
+                _forceFocus = true;
+                TryAddTriggerWord(window);
             }
 
             if (!string.IsNullOrEmpty(_duplicateError))
@@ -51,37 +52,16 @@ namespace Sven.Command
 
             EditorGUILayout.Space();
 
-            DrawTriggerWords();
+            DrawTriggerWords(window);
 
             EditorGUILayout.Space();
             EditorGUILayout.EndScrollView();
-
-            if (EditorGUI.EndChangeCheck())
-            {
-                onChanged?.Invoke();
-            }
         }
 
         private bool HandleInputField()
         {
             Event e = Event.current;
             bool addRequested = false;
-            if (e.type == EventType.KeyDown &&
-                (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) &&
-                GUI.GetNameOfFocusedControl() == "NewTriggerWordField")
-            {
-                addRequested = true;
-                e.Use();
-            }
-
-            if (_requestFocus)
-            {
-                EditorApplication.delayCall += () =>
-                {
-                    EditorGUI.FocusTextInControl("NewTriggerWordField");
-                };
-                _requestFocus = false;
-            }
 
             EditorGUILayout.BeginHorizontal();
             GUI.SetNextControlName("NewTriggerWordField");
@@ -90,32 +70,58 @@ namespace Sven.Command
             if (GUILayout.Button("Add", GUILayout.Width(60)))
             {
                 addRequested = true;
+                _forceFocus = true;
             }
             EditorGUILayout.EndHorizontal();
+
+            // Ajout par touche Entrée (KeyDown) si le champ a le focus
+            if (e.type == EventType.KeyDown &&
+                (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) &&
+                GUI.GetNameOfFocusedControl() == "NewTriggerWordField")
+            {
+                addRequested = true;
+                _forceFocus = true;
+                e.Use();
+            }
+
+            if (_forceFocus || _requestFocus)
+            {
+                EditorApplication.delayCall += () =>
+                {
+                    EditorGUI.FocusTextInControl("NewTriggerWordField");
+                };
+                _forceFocus = false;
+                _requestFocus = false;
+            }
 
             return addRequested;
         }
 
-        private void TryAddTriggerWord()
+        private void TryAddTriggerWord(MultimodalitySettingsWindow window)
         {
             string trimmed = _newTriggerWord.Trim();
             if (!string.IsNullOrEmpty(trimmed))
             {
                 if (TriggerWords.Contains(trimmed))
                 {
-                    _duplicateError = $"Word \"{_newTriggerWord}\" already used.";
+                    _duplicateError = $"Word \"{_newTriggerWord}\" is already used in this block.";
+                }
+                else if (SettingsWordUtils.IsWordUsed(trimmed, window, out var foundInType))
+                {
+                    _duplicateError = $"Word \"{_newTriggerWord}\" is already used in {foundInType}.";
                 }
                 else
                 {
                     TriggerWords.Add(trimmed);
                     _duplicateError = "";
+                    window.SaveSettings();
                 }
             }
             _newTriggerWord = "";
             _requestFocus = true;
         }
 
-        private void DrawTriggerWords()
+        private void DrawTriggerWords(MultimodalitySettingsWindow window)
         {
             float viewWidth = EditorGUIUtility.currentViewWidth - 40;
             List<List<int>> lines = new();
@@ -173,6 +179,7 @@ namespace Sven.Command
             if (removeIndex >= 0)
             {
                 TriggerWords.RemoveAt(removeIndex);
+                window.SaveSettings();
             }
         }
 
