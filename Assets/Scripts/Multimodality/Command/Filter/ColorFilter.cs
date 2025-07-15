@@ -6,7 +6,7 @@ using VDS.RDF.Query;
 
 namespace Sven.Command
 {
-    public class ColorFilter : QueryFilter
+    public class ColorFilter : QueryFilter<ColorFilterSettings>
     {
         public override async Task<List<SemantizationCore>> Query()
         {

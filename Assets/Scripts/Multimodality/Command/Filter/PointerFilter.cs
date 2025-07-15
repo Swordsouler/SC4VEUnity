@@ -6,7 +6,7 @@ using VDS.RDF.Query;
 
 namespace Sven.Command
 {
-    public class PointerFilter : QueryFilter
+    public class PointerFilter : QueryFilter<CommandSettings>
     {
         public override async Task<List<SemantizationCore>> Query()
         {

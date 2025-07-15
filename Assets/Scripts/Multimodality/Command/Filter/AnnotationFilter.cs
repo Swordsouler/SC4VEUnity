@@ -8,7 +8,7 @@ using VDS.RDF.Query;
 
 namespace Sven.Command
 {
-    public class AnnotationFilter : QueryFilter
+    public class AnnotationFilter : QueryFilter<AnnotationFilterSettings>
     {
         private readonly string _word;
         public string Word => _word;

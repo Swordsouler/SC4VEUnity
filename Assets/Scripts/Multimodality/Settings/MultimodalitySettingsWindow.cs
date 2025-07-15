@@ -11,16 +11,13 @@ namespace Sven.Command
 {
     public class MultimodalitySettingsWindow : EditorWindow
     {
-        private readonly Dictionary<Type, CommandSettings> commandSettings = new();
-        private readonly Dictionary<Type, CommandSettings> filterSettings = new();
+        private readonly Dictionary<Type, BaseCommandSettings> commandSettings = new();
+        private readonly Dictionary<Type, BaseCommandSettings> filterSettings = new();
+        private readonly List<Type> filterTypes = new();
         private readonly List<Type> commandTypes = new();
 
         private int selectedMainTab = 0;
-        private int selectedCommandTab = 0;
-        private string newTriggerWord = "";
-        private bool requestFocus = false;
-        private string duplicateError = "";
-        private Vector2 scroll;
+        private int selectedTypeTab = 0;
 
         [MenuItem("Window/SVEN/Multimodality Settings")]
         public static void ShowWindow()
@@ -37,17 +34,9 @@ namespace Sven.Command
         private void OnGUI()
         {
             DrawMainTabs();
-            List<Type> filteredTypes = GetFilteredCommandTypes();
-            if (selectedMainTab == 0)
-            {
-                DrawCommandTabs(filteredTypes);
-                DrawSettingsTabs(filteredTypes, filterSettings, ref selectedCommandTab);
-            }
-            else
-            {
-                DrawCommandTabs(filteredTypes);
-                DrawSettingsTabs(filteredTypes, commandSettings, ref selectedCommandTab);
-            }
+            List<Type> shownTypes = selectedMainTab == 0 ? filterTypes : commandTypes;
+            DrawTypeTabs(shownTypes);
+            DrawSettingsTabs(shownTypes, selectedMainTab == 0 ? filterSettings : commandSettings, ref selectedTypeTab);
         }
 
         private void DrawMainTabs()
@@ -57,34 +46,22 @@ namespace Sven.Command
             selectedMainTab = GUILayout.Toolbar(selectedMainTab, mainTabs);
             if (selectedMainTab != prevSelected)
             {
-                selectedCommandTab = 0; // Reset secondary tab when main tab changes
+                selectedTypeTab = 0; // Reset secondary tab when main tab changes
             }
         }
 
-        private void DrawCommandTabs(List<Type> filteredTypes)
+        private void DrawTypeTabs(List<Type> types)
         {
-            string[] tabNames = filteredTypes.ConvertAll(t => t.Name.Replace("Command", "").Replace("Filter", "")).ToArray();
+            string[] tabNames = types.ConvertAll(t => t.Name.Replace("Command", "").Replace("Filter", "")).ToArray();
             if (tabNames.Length == 0)
             {
                 GUILayout.Label("No available type.");
                 return;
             }
-            selectedCommandTab = GUILayout.Toolbar(selectedCommandTab, tabNames);
+            selectedTypeTab = GUILayout.Toolbar(selectedTypeTab, tabNames);
         }
 
-        private List<Type> GetFilteredCommandTypes()
-        {
-            if (selectedMainTab == 0) // Filter
-            {
-                return commandTypes.FindAll(t => typeof(QueryFilter).IsAssignableFrom(t));
-            }
-            else // Command
-            {
-                return commandTypes.FindAll(t => !typeof(QueryFilter).IsAssignableFrom(t));
-            }
-        }
-
-        private void DrawSettingsTabs<T>(List<Type> types, Dictionary<Type, T> settingsDict, ref int selectedTab) where T : class
+        private void DrawSettingsTabs(List<Type> types, Dictionary<Type, BaseCommandSettings> settingsDict, ref int selectedTab)
         {
             if (selectedTab >= 0 && selectedTab < types.Count)
             {
@@ -92,188 +69,55 @@ namespace Sven.Command
 
                 if (!settingsDict.ContainsKey(type))
                 {
-                    if (typeof(T) == typeof(CommandSettings))
-                        settingsDict[type] = Activator.CreateInstance(typeof(CommandSettings)) as T;
-                    else
-                        settingsDict[type] = Activator.CreateInstance(typeof(T)) as T;
+                    var settingsType = GetSettingsTypeForCommand(type) ?? typeof(CommandSettings);
+                    settingsDict[type] = Activator.CreateInstance(settingsType) as BaseCommandSettings;
                 }
 
                 var setting = settingsDict[type];
-                var triggerWords = (setting as CommandSettings)?.TriggerWords;
-
-                scroll = EditorGUILayout.BeginScrollView(scroll);
-
-                EditorGUILayout.LabelField("Trigger words", EditorStyles.boldLabel);
-
-                bool addRequested = HandleInputField();
-
-                if (addRequested)
+                if (setting != null)
                 {
-                    TryAddTriggerWord(triggerWords, types, settingsDict);
-                }
-
-                DrawDuplicateError(types, settingsDict);
-
-                EditorGUILayout.Space();
-
-                DrawTriggerWords(triggerWords, types, settingsDict);
-
-                EditorGUILayout.Space();
-                EditorGUILayout.EndScrollView();
-            }
-        }
-
-        private bool HandleInputField()
-        {
-            Event e = Event.current;
-            bool addRequested = false;
-            if (e.type == EventType.KeyDown &&
-                (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) &&
-                GUI.GetNameOfFocusedControl() == "NewTriggerWordField")
-            {
-                addRequested = true;
-                e.Use();
-            }
-
-            if (requestFocus)
-            {
-                EditorApplication.delayCall += () =>
-                {
-                    EditorGUI.FocusTextInControl("NewTriggerWordField");
-                };
-                requestFocus = false;
-            }
-
-            EditorGUILayout.BeginHorizontal();
-            GUI.SetNextControlName("NewTriggerWordField");
-            newTriggerWord = EditorGUILayout.TextField(newTriggerWord);
-
-            if (GUILayout.Button("Add", GUILayout.Width(60)))
-            {
-                addRequested = true;
-            }
-            EditorGUILayout.EndHorizontal();
-
-            return addRequested;
-        }
-
-        private void TryAddTriggerWord<T>(List<string> triggerWords, List<Type> types, Dictionary<Type, T> settingsDict) where T : class
-        {
-            string trimmed = newTriggerWord.Trim();
-            if (!string.IsNullOrEmpty(trimmed))
-            {
-                var duplicateTypes = GetDuplicateTypes(trimmed, types, settingsDict);
-                if (duplicateTypes.Count > 0)
-                {
-                    duplicateError = $"Word \"{newTriggerWord}\" already used in: {string.Join(", ", duplicateTypes)}";
-                }
-                else
-                {
-                    triggerWords.Add(trimmed);
-                    SaveSettings();
-                    duplicateError = "";
+                    setting.OnGUI(() => SaveSettings());
                 }
             }
-            newTriggerWord = "";
-            requestFocus = true;
-            Repaint();
         }
 
-        private List<string> GetDuplicateTypes<T>(string word, List<Type> types, Dictionary<Type, T> settingsDict) where T : class
+        /// <summary>
+        /// Returns the settings type for a given command/filter type, if possible.
+        /// </summary>
+        private Type GetSettingsTypeForCommand(Type commandType)
         {
-            var duplicateTypes = new List<string>();
-            foreach (var kvp in settingsDict)
+            // If the commandType inherits from BaseCommand<T>, return T if it's a BaseCommandSettings
+            var baseType = commandType;
+            while (baseType != null && baseType != typeof(object))
             {
-                if (kvp.Value is BaseSettings s && s.TriggerWords.Contains(word))
-                    duplicateTypes.Add(kvp.Key.Name.Replace("Command", "").Replace("Filter", ""));
-            }
-            return duplicateTypes;
-        }
-
-        private void DrawDuplicateError<T>(List<Type> types, Dictionary<Type, T> settingsDict) where T : class
-        {
-            if (!string.IsNullOrEmpty(duplicateError))
-            {
-                GUIStyle errorStyle = new GUIStyle(EditorStyles.label)
+                if (baseType.IsGenericType)
                 {
-                    normal = { textColor = Color.red }
-                };
-                EditorGUILayout.LabelField(duplicateError, errorStyle);
-            }
-        }
-
-        private void DrawTriggerWords<T>(List<string> triggerWords, List<Type> types, Dictionary<Type, T> settingsDict) where T : class
-        {
-            float viewWidth = position.width - 40;
-            List<List<int>> lines = new();
-            List<int> currentLine = new();
-            float currentLineWidth = 0;
-
-            for (int i = 0; i < triggerWords.Count; i++)
-            {
-                string tagText = triggerWords[i];
-                GUIStyle tagStyle = GetTagStyle();
-                Vector2 textSize = tagStyle.CalcSize(new GUIContent(tagText));
-                float tagWidth = textSize.x + 18 + 6;
-
-                if (currentLine.Count > 0 && currentLineWidth + tagWidth > viewWidth)
-                {
-                    lines.Add(currentLine);
-                    currentLine = new();
-                    currentLineWidth = 0;
+                    var genericDef = baseType.GetGenericTypeDefinition();
+                    if (genericDef.Name.StartsWith("BaseCommand") || genericDef.Name.StartsWith("QueryFilter"))
+                    {
+                        var arg = baseType.GetGenericArguments()[0];
+                        if (typeof(BaseCommandSettings).IsAssignableFrom(arg))
+                            return arg;
+                    }
                 }
-                currentLine.Add(i);
-                currentLineWidth += tagWidth;
+                baseType = baseType.BaseType;
             }
-            if (currentLine.Count > 0)
-                lines.Add(currentLine);
-
-            int removeIndex = -1;
-            foreach (var line in lines)
-            {
-                EditorGUILayout.BeginHorizontal();
-                GUILayout.Space(4);
-                foreach (var i in line)
-                {
-                    string tagText = triggerWords[i];
-                    GUIStyle tagStyle = GetTagStyle();
-                    Color prevBg = GUI.backgroundColor;
-                    GUI.backgroundColor = new Color(0.85f, 0.92f, 1f, 1f);
-
-                    Vector2 textSize = tagStyle.CalcSize(new GUIContent(tagText));
-                    float tagWidth = textSize.x + 18;
-
-                    EditorGUILayout.BeginHorizontal(tagStyle, GUILayout.Width(tagWidth));
-                    EditorGUILayout.LabelField(tagText, GUILayout.MinWidth(tagWidth - 18 - 6), GUILayout.ExpandWidth(false));
-                    GUILayout.Space(2);
-                    if (GUILayout.Button("x", GUILayout.Width(18), GUILayout.Height(18)))
-                        removeIndex = i;
-                    EditorGUILayout.EndHorizontal();
-
-                    GUI.backgroundColor = prevBg;
-                    GUILayout.Space(4);
-                }
-                EditorGUILayout.EndHorizontal();
-                GUILayout.Space(4);
-            }
-
-            if (removeIndex >= 0)
-            {
-                triggerWords.RemoveAt(removeIndex);
-                SaveSettings();
-            }
+            return null;
         }
 
-        private GUIStyle GetTagStyle()
+        /// <summary>
+        /// Returns true if toCheck inherits from the raw generic type generic.
+        /// </summary>
+        private static bool IsSubclassOfRawGeneric(Type generic, Type toCheck)
         {
-            return new GUIStyle(EditorStyles.helpBox)
+            while (toCheck != null && toCheck != typeof(object))
             {
-                padding = new RectOffset(4, 4, 4, 4),
-                margin = new RectOffset(0, 0, 0, 0),
-                fontSize = 12,
-                alignment = TextAnchor.MiddleLeft,
-                fixedHeight = 0
-            };
+                var cur = toCheck.IsGenericType ? toCheck.GetGenericTypeDefinition() : toCheck;
+                if (cur == generic)
+                    return true;
+                toCheck = toCheck.BaseType;
+            }
+            return false;
         }
 
         private void LoadSettings()
@@ -284,35 +128,33 @@ namespace Sven.Command
                 var json = File.ReadAllText(path);
                 var allSettings = JsonConvert.DeserializeObject<AllSettings>(json, new JsonSerializerSettings
                 {
-                    TypeNameHandling = TypeNameHandling.Auto
+                    TypeNameHandling = TypeNameHandling.All
                 });
 
+                foreach (var type in filterTypes)
+                {
+                    if (allSettings != null && allSettings.Filters.TryGetValue(type.FullName, out var loadedFilter))
+                        filterSettings[type] = loadedFilter;
+                    else
+                        filterSettings[type] = Activator.CreateInstance(GetSettingsTypeForCommand(type) ?? typeof(CommandSettings)) as BaseCommandSettings;
+                }
                 foreach (var type in commandTypes)
                 {
-                    if (typeof(QueryFilter).IsAssignableFrom(type))
-                    {
-                        if (allSettings != null && allSettings.Filters.TryGetValue(type.FullName, out var loadedFilter))
-                            filterSettings[type] = loadedFilter;
-                        else
-                            filterSettings[type] = new CommandSettings();
-                    }
+                    if (allSettings != null && allSettings.Commands.TryGetValue(type.FullName, out var loadedCommand))
+                        commandSettings[type] = loadedCommand;
                     else
-                    {
-                        if (allSettings != null && allSettings.Commands.TryGetValue(type.FullName, out var loadedCommand))
-                            commandSettings[type] = loadedCommand;
-                        else
-                            commandSettings[type] = new CommandSettings();
-                    }
+                        commandSettings[type] = Activator.CreateInstance(GetSettingsTypeForCommand(type) ?? typeof(CommandSettings)) as BaseCommandSettings;
                 }
             }
             else
             {
+                foreach (var type in filterTypes)
+                {
+                    filterSettings[type] = Activator.CreateInstance(GetSettingsTypeForCommand(type) ?? typeof(CommandSettings)) as BaseCommandSettings;
+                }
                 foreach (var type in commandTypes)
                 {
-                    if (typeof(QueryFilter).IsAssignableFrom(type))
-                        filterSettings[type] = new CommandSettings();
-                    else
-                        commandSettings[type] = new CommandSettings();
+                    commandSettings[type] = Activator.CreateInstance(GetSettingsTypeForCommand(type) ?? typeof(CommandSettings)) as BaseCommandSettings;
                 }
             }
         }
@@ -323,20 +165,12 @@ namespace Sven.Command
 
             foreach (var kvp in commandSettings)
             {
-                var filtered = new CommandSettings
-                {
-                    TriggerWords = kvp.Value.TriggerWords.FindAll(w => !string.IsNullOrWhiteSpace(w))
-                };
-                allSettings.Commands[kvp.Key.FullName] = filtered;
+                allSettings.Commands[kvp.Key.FullName] = kvp.Value;
             }
 
             foreach (var kvp in filterSettings)
             {
-                var filtered = new CommandSettings
-                {
-                    TriggerWords = kvp.Value.TriggerWords.FindAll(w => !string.IsNullOrWhiteSpace(w))
-                };
-                allSettings.Filters[kvp.Key.FullName] = filtered;
+                allSettings.Filters[kvp.Key.FullName] = kvp.Value;
             }
 
             string dir = Path.Combine(Application.streamingAssetsPath, "Multimodality");
@@ -346,7 +180,7 @@ namespace Sven.Command
             string path = Path.Combine(dir, "command_settings.json");
             string json = JsonConvert.SerializeObject(allSettings, Formatting.Indented, new JsonSerializerSettings
             {
-                TypeNameHandling = TypeNameHandling.Auto
+                TypeNameHandling = TypeNameHandling.All
             });
             File.WriteAllText(path, json);
 
@@ -355,8 +189,8 @@ namespace Sven.Command
 
         private void LoadAllCommandTypes()
         {
+            filterTypes.Clear();
             commandTypes.Clear();
-            var baseType = typeof(Command);
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 Type[] assemblyTypes;
@@ -371,9 +205,16 @@ namespace Sven.Command
                 foreach (var type in assemblyTypes)
                 {
                     if (type == null) continue;
-                    if (type.IsClass && !type.IsAbstract && baseType.IsAssignableFrom(type) && type != baseType)
+                    if (type.IsClass && !type.IsAbstract)
                     {
-                        commandTypes.Add(type);
+                        if (IsSubclassOfRawGeneric(typeof(QueryFilter<>), type))
+                        {
+                            filterTypes.Add(type);
+                        }
+                        else if (IsSubclassOfRawGeneric(typeof(BaseCommand<>), type))
+                        {
+                            commandTypes.Add(type);
+                        }
                     }
                 }
             }
@@ -383,8 +224,8 @@ namespace Sven.Command
     [Serializable]
     public class AllSettings
     {
-        public Dictionary<string, CommandSettings> Commands { get; set; } = new();
-        public Dictionary<string, CommandSettings> Filters { get; set; } = new();
+        public Dictionary<string, BaseCommandSettings> Commands { get; set; } = new();
+        public Dictionary<string, BaseCommandSettings> Filters { get; set; } = new();
     }
 }
 #endif

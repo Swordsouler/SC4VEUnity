@@ -6,7 +6,7 @@ using VDS.RDF.Query;
 
 namespace Sven.Command
 {
-    public class PointOfViewFilter : QueryFilter
+    public class PointOfViewFilter : QueryFilter<CommandSettings>
     {
         public override async Task<List<SemantizationCore>> Query()
         {

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Sven.Command
 {
-    public abstract class QueryFilter : Command
+    public abstract class QueryFilter<T> : BaseCommand<T> where T : BaseCommandSettings
     {
         private readonly Instant _instant;
         public Instant Instant => _instant;

@@ -5,21 +5,21 @@ using System.IO;
 
 namespace Sven.Command
 {
-    public abstract class Command
+    public abstract class BaseCommand<T> where T : BaseCommandSettings
     {
-        protected static Dictionary<Type, CommandSettings> _settings;
-        public List<CommandSettings> Settings
+        protected static Dictionary<Type, T> _settings;
+        public List<T> Settings
         {
             get
             {
                 if (_settings == null)
                 {
-                    _settings = new Dictionary<Type, CommandSettings>();
+                    _settings = new Dictionary<Type, T>();
                     string path = Path.Combine(UnityEngine.Application.streamingAssetsPath, "Multimodality/CommandSettings.json");
                     if (File.Exists(path))
                     {
                         string json = File.ReadAllText(path);
-                        var temp = JsonConvert.DeserializeObject<Dictionary<string, CommandSettings>>(json);
+                        var temp = JsonConvert.DeserializeObject<Dictionary<string, T>>(json);
                         foreach (var kvp in temp)
                         {
                             Type type = Type.GetType(kvp.Key);
@@ -28,11 +28,11 @@ namespace Sven.Command
                         }
                     }
                 }
-                return _settings.TryGetValue(GetType(), out CommandSettings settings) ? new List<CommandSettings> { settings } : new List<CommandSettings>();
+                return _settings.TryGetValue(GetType(), out T settings) ? new List<T> { settings } : new List<T>();
             }
         }
 
-        public static Command Interpret(Sentence sentence)
+        public static BaseCommand<T> Interpret(Sentence sentence)
         {
             // return the right Command type based on keyword in sentence
             throw new NotImplementedException("Interpretation logic not implemented yet");

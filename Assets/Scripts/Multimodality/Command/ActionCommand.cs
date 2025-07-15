@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Sven.Command
 {
-    public abstract class ActionCommand<T> : Command
+    public abstract class ActionCommand<T> : BaseCommand<CommandSettings>
     {
         public abstract void Apply(T value, List<SemantizationCore> semantizationCores);
 

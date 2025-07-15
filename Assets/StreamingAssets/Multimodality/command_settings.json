@@ -1,52 +1,69 @@
 {
-  "Commands": {
-    "Sven.Command.ColorizeCommand": {
-      "TriggerWords": [
-        "colorie",
-        "colorier",
-        "colorize"
-      ]
+    "$type": "Sven.Command.AllSettings, Assembly-CSharp",
+    "Commands": {
+        "$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[Sven.Command.BaseCommandSettings, Assembly-CSharp]], mscorlib",
+        "Sven.Command.ColorizeCommand": {
+            "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+            "TriggerWords": {
+                "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+                "$values": ["colorie", "colorier", "colorize"]
+            }
+        },
+        "Sven.Command.MoveCommand": {
+            "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+            "TriggerWords": {
+                "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+                "$values": ["déplace", "déplacer", "move"]
+            }
+        },
+        "Sven.Command.SelectCommand": {
+            "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+            "TriggerWords": {
+                "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+                "$values": [
+                    "choose",
+                    "sélection",
+                    "sélectionne",
+                    "sélectionner",
+                    "select"
+                ]
+            }
+        },
+        "Sven.Command.UnselectCommand": {
+            "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+            "TriggerWords": {
+                "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+                "$values": [
+                    "désélectionne",
+                    "désélectionner",
+                    "unselect",
+                    "unchoose",
+                    "désélection"
+                ]
+            }
+        }
     },
-    "Sven.Command.MoveCommand": {
-      "TriggerWords": [
-        "déplace",
-        "déplacer",
-        "move"
-      ]
-    },
-    "Sven.Command.SelectCommand": {
-      "TriggerWords": [
-        "choose",
-        "sélection",
-        "sélectionne",
-        "sélectionner",
-        "select"
-      ]
-    },
-    "Sven.Command.UnselectCommand": {
-      "TriggerWords": [
-        "désélectionne",
-        "désélectionner",
-        "unselect",
-        "unchoose",
-        "désélection"
-      ]
+    "Filters": {
+        "$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[Sven.Command.BaseCommandSettings, Assembly-CSharp]], mscorlib",
+        "Sven.Command.AnnotationFilter": {
+            "$type": "Sven.Command.AnnotationFilterSettings, Assembly-CSharp"
+        },
+        "Sven.Command.ColorFilter": {
+            "$type": "Sven.Command.ColorFilterSettings, Assembly-CSharp"
+        },
+        "Sven.Command.PointerFilter": {
+            "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+            "TriggerWords": {
+                "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+                "$values": ["ça", "this"]
+            }
+        },
+        "Sven.Command.PointOfViewFilter": {
+            "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+            "TriggerWords": {
+                "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+                "$values": ["ce que je vois", "vision", "ce que je regarde"]
+            }
+        }
     }
-  },
-  "Filters": {
-    "Sven.Command.AnnotationFilter": {
-      "TriggerWords": [
-        "test"
-      ]
-    },
-    "Sven.Command.ColorFilter": {
-      "TriggerWords": []
-    },
-    "Sven.Command.PointerFilter": {
-      "TriggerWords": []
-    },
-    "Sven.Command.PointOfViewFilter": {
-      "TriggerWords": []
-    }
-  }
 }
