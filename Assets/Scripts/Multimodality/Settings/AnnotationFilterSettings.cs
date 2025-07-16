@@ -4,7 +4,7 @@ using UnityEditor;
 
 namespace Sven.Command
 {
-    // pour chaque IComponentMapping, on doit pouvoir définir une liste de mots clés
+    // pour chaque IComponentMapping, on doit pouvoir définir une liste de mots déclencheurs
 
     [Serializable]
     public class AnnotationFilterSettings : BaseCommandSettings

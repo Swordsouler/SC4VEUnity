@@ -22,10 +22,10 @@ namespace Sven.Command
         private int selectedMainTab = 0;
         private int selectedTypeTab = 0;
 
-        [MenuItem("Window/SVEN/Multimodality Settings")]
+        [MenuItem("Window/S4M Settings")]
         public static void ShowWindow()
         {
-            GetWindow<MultimodalitySettingsWindow>("SVEN Multimodality Settings");
+            GetWindow<MultimodalitySettingsWindow>("S4M Settings");
         }
 
         private void OnEnable()
