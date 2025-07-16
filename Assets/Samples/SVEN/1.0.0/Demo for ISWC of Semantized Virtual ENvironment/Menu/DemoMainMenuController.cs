@@ -37,10 +37,9 @@ namespace Sven.Demo
         [BoxGroup("View")] public TextMeshProUGUI subTitleText;
         [BoxGroup("View")] public GameObject dropdownActivityIndicator;
         [BoxGroup("View")] public Slider semantisationFrequencySlider;
-        [BoxGroup("View")] public GraphController graphController;
 
         private DemoMainMenuPage _currentPage = null;
-        private Dictionary<string, string> _dropdownOptions = new();
+        private readonly Dictionary<string, string> _dropdownOptions = new();
 
         private void Start()
         {
@@ -85,7 +84,7 @@ namespace Sven.Demo
         {
             if (VENameDropdown.options.Count > 0)
             {
-                string graphName = graphController.GraphName;
+                string graphName = SvenSettings.GraphName;
                 int index = VENameDropdown.options.FindIndex(option => _dropdownOptions.TryGetValue(option.text, out string name) && name == graphName);
                 VENameDropdown.value = index != -1 ? index : 0;
                 VENameDropdown.RefreshShownValue();
@@ -105,17 +104,19 @@ namespace Sven.Demo
             if (subTitleText != null) subTitleText.text = page.title;
         }
 
-        private void OnReplayButtonClicked()
+        private async void OnReplayButtonClicked()
         {
             if (_dropdownOptions.Count < 1 || !_dropdownOptions.TryGetValue(VENameDropdown.options[VENameDropdown.value].text, out string graphName)) return;
-            graphController.GraphName = string.IsNullOrEmpty(graphName) ? "default" : graphName;
+            SvenSettings.GraphName = string.IsNullOrEmpty(graphName) ? "default" : graphName;
+            await GraphManager.Reload();
             SceneManager.LoadScene("Demo Replay", LoadSceneMode.Single);
         }
 
-        private void OnPlayButtonClicked()
+        private async void OnPlayButtonClicked()
         {
             SvenSettings.SemanticizeFrequency = (int)semantisationFrequencySlider.value;
-            graphController.GraphName = string.IsNullOrEmpty(VENameInputField.text) ? "default" : VENameInputField.text;
+            SvenSettings.GraphName = string.IsNullOrEmpty(VENameInputField.text) ? "default" : VENameInputField.text;
+            await GraphManager.Reload();
             SceneManager.LoadScene("Demo Record", LoadSceneMode.Single);
         }
         private async Task<string> LoadQueryFileAsync(string relativePath)

@@ -10,27 +10,27 @@ namespace Sven.Command
 {
     public class AnnotationFilter : QueryFilter<AnnotationFilterSettings>
     {
-        private readonly string _word;
-        public string Word => _word;
+        private readonly string _semanticTypeName;
+        public string SemanticTypeName => _semanticTypeName;
 
         public AnnotationFilter() : base()
         {
-            _word = string.Empty;
+            _semanticTypeName = string.Empty;
         }
 
-        public AnnotationFilter(string word) : base()
+        public AnnotationFilter(string semanticTypeName) : base()
         {
-            _word = word;
+            _semanticTypeName = semanticTypeName;
         }
 
-        public AnnotationFilter(string word, DateTime dateTime) : base(dateTime)
+        public AnnotationFilter(string semanticTypeName, DateTime dateTime) : base(dateTime)
         {
-            _word = word;
+            _semanticTypeName = semanticTypeName;
         }
 
-        public AnnotationFilter(string word, Instant instant) : base(instant)
+        public AnnotationFilter(string semanticTypeName, Instant instant) : base(instant)
         {
-            _word = word;
+            _semanticTypeName = semanticTypeName;
         }
 
         public override async Task<List<SemantizationCore>> Query()
@@ -49,7 +49,7 @@ WHERE {{
         ?component a sven:Annotation ;
         		   sven:annotation ?property .
         ?property sven:hasTemporalExtent ?interval ;
-        		  sven:value ""{Word}"" .
+        		  sven:value {SemanticTypeName} .
     }}
     
 {GraphManager.RetrieveIntervalQuery(Instant)}

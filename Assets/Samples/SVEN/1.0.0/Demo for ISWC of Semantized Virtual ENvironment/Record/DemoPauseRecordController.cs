@@ -94,6 +94,7 @@ namespace Sven.Demo
 
             await GraphManager.ApplyRulesAsync();
             await GraphManager.SaveToEndpoint();
+
             SceneManager.LoadScene("Demo Menu", LoadSceneMode.Single);
         }
 

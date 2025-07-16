@@ -6,6 +6,8 @@ namespace Sven.Demo
 {
     public class Banana : Fruit, IComponentMapping
     {
+        public static string SemanticTypeName => "sven:Banana";
+
         public static ComponentMapping ComponentMapping()
         {
             return new("BananaComponent",
