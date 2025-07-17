@@ -54,7 +54,98 @@
   "Filters": {
     "$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[Sven.Command.BaseCommandSettings, Assembly-CSharp]], mscorlib",
     "Sven.Command.AnnotationFilter": {
-      "$type": "Sven.Command.AnnotationFilterSettings, Assembly-CSharp"
+      "$type": "Sven.Command.AnnotationFilterSettings, Assembly-CSharp",
+      "Entries": {
+        "$type": "System.Collections.Generic.List`1[[Sven.Command.AnnotationFilterEntry, Assembly-CSharp]], mscorlib",
+        "$values": [
+          {
+            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+            "AnnotationType": "sven:Apple",
+            "TriggerWords": {
+              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+              "$values": [
+                "pomme",
+                "apple"
+              ]
+            }
+          },
+          {
+            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+            "AnnotationType": "sven:Banana",
+            "TriggerWords": {
+              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+              "$values": [
+                "banane",
+                "banana"
+              ]
+            }
+          },
+          {
+            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+            "AnnotationType": "sven:Carrot",
+            "TriggerWords": {
+              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+              "$values": [
+                "carotte",
+                "carrot"
+              ]
+            }
+          },
+          {
+            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+            "AnnotationType": "sven:Food",
+            "TriggerWords": {
+              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+              "$values": [
+                "nourriture",
+                "food"
+              ]
+            }
+          },
+          {
+            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+            "AnnotationType": "sven:Fruit",
+            "TriggerWords": {
+              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+              "$values": [
+                "fruit"
+              ]
+            }
+          },
+          {
+            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+            "AnnotationType": "sven:Pumpkin",
+            "TriggerWords": {
+              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+              "$values": [
+                "citrouille",
+                "pumpkin"
+              ]
+            }
+          },
+          {
+            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+            "AnnotationType": "sven:Spray",
+            "TriggerWords": {
+              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+              "$values": [
+                "spray"
+              ]
+            }
+          },
+          {
+            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+            "AnnotationType": "sven:Vegetable",
+            "TriggerWords": {
+              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+              "$values": [
+                "légume",
+                "vegetable"
+              ]
+            }
+          }
+        ]
+      }
     },
     "Sven.Command.ColorFilter": {
       "$type": "Sven.Command.ColorFilterSettings, Assembly-CSharp",

@@ -4,9 +4,9 @@ using System.Collections.Generic;
 
 namespace Sven.Demo
 {
-    public class Carrot : Vegetable, IComponentMapping
+    public class Carrot : Vegetable, IComponentMapping, ISemanticAnnotation
     {
-        public static string SemanticTypeName => "sven:Carrot";
+        public static new string SemanticTypeName => "sven:Carrot";
 
         public static ComponentMapping ComponentMapping()
         {

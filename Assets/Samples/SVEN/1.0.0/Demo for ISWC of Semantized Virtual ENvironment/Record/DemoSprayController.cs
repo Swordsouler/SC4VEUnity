@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace Sven.Demo
 {
-    public class DemoSprayController : MonoBehaviour, IComponentMapping
+    public class DemoSprayController : MonoBehaviour, IComponentMapping, ISemanticAnnotation
     {
         public static string SemanticTypeName => "sven:Spray";
 
