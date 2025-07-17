@@ -3,7 +3,9 @@ using Sven.GraphManagement;
 using Sven.OwlTime;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using UnityEngine;
 using VDS.RDF.Query;
 
 namespace Sven.Command
@@ -54,9 +56,20 @@ WHERE {{
     
 {GraphManager.RetrieveIntervalQuery(Instant)}
 }}";
-            SparqlResultSet result = await GraphManager.QueryMemoryAsync(query);
-            // list of ids to semantization core
+            SparqlResultSet resultSet = await GraphManager.QueryMemoryAsync(query);
             List<SemantizationCore> semantizationCores = new();
+            foreach (SparqlResult result in resultSet.Cast<SparqlResult>())
+            {
+                string objectUUID = result["object"].ToString()[(result["object"].ToString().LastIndexOf("/") + 1)..];
+
+                Component component = SemantizationExtensions.GetComponentByUUID(objectUUID);
+
+                // if component is not null and is a SemantizationCore, then add it to the list
+                if (component != null && component is SemantizationCore semantizationCore)
+                    semantizationCores.Add(semantizationCore);
+                else
+                    Debug.LogWarning($"Component with UUID {objectUUID} not found or is not a SemantizationCore.");
+            }
             return semantizationCores;
         }
     }

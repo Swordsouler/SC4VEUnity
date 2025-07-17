@@ -39,11 +39,11 @@ namespace Sven.Command
 
                 // RGB sliders
                 EditorGUI.BeginChangeCheck();
-                entry.Red = EditorGUILayout.Slider("Red", entry.Red, 0f, 1f);
-                entry.Green = EditorGUILayout.Slider("Green", entry.Green, 0f, 1f);
-                entry.Blue = EditorGUILayout.Slider("Blue", entry.Blue, 0f, 1f);
+                entry.ColorThreshold.Red = EditorGUILayout.Slider("Red", entry.ColorThreshold.Red, 0f, 1f);
+                entry.ColorThreshold.Green = EditorGUILayout.Slider("Green", entry.ColorThreshold.Green, 0f, 1f);
+                entry.ColorThreshold.Blue = EditorGUILayout.Slider("Blue", entry.ColorThreshold.Blue, 0f, 1f);
 
-                entry.Tolerance = EditorGUILayout.Slider("Tolerance", entry.Tolerance, 0f, 1f);
+                entry.ColorThreshold.Tolerance = EditorGUILayout.Slider("Tolerance", entry.ColorThreshold.Tolerance, 0f, 1f);
 
                 // Sauvegarde uniquement à la fin de l'édition du slider
                 if (EditorGUI.EndChangeCheck() && (Event.current.type == EventType.MouseUp || Event.current.type == EventType.Used))
@@ -71,7 +71,7 @@ namespace Sven.Command
 
                 if (Event.current.type == EventType.Repaint)
                 {
-                    var color = new Color(entry.Red, entry.Green, entry.Blue);
+                    var color = new Color(entry.ColorThreshold.Red, entry.ColorThreshold.Green, entry.ColorThreshold.Blue);
                     int borderSize = 2;
 
                     // Dessiner la bordure
@@ -105,32 +105,11 @@ namespace Sven.Command
     {
         private string _controlName = System.Guid.NewGuid().ToString();
 
-        private float _red = 0.5f;
-        public float Red
+        private ColorThreshold _colorThreshold = new();
+        public ColorThreshold ColorThreshold
         {
-            get => _red;
-            set => _red = Mathf.Clamp01(value);
-        }
-
-        private float _green = 0.5f;
-        public float Green
-        {
-            get => _green;
-            set => _green = Mathf.Clamp01(value);
-        }
-
-        private float _blue = 0.5f;
-        public float Blue
-        {
-            get => _blue;
-            set => _blue = Mathf.Clamp01(value);
-        }
-
-        private float _tolerance = 0.1f;
-        public float Tolerance
-        {
-            get => _tolerance;
-            set => _tolerance = Mathf.Clamp(value, 0f, 1f);
+            get => _colorThreshold;
+            set => _colorThreshold = value ?? new ColorThreshold();
         }
 
         private List<string> _triggerWords = new();
@@ -138,13 +117,6 @@ namespace Sven.Command
         {
             get => _triggerWords ??= new List<string>();
             set => _triggerWords = value ?? new List<string>();
-        }
-
-        public bool IsMatching(Color color)
-        {
-            return Mathf.Abs(color.r - Red) <= _tolerance &&
-                   Mathf.Abs(color.g - Green) <= _tolerance &&
-                   Mathf.Abs(color.b - Blue) <= _tolerance;
         }
 
         [NonSerialized] private string _newTriggerWord = "";
