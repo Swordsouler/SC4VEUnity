@@ -32,7 +32,7 @@ namespace Sven.Command
             }
         }
 
-        public static BaseCommand<T> Interpret(Sentence sentence)
+        public static List<BaseCommand<T>> Interpret(Sentence sentence)
         {
             // return the right Command type based on keyword in sentence
             throw new NotImplementedException("Interpretation logic not implemented yet");
