@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
@@ -11,16 +12,14 @@ namespace Sven.Command
 {
     public class MultimodalitySettingsWindow : EditorWindow
     {
-        public IReadOnlyDictionary<Type, BaseCommandSettings> CommandSettings => commandSettings;
-        private readonly Dictionary<Type, BaseCommandSettings> commandSettings = new();
-        public IReadOnlyDictionary<Type, BaseCommandSettings> FilterSettings => filterSettings;
-        private readonly Dictionary<Type, BaseCommandSettings> filterSettings = new();
-        private readonly List<Type> filterTypes = new();
-        private readonly List<Type> commandTypes = new();
+        public IReadOnlyDictionary<Type, BaseCommandSettings> CommandSettings => _commandSettings;
+        private readonly Dictionary<Type, BaseCommandSettings> _commandSettings = new();
+        private readonly List<Type> _filterTypes = new();
+        private readonly List<Type> _commandTypes = new();
 
 
-        private int selectedMainTab = 0;
-        private int selectedTypeTab = 0;
+        private int _selectedMainTab = 0;
+        private int _selectedTypeTab = 0;
 
         [MenuItem("Window/S4M Settings")]
         public static void ShowWindow()
@@ -37,19 +36,19 @@ namespace Sven.Command
         private void OnGUI()
         {
             DrawMainTabs();
-            List<Type> shownTypes = selectedMainTab == 0 ? filterTypes : commandTypes;
+            List<Type> shownTypes = _selectedMainTab == 0 ? _filterTypes : _commandTypes;
             DrawTypeTabs(shownTypes);
-            DrawSettingsTabs(shownTypes, selectedMainTab == 0 ? filterSettings : commandSettings, ref selectedTypeTab);
+            DrawSettingsTabs(shownTypes, _commandSettings, ref _selectedTypeTab);
         }
 
         private void DrawMainTabs()
         {
-            string[] mainTabs = { "Filter", "Command" };
-            int prevSelected = selectedMainTab;
-            selectedMainTab = GUILayout.Toolbar(selectedMainTab, mainTabs);
-            if (selectedMainTab != prevSelected)
+            string[] mainTabs = { "Filter", "Action" };
+            int prevSelected = _selectedMainTab;
+            _selectedMainTab = GUILayout.Toolbar(_selectedMainTab, mainTabs);
+            if (_selectedMainTab != prevSelected)
             {
-                selectedTypeTab = 0; // Reset secondary tab when main tab changes
+                _selectedTypeTab = 0; // Reset secondary tab when main tab changes
             }
         }
 
@@ -61,7 +60,7 @@ namespace Sven.Command
                 GUILayout.Label("No available type.");
                 return;
             }
-            selectedTypeTab = GUILayout.Toolbar(selectedTypeTab, tabNames);
+            _selectedTypeTab = GUILayout.Toolbar(_selectedTypeTab, tabNames);
         }
 
         private void DrawSettingsTabs(List<Type> types, Dictionary<Type, BaseCommandSettings> settingsDict, ref int selectedTab)
@@ -129,59 +128,39 @@ namespace Sven.Command
             if (File.Exists(path))
             {
                 var json = File.ReadAllText(path);
-                var allSettings = JsonConvert.DeserializeObject<AllSettings>(json, new JsonSerializerSettings
+                var allSettings = JsonConvert.DeserializeObject<Dictionary<string, BaseCommandSettings>>(json, new JsonSerializerSettings
                 {
                     TypeNameHandling = TypeNameHandling.All
                 });
 
-                foreach (var type in filterTypes)
+                var allTypes = _filterTypes.Concat(_commandTypes);
+                foreach (var type in allTypes)
                 {
-                    if (allSettings != null && allSettings.Filters.TryGetValue(type.FullName, out var loadedFilter))
-                        filterSettings[type] = loadedFilter;
+                    if (allSettings != null && allSettings.TryGetValue(type.FullName, out var loadedSetting))
+                        _commandSettings[type] = loadedSetting;
                     else
-                        filterSettings[type] = Activator.CreateInstance(GetSettingsTypeForCommand(type) ?? typeof(CommandSettings)) as BaseCommandSettings;
-                }
-                foreach (var type in commandTypes)
-                {
-                    if (allSettings != null && allSettings.Commands.TryGetValue(type.FullName, out var loadedCommand))
-                        commandSettings[type] = loadedCommand;
-                    else
-                        commandSettings[type] = Activator.CreateInstance(GetSettingsTypeForCommand(type) ?? typeof(CommandSettings)) as BaseCommandSettings;
+                        _commandSettings[type] = Activator.CreateInstance(GetSettingsTypeForCommand(type) ?? typeof(CommandSettings)) as BaseCommandSettings;
                 }
             }
             else
             {
-                foreach (var type in filterTypes)
+                var allTypes = _filterTypes.Concat(_commandTypes);
+                foreach (var type in allTypes)
                 {
-                    filterSettings[type] = Activator.CreateInstance(GetSettingsTypeForCommand(type) ?? typeof(CommandSettings)) as BaseCommandSettings;
-                }
-                foreach (var type in commandTypes)
-                {
-                    commandSettings[type] = Activator.CreateInstance(GetSettingsTypeForCommand(type) ?? typeof(CommandSettings)) as BaseCommandSettings;
+                    _commandSettings[type] = Activator.CreateInstance(GetSettingsTypeForCommand(type) ?? typeof(CommandSettings)) as BaseCommandSettings;
                 }
             }
         }
 
         public void SaveSettings()
         {
-            var allSettings = new AllSettings();
-
-            foreach (var kvp in commandSettings)
-            {
-                allSettings.Commands[kvp.Key.FullName] = kvp.Value;
-            }
-
-            foreach (var kvp in filterSettings)
-            {
-                allSettings.Filters[kvp.Key.FullName] = kvp.Value;
-            }
-
             string dir = Path.Combine(Application.streamingAssetsPath, "Multimodality");
             if (!Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
 
             string path = Path.Combine(dir, "command_settings.json");
-            string json = JsonConvert.SerializeObject(allSettings, Formatting.Indented, new JsonSerializerSettings
+            var settingsToSave = CommandSettings.ToDictionary(kvp => kvp.Key.FullName, kvp => kvp.Value);
+            string json = JsonConvert.SerializeObject(settingsToSave, Formatting.Indented, new JsonSerializerSettings
             {
                 TypeNameHandling = TypeNameHandling.All
             });
@@ -192,8 +171,8 @@ namespace Sven.Command
 
         private void LoadAllCommandTypes()
         {
-            filterTypes.Clear();
-            commandTypes.Clear();
+            _filterTypes.Clear();
+            _commandTypes.Clear();
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 Type[] assemblyTypes;
@@ -212,23 +191,16 @@ namespace Sven.Command
                     {
                         if (IsSubclassOfRawGeneric(typeof(QueryFilter<>), type))
                         {
-                            filterTypes.Add(type);
+                            _filterTypes.Add(type);
                         }
                         else if (IsSubclassOfRawGeneric(typeof(BaseCommand<>), type))
                         {
-                            commandTypes.Add(type);
+                            _commandTypes.Add(type);
                         }
                     }
                 }
             }
         }
-    }
-
-    [Serializable]
-    public class AllSettings
-    {
-        public Dictionary<string, BaseCommandSettings> Commands { get; set; } = new();
-        public Dictionary<string, BaseCommandSettings> Filters { get; set; } = new();
     }
 }
 #endif

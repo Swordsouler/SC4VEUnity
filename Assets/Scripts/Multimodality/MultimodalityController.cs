@@ -1,12 +1,55 @@
+using Sven.Content;
 using Sven.GraphManagement;
 using Sven.OwlTime;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Sven.Multimodality
 {
     public class MultimodalityController : MonoBehaviour
     {
+        private static List<SemantizationCore> _selectedObjects = new();
+        public static IReadOnlyList<SemantizationCore> SelectedObjects => _selectedObjects;
+
+        public static void AddSelectedObject(SemantizationCore semantizationCore)
+        {
+            if (!_selectedObjects.Contains(semantizationCore))
+            {
+                _selectedObjects.Add(semantizationCore);
+            }
+        }
+
+        public static void AddSelectedObjects(IEnumerable<SemantizationCore> semantizationCores)
+        {
+            foreach (var semantizationCore in semantizationCores)
+            {
+                AddSelectedObject(semantizationCore);
+            }
+        }
+
+        public static void RemoveSelectedObject(SemantizationCore semantizationCore)
+        {
+            if (_selectedObjects.Contains(semantizationCore))
+            {
+                _selectedObjects.Remove(semantizationCore);
+            }
+        }
+
+        public static void RemoveSelectedObjects(IEnumerable<SemantizationCore> semantizationCores)
+        {
+            foreach (var semantizationCore in semantizationCores)
+            {
+                RemoveSelectedObject(semantizationCore);
+            }
+        }
+
+        public static void ClearSelectedObjects()
+        {
+            _selectedObjects.Clear();
+        }
+
+
         void Update()
         {
             if (Input.GetKeyDown(KeyCode.Keypad1))

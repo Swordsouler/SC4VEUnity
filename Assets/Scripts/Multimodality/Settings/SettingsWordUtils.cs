@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace Sven.Command
 {
     public static class SettingsWordUtils
@@ -14,7 +11,7 @@ namespace Sven.Command
                 return false;
             }
 
-            // Vérifie dans les commandes
+            // Vérifie dans les filtres
             foreach (var kvp in window.CommandSettings)
             {
                 if (kvp.Value is CommandSettings cmd && cmd.TriggerWords.Contains(word))
@@ -22,11 +19,7 @@ namespace Sven.Command
                     foundInType = kvp.Key.Name;
                     return true;
                 }
-            }
-
-            // Vérifie dans les filtres
-            foreach (var kvp in window.FilterSettings)
-            {
+                else
                 // ColorFilterSettings
                 if (kvp.Value is ColorFilterSettings colorFilter)
                 {
@@ -42,7 +35,14 @@ namespace Sven.Command
                 // AnnotationFilterSettings
                 else if (kvp.Value is AnnotationFilterSettings annotationFilter)
                 {
-                    // À compléter si tu ajoutes la gestion d'entries pour AnnotationFilterSettings
+                    foreach (var entry in annotationFilter.Entries)
+                    {
+                        if (entry.TriggerWords.Contains(word))
+                        {
+                            foundInType = kvp.Key.Name + " (AnnotationFilter)";
+                            return true;
+                        }
+                    }
                 }
                 // Autres settings avec TriggerWords
                 else if (kvp.Value is CommandSettings filterCmd && filterCmd.TriggerWords.Contains(word))

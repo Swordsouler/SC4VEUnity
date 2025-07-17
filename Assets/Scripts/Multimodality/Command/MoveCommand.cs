@@ -6,9 +6,11 @@ namespace Sven.Command
 {
     public class MoveCommand : ActionCommand<Vector3>
     {
-        public override void Apply(Vector3 value, List<SemantizationCore> semantizationCores)
+        public override void Apply(Vector3 value, IReadOnlyList<SemantizationCore> semantizationCores)
         {
-            throw new System.NotImplementedException($"Apply value '{value}' to {semantizationCores}");
+            //foreach (SemantizationCore semantizationCore in semantizationCores)
+            //    if (semantizationCore.TryGetComponent(out Renderer renderer))
+            //        renderer.material.color = value;
         }
     }
 }

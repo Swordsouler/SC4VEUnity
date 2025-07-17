@@ -18,17 +18,20 @@ namespace Sven.Command
         public CommandSettings()
         {
             _triggerWords = new List<string>();
+            _controlName = Guid.NewGuid().ToString();
         }
 
         [NonSerialized] private string _newTriggerWord = "";
         [NonSerialized] private bool _requestFocus = false;
         [NonSerialized] private string _duplicateError = "";
         [NonSerialized] private Vector2 _scroll;
-        [NonSerialized] private bool _wasTextFieldFocused = false;
-        [NonSerialized] private bool _forceFocus = false;
+        [NonSerialized] private string _controlName;
 
         public override void OnGUI(MultimodalitySettingsWindow window)
         {
+            if (string.IsNullOrEmpty(_controlName))
+                _controlName = Guid.NewGuid().ToString();
+
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
 
             EditorGUILayout.LabelField("Trigger words", EditorStyles.boldLabel);
@@ -37,7 +40,6 @@ namespace Sven.Command
 
             if (addRequested)
             {
-                _forceFocus = true;
                 TryAddTriggerWord(window);
             }
 
@@ -64,33 +66,29 @@ namespace Sven.Command
             bool addRequested = false;
 
             EditorGUILayout.BeginHorizontal();
-            GUI.SetNextControlName("NewTriggerWordField");
+            GUI.SetNextControlName(_controlName);
             _newTriggerWord = EditorGUILayout.TextField(_newTriggerWord);
 
             if (GUILayout.Button("Add", GUILayout.Width(60)))
             {
                 addRequested = true;
-                _forceFocus = true;
             }
             EditorGUILayout.EndHorizontal();
 
-            // Ajout par touche Entrée (KeyDown) si le champ a le focus
-            if (e.type == EventType.KeyDown &&
+            if (e.type == EventType.KeyUp &&
                 (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) &&
-                GUI.GetNameOfFocusedControl() == "NewTriggerWordField")
+                GUI.GetNameOfFocusedControl() == _controlName)
             {
                 addRequested = true;
-                _forceFocus = true;
                 e.Use();
             }
 
-            if (_forceFocus || _requestFocus)
+            if (_requestFocus)
             {
                 EditorApplication.delayCall += () =>
                 {
-                    EditorGUI.FocusTextInControl("NewTriggerWordField");
+                    EditorGUI.FocusTextInControl(_controlName);
                 };
-                _forceFocus = false;
                 _requestFocus = false;
             }
 

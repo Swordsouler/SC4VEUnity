@@ -1,4 +1,5 @@
 using Sven.Content;
+using Sven.Multimodality;
 using System.Collections.Generic;
 
 namespace Sven.Command
@@ -7,7 +8,7 @@ namespace Sven.Command
     {
         public override void Apply(List<SemantizationCore> semantizationCores)
         {
-            throw new System.NotImplementedException("Do unselection object");
+            MultimodalityController.RemoveSelectedObjects(semantizationCores);
         }
     }
 }

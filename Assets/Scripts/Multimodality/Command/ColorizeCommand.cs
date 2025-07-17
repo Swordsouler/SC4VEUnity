@@ -6,9 +6,11 @@ namespace Sven.Command
 {
     public class ColorizeCommand : ActionCommand<Color>
     {
-        public override void Apply(Color value, List<SemantizationCore> semantizationCores)
+        public override void Apply(Color value, IReadOnlyList<SemantizationCore> semantizationCores)
         {
-            throw new System.NotImplementedException($"Apply value '{value}' to {semantizationCores}");
+            foreach (SemantizationCore semantizationCore in semantizationCores)
+                if (semantizationCore.TryGetComponent(out Renderer renderer))
+                    renderer.material.color = value;
         }
     }
 }

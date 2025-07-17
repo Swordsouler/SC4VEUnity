@@ -1,264 +1,276 @@
 {
-  "$type": "Sven.Command.AllSettings, Assembly-CSharp",
-  "Commands": {
-    "$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[Sven.Command.BaseCommandSettings, Assembly-CSharp]], mscorlib",
-    "Sven.Command.ColorizeCommand": {
-      "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
-      "TriggerWords": {
-        "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-        "$values": [
-          "colorie",
-          "colorier",
-          "colorize"
-        ]
-      }
-    },
-    "Sven.Command.MoveCommand": {
-      "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
-      "TriggerWords": {
-        "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-        "$values": [
-          "déplace",
-          "déplacer",
-          "move"
-        ]
-      }
-    },
-    "Sven.Command.SelectCommand": {
-      "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
-      "TriggerWords": {
-        "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-        "$values": [
-          "choose",
-          "sélection",
-          "sélectionne",
-          "sélectionner",
-          "select"
-        ]
-      }
-    },
-    "Sven.Command.UnselectCommand": {
-      "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
-      "TriggerWords": {
-        "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-        "$values": [
-          "désélectionne",
-          "désélectionner",
-          "unselect",
-          "unchoose",
-          "désélection"
-        ]
-      }
+  "$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[Sven.Command.BaseCommandSettings, Assembly-CSharp]], mscorlib",
+  "Sven.Command.AnnotationFilter": {
+    "$type": "Sven.Command.AnnotationFilterSettings, Assembly-CSharp",
+    "Entries": {
+      "$type": "System.Collections.Generic.List`1[[Sven.Command.AnnotationFilterEntry, Assembly-CSharp]], mscorlib",
+      "$values": [
+        {
+          "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+          "AnnotationType": "sven:Apple",
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "pomme",
+              "apple"
+            ]
+          }
+        },
+        {
+          "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+          "AnnotationType": "sven:Banana",
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "banane",
+              "banana"
+            ]
+          }
+        },
+        {
+          "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+          "AnnotationType": "sven:Carrot",
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "carotte",
+              "carrot"
+            ]
+          }
+        },
+        {
+          "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+          "AnnotationType": "sven:Food",
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "nourriture",
+              "food"
+            ]
+          }
+        },
+        {
+          "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+          "AnnotationType": "sven:Fruit",
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "fruit"
+            ]
+          }
+        },
+        {
+          "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+          "AnnotationType": "sven:Pumpkin",
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "citrouille",
+              "pumpkin"
+            ]
+          }
+        },
+        {
+          "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+          "AnnotationType": "sven:Spray",
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "spray"
+            ]
+          }
+        },
+        {
+          "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+          "AnnotationType": "sven:Vegetable",
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "légume",
+              "vegetable"
+            ]
+          }
+        }
+      ]
     }
   },
-  "Filters": {
-    "$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[Sven.Command.BaseCommandSettings, Assembly-CSharp]], mscorlib",
-    "Sven.Command.AnnotationFilter": {
-      "$type": "Sven.Command.AnnotationFilterSettings, Assembly-CSharp",
-      "Entries": {
-        "$type": "System.Collections.Generic.List`1[[Sven.Command.AnnotationFilterEntry, Assembly-CSharp]], mscorlib",
-        "$values": [
-          {
-            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-            "AnnotationType": "sven:Apple",
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "pomme",
-                "apple"
-              ]
-            }
+  "Sven.Command.ColorFilter": {
+    "$type": "Sven.Command.ColorFilterSettings, Assembly-CSharp",
+    "Entries": {
+      "$type": "System.Collections.Generic.List`1[[Sven.Command.ColorFilterEntry, Assembly-CSharp]], mscorlib",
+      "$values": [
+        {
+          "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+          "ColorThreshold": {
+            "$type": "Sven.Command.ColorThreshold, Assembly-CSharp",
+            "Red": 0.8,
+            "Green": 0.2,
+            "Blue": 0.2,
+            "Tolerance": 0.2
           },
-          {
-            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-            "AnnotationType": "sven:Banana",
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "banane",
-                "banana"
-              ]
-            }
-          },
-          {
-            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-            "AnnotationType": "sven:Carrot",
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "carotte",
-                "carrot"
-              ]
-            }
-          },
-          {
-            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-            "AnnotationType": "sven:Food",
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "nourriture",
-                "food"
-              ]
-            }
-          },
-          {
-            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-            "AnnotationType": "sven:Fruit",
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "fruit"
-              ]
-            }
-          },
-          {
-            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-            "AnnotationType": "sven:Pumpkin",
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "citrouille",
-                "pumpkin"
-              ]
-            }
-          },
-          {
-            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-            "AnnotationType": "sven:Spray",
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "spray"
-              ]
-            }
-          },
-          {
-            "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-            "AnnotationType": "sven:Vegetable",
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "légume",
-                "vegetable"
-              ]
-            }
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "rouge",
+              "red"
+            ]
           }
-        ]
-      }
-    },
-    "Sven.Command.ColorFilter": {
-      "$type": "Sven.Command.ColorFilterSettings, Assembly-CSharp",
-      "Entries": {
-        "$type": "System.Collections.Generic.List`1[[Sven.Command.ColorFilterEntry, Assembly-CSharp]], mscorlib",
-        "$values": [
-          {
-            "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-            "Red": 0.8,
-            "Green": 0.2,
-            "Blue": 0.2,
-            "Tolerance": 0.2,
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "rouge",
-                "red"
-              ]
-            }
-          },
-          {
-            "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+        },
+        {
+          "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+          "ColorThreshold": {
+            "$type": "Sven.Command.ColorThreshold, Assembly-CSharp",
             "Red": 0.2,
             "Green": 0.8,
             "Blue": 0.2,
-            "Tolerance": 0.2,
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "vert",
-                "green"
-              ]
-            }
+            "Tolerance": 0.2
           },
-          {
-            "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-            "Red": 0.2,
-            "Green": 0.2,
-            "Blue": 0.8,
-            "Tolerance": 0.2,
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "bleu",
-                "blue"
-              ]
-            }
-          },
-          {
-            "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-            "Red": 0.8,
-            "Green": 0.8,
-            "Blue": 0.2,
-            "Tolerance": 0.2,
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "jaune",
-                "yellow"
-              ]
-            }
-          },
-          {
-            "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-            "Red": 0.8,
-            "Green": 0.2,
-            "Blue": 0.8,
-            "Tolerance": 0.25,
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "rose",
-                "pink"
-              ]
-            }
-          },
-          {
-            "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-            "Red": 0.2,
-            "Green": 0.8,
-            "Blue": 0.8,
-            "Tolerance": 0.2,
-            "TriggerWords": {
-              "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-              "$values": [
-                "cyan",
-                "teal"
-              ]
-            }
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "vert",
+              "green"
+            ]
           }
-        ]
-      }
-    },
-    "Sven.Command.PointerFilter": {
-      "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
-      "TriggerWords": {
-        "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-        "$values": [
-          "ça",
-          "this"
-        ]
-      }
-    },
-    "Sven.Command.PointOfViewFilter": {
-      "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
-      "TriggerWords": {
-        "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
-        "$values": [
-          "ce que je vois",
-          "vision",
-          "ce que je regarde"
-        ]
-      }
+        },
+        {
+          "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+          "ColorThreshold": {
+            "$type": "Sven.Command.ColorThreshold, Assembly-CSharp",
+            "Red": 0.2,
+            "Green": 0.2,
+            "Blue": 0.8,
+            "Tolerance": 0.2
+          },
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "bleu",
+              "blue"
+            ]
+          }
+        },
+        {
+          "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+          "ColorThreshold": {
+            "$type": "Sven.Command.ColorThreshold, Assembly-CSharp",
+            "Red": 0.8,
+            "Green": 0.8,
+            "Blue": 0.2,
+            "Tolerance": 0.2
+          },
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "jaune",
+              "yellow"
+            ]
+          }
+        },
+        {
+          "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+          "ColorThreshold": {
+            "$type": "Sven.Command.ColorThreshold, Assembly-CSharp",
+            "Red": 0.8,
+            "Green": 0.2,
+            "Blue": 0.8,
+            "Tolerance": 0.2
+          },
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "rose",
+              "pink"
+            ]
+          }
+        },
+        {
+          "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+          "ColorThreshold": {
+            "$type": "Sven.Command.ColorThreshold, Assembly-CSharp",
+            "Red": 0.2,
+            "Green": 0.8,
+            "Blue": 0.8,
+            "Tolerance": 0.2
+          },
+          "TriggerWords": {
+            "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+            "$values": [
+              "cyan",
+              "teal"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "Sven.Command.PointerFilter": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": {
+      "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+      "$values": [
+        "ça",
+        "this"
+      ]
+    }
+  },
+  "Sven.Command.PointOfViewFilter": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": {
+      "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+      "$values": [
+        "ce que je vois",
+        "vision",
+        "ce que je regarde"
+      ]
+    }
+  },
+  "Sven.Command.ColorizeCommand": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": {
+      "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+      "$values": [
+        "colorie",
+        "colorier",
+        "colorize"
+      ]
+    }
+  },
+  "Sven.Command.MoveCommand": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": {
+      "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+      "$values": [
+        "déplace",
+        "déplacer",
+        "move"
+      ]
+    }
+  },
+  "Sven.Command.SelectCommand": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": {
+      "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+      "$values": [
+        "choose",
+        "sélection",
+        "sélectionne",
+        "sélectionner",
+        "select"
+      ]
+    }
+  },
+  "Sven.Command.UnselectCommand": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": {
+      "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
+      "$values": [
+        "désélectionne",
+        "désélectionner",
+        "unselect",
+        "unchoose",
+        "désélection"
+      ]
     }
   }
 }
