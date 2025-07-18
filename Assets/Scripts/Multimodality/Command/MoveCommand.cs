@@ -4,13 +4,11 @@ using UnityEngine;
 
 namespace Sven.Command
 {
-    public class MoveCommand : ActionCommand<Vector3>
+    public class MoveCommand : ActionCommand<Vector3>, IBaseCommand<object>
     {
-        public override void Apply(Vector3 value, IReadOnlyList<SemantizationCore> semantizationCores)
+        public object Execute(IReadOnlyList<SemantizationCore> semantizationCores)
         {
-            //foreach (SemantizationCore semantizationCore in semantizationCores)
-            //    if (semantizationCore.TryGetComponent(out Renderer renderer))
-            //        renderer.material.color = value;
+            throw new System.NotImplementedException();
         }
     }
 }

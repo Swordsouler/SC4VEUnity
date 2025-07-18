@@ -3,6 +3,7 @@ using Sven.GraphManagement;
 using Sven.OwlTime;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Sven.Multimodality
@@ -17,14 +18,28 @@ namespace Sven.Multimodality
             if (!_selectedObjects.Contains(semantizationCore))
             {
                 _selectedObjects.Add(semantizationCore);
+                SetHighlight(semantizationCore, true);
             }
         }
 
-        public static void AddSelectedObjects(IEnumerable<SemantizationCore> semantizationCores)
+        public static void AddSelectedObjects(IEnumerable<SemantizationCore> semantizationCores, bool intersection)
         {
-            foreach (var semantizationCore in semantizationCores)
+            if (_selectedObjects.Count != 0 && intersection)
             {
-                AddSelectedObject(semantizationCore);
+                // Call removeSelectedObjects to remove objects not in the new selection
+                var toRemove = _selectedObjects.Except(semantizationCores).ToList();
+                foreach (var semantizationCore in toRemove)
+                {
+                    RemoveSelectedObject(semantizationCore);
+                }
+            }
+            else
+            {
+                // Add new objects to the selection
+                foreach (var semantizationCore in semantizationCores)
+                {
+                    AddSelectedObject(semantizationCore);
+                }
             }
         }
 
@@ -33,6 +48,7 @@ namespace Sven.Multimodality
             if (_selectedObjects.Contains(semantizationCore))
             {
                 _selectedObjects.Remove(semantizationCore);
+                SetHighlight(semantizationCore, false);
             }
         }
 
@@ -46,9 +62,30 @@ namespace Sven.Multimodality
 
         public static void ClearSelectedObjects()
         {
+            foreach (var obj in _selectedObjects)
+            {
+                SetHighlight(obj, false);
+            }
             _selectedObjects.Clear();
         }
 
+        private static void SetHighlight(SemantizationCore semantizationCore, bool highlight)
+        {
+            if (highlight)
+            {
+                // add outline
+                if (semantizationCore.TryGetComponent(out Outline outline))
+                    outline.enabled = true;
+                else
+                    semantizationCore.gameObject.AddComponent<Outline>();
+            }
+            else
+            {
+                // remove outline
+                if (semantizationCore.TryGetComponent(out Outline outline))
+                    outline.enabled = false;
+            }
+        }
 
         void Update()
         {
@@ -91,6 +128,20 @@ namespace Sven.Multimodality
             else if (Input.GetKeyDown(KeyCode.Keypad0))
             {
                 Rollback(10f);
+            }
+
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                // Récupère tous les objets SemantizationCore dans la scène
+                var semantizationCores = new List<SemantizationCore>(FindObjectsByType<SemantizationCore>(FindObjectsSortMode.None));
+                AddSelectedObjects(semantizationCores, false);
+            }
+
+            if (Input.GetKeyDown(KeyCode.LeftAlt))
+            {
+                // Récupère tous les objets SemantizationCore dans la scène
+                var semantizationCores = new List<SemantizationCore>(FindObjectsByType<SemantizationCore>(FindObjectsSortMode.None));
+                RemoveSelectedObjects(semantizationCores);
             }
         }
 

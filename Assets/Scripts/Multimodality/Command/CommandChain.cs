@@ -1,3 +1,4 @@
+using Sven.Multimodality;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -5,15 +6,20 @@ namespace Sven.Command
 {
     public class CommandChain
     {
-        private List<BaseCommand<BaseCommandSettings>> _commands = new();
-        public IReadOnlyList<BaseCommand<BaseCommandSettings>> Commands => _commands;
+        private List<IBaseCommand<object>> _commands = new();
+        public IReadOnlyList<IBaseCommand<object>> Commands => _commands;
 
-        public void AddCommand(BaseCommand<BaseCommandSettings> command)
+        public CommandChain(Sentence sentence)
+        {
+            _commands = new();
+        }
+
+        public void AddCommand(IBaseCommand<object> command)
         {
             _commands.Add(command);
         }
 
-        public void AddCommands(IEnumerable<BaseCommand<BaseCommandSettings>> commands)
+        public void AddCommands(IEnumerable<IBaseCommand<object>> commands)
         {
             foreach (var command in commands)
             {
@@ -26,12 +32,12 @@ namespace Sven.Command
             _commands.Clear();
         }
 
-        public void RemoveCommand(BaseCommand<BaseCommandSettings> command)
+        public void RemoveCommand(IBaseCommand<object> command)
         {
             _commands.Remove(command);
         }
 
-        public void RemoveCommands(IEnumerable<BaseCommand<BaseCommandSettings>> commands)
+        public void RemoveCommands(IEnumerable<IBaseCommand<object>> commands)
         {
             foreach (var command in commands)
             {
@@ -39,10 +45,39 @@ namespace Sven.Command
             }
         }
 
-        public async Task<List<BaseCommand<BaseCommandSettings>>> Execute()
+        public async Task Execute(MultimodalityController multimodalityController)
         {
             await Task.Yield();
-            throw new System.NotImplementedException("Execution logic not implemented yet. This method should execute each command in the chain and return the results.");
+            FilterCommand filterCommand = null;
+            List<QueryFilter<BaseCommandSettings>> filters = new();
+            foreach (var command in _commands)
+            {
+                switch (command)
+                {
+                    case QueryFilter<BaseCommandSettings> queryFilter:
+                        MultimodalityController.AddSelectedObjects(await queryFilter.Execute(), true);
+                        await ApplyFilters(filterCommand, filters);
+                        break;
+
+                    case FilterCommand filter:
+                        filterCommand = filter;
+                        await ApplyFilters(filterCommand, filters);
+                        break;
+
+                    default:
+                        command.Execute(MultimodalityController.SelectedObjects);
+                        break;
+                }
+            }
+        }
+
+        public async Task ApplyFilters(FilterCommand filterCommand, List<QueryFilter<BaseCommandSettings>> filters)
+        {
+            if (filterCommand == null) return;
+            if (filters == null || filters.Count == 0) return;
+
+            foreach (QueryFilter<BaseCommandSettings> filter in filters)
+                MultimodalityController.AddSelectedObjects(await filter.Execute(), true);
         }
     }
 }

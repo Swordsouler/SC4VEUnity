@@ -4058,6 +4058,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1596684823}
   - component: {fileID: 1596684824}
+  - component: {fileID: 1596684825}
   m_Layer: 0
   m_Name: Graph Controller
   m_TagString: Untagged
@@ -4092,6 +4093,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f76f747641578c40a97142e96baae7a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1596684825
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1596684821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 584b3cc11d1e11f42a7d197d8e325624, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  highlightMaterial: {fileID: 0}
 --- !u!1 &1665784244 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2165139561939491485, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}

@@ -1,16 +1,16 @@
-using Sven.Content;
-using Sven.Multimodality;
-using System.Collections.Generic;
-
 namespace Sven.Command
 {
     public abstract class ActionCommand<T> : BaseCommand<CommandSettings>
     {
-        public abstract void Apply(T value, IReadOnlyList<SemantizationCore> semantizationCores);
-
-        public void Apply(T value)
+        private T _parameter;
+        public T Parameter
         {
-            Apply(value, MultimodalityController.SelectedObjects);
+            get => _parameter;
+            set
+            {
+                if (_parameter.Equals(value)) return;
+                _parameter = value;
+            }
         }
     }
 }

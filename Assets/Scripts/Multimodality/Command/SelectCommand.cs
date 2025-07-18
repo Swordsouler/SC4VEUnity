@@ -6,9 +6,10 @@ namespace Sven.Command
 {
     public class SelectCommand : FilterCommand
     {
-        public override void Apply(List<SemantizationCore> semantizationCores)
+        public override object Execute(IReadOnlyList<SemantizationCore> semantizationCores)
         {
-            MultimodalityController.AddSelectedObjects(semantizationCores);
+            MultimodalityController.AddSelectedObjects(semantizationCores, true);
+            return null;
         }
     }
 }

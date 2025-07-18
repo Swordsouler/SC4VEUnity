@@ -10,7 +10,7 @@ namespace Sven.Command
 {
     public class PointOfViewFilter : QueryFilter<CommandSettings>
     {
-        public override async Task<List<SemantizationCore>> Query()
+        public override async Task<List<SemantizationCore>> Execute()
         {
             string query = $@"PREFIX : <{GraphManager.BaseUri}>
 PREFIX time: <http://www.w3.org/2006/time#>

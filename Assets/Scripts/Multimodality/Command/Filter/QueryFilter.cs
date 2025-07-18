@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Sven.Command
 {
-    public abstract class QueryFilter<T> : BaseCommand<T> where T : BaseCommandSettings
+    public abstract class QueryFilter<T> : BaseCommand<T>, IBaseCommand<Task<List<SemantizationCore>>> where T : BaseCommandSettings
     {
         private readonly Instant _instant;
         public Instant Instant => _instant;
@@ -25,8 +25,13 @@ namespace Sven.Command
         public QueryFilter(Instant instant)
         {
             _instant = instant;
+
         }
 
-        public abstract Task<List<SemantizationCore>> Query();
+        public Task<List<SemantizationCore>> Execute(IReadOnlyList<SemantizationCore> _)
+        {
+            return Execute();
+        }
+        public abstract Task<List<SemantizationCore>> Execute();
     }
 }

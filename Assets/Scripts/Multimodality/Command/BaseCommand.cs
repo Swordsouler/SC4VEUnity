@@ -31,11 +31,5 @@ namespace Sven.Command
                 return _settings.TryGetValue(GetType(), out T settings) ? new List<T> { settings } : new List<T>();
             }
         }
-
-        public static List<BaseCommand<T>> Interpret(Sentence sentence)
-        {
-            // return the right Command type based on keyword in sentence
-            throw new NotImplementedException("Interpretation logic not implemented yet");
-        }
     }
 }
