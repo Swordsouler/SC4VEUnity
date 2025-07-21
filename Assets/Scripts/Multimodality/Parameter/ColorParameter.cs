@@ -1,10 +1,11 @@
+using Newtonsoft.Json;
 using System;
 using UnityEngine;
 
 namespace Sven.Command
 {
     [Serializable]
-    public class ColorThreshold
+    public class ColorParameter
     {
         private float _red = 0.5f;
         public float Red
@@ -40,5 +41,21 @@ namespace Sven.Command
                    Mathf.Abs(color.g - Green) <= Tolerance &&
                    Mathf.Abs(color.b - Blue) <= Tolerance;
         }
+
+        // ignore serialization for these properties
+        [JsonIgnore]
+        public Color MaxColor =>
+            new(
+                Mathf.Clamp01(Red + Tolerance),
+                Mathf.Clamp01(Green + Tolerance),
+                Mathf.Clamp01(Blue + Tolerance)
+            );
+        [JsonIgnore]
+        public Color MinColor =>
+            new(
+                Mathf.Clamp01(Red - Tolerance),
+                Mathf.Clamp01(Green - Tolerance),
+                Mathf.Clamp01(Blue - Tolerance)
+            );
     }
 }

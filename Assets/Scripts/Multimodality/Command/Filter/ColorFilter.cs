@@ -13,27 +13,27 @@ namespace Sven.Command
 {
     public class ColorFilter : QueryFilter<ColorFilterSettings>
     {
-        private readonly ColorThreshold _colorThreshold;
-        public ColorThreshold ColorThreshold => _colorThreshold;
+        private readonly ColorParameter _colorParameter;
+        public ColorParameter ColorParameter => _colorParameter;
 
         public ColorFilter() : base()
         {
-            _colorThreshold = new ColorThreshold();
+            _colorParameter = new ColorParameter();
         }
 
-        public ColorFilter(ColorThreshold colorThreshold) : base()
+        public ColorFilter(ColorParameter colorParameter) : base()
         {
-            _colorThreshold = colorThreshold;
+            _colorParameter = colorParameter;
         }
 
-        public ColorFilter(ColorThreshold colorThreshold, DateTime dateTime) : base(dateTime)
+        public ColorFilter(ColorParameter colorParameter, DateTime dateTime) : base(dateTime)
         {
-            _colorThreshold = colorThreshold;
+            _colorParameter = colorParameter;
         }
 
-        public ColorFilter(ColorThreshold colorThreshold, Instant instant) : base(instant)
+        public ColorFilter(ColorParameter colorParameter, Instant instant) : base(instant)
         {
-            _colorThreshold = colorThreshold;
+            _colorParameter = colorParameter;
         }
 
         public override async Task<List<SemantizationCore>> Execute()
@@ -68,7 +68,7 @@ WHERE {{
                 string g = result["g"].AsValuedNode().ToString();
                 string b = result["b"].AsValuedNode().ToString();
 
-                if (!ColorThreshold.IsMatching(new Color(
+                if (!ColorParameter.IsMatching(new Color(
                     float.Parse(r, System.Globalization.CultureInfo.InvariantCulture),
                     float.Parse(g, System.Globalization.CultureInfo.InvariantCulture),
                     float.Parse(b, System.Globalization.CultureInfo.InvariantCulture))))

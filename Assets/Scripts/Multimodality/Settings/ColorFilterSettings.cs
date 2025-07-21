@@ -39,11 +39,11 @@ namespace Sven.Command
 
                 // RGB sliders
                 EditorGUI.BeginChangeCheck();
-                entry.ColorThreshold.Red = EditorGUILayout.Slider("Red", entry.ColorThreshold.Red, 0f, 1f);
-                entry.ColorThreshold.Green = EditorGUILayout.Slider("Green", entry.ColorThreshold.Green, 0f, 1f);
-                entry.ColorThreshold.Blue = EditorGUILayout.Slider("Blue", entry.ColorThreshold.Blue, 0f, 1f);
+                entry.ColorParameter.Red = EditorGUILayout.Slider("Red", entry.ColorParameter.Red, 0f, 1f);
+                entry.ColorParameter.Green = EditorGUILayout.Slider("Green", entry.ColorParameter.Green, 0f, 1f);
+                entry.ColorParameter.Blue = EditorGUILayout.Slider("Blue", entry.ColorParameter.Blue, 0f, 1f);
 
-                entry.ColorThreshold.Tolerance = EditorGUILayout.Slider("Tolerance", entry.ColorThreshold.Tolerance, 0f, 1f);
+                entry.ColorParameter.Tolerance = EditorGUILayout.Slider("Tolerance", entry.ColorParameter.Tolerance, 0f, 1f);
 
                 // Sauvegarde uniquement à la fin de l'édition du slider
                 if (EditorGUI.EndChangeCheck() && (Event.current.type == EventType.MouseUp || Event.current.type == EventType.Used))
@@ -71,7 +71,7 @@ namespace Sven.Command
 
                 if (Event.current.type == EventType.Repaint)
                 {
-                    var color = new Color(entry.ColorThreshold.Red, entry.ColorThreshold.Green, entry.ColorThreshold.Blue);
+                    var color = entry.ColorParameter.MaxColor;
                     int borderSize = 2;
 
                     // Dessiner la bordure
@@ -105,11 +105,11 @@ namespace Sven.Command
     {
         private string _controlName = System.Guid.NewGuid().ToString();
 
-        private ColorThreshold _colorThreshold = new();
-        public ColorThreshold ColorThreshold
+        private ColorParameter _colorParameter = new();
+        public ColorParameter ColorParameter
         {
-            get => _colorThreshold;
-            set => _colorThreshold = value ?? new ColorThreshold();
+            get => _colorParameter;
+            set => _colorParameter = value ?? new ColorParameter();
         }
 
         private List<string> _triggerWords = new();
@@ -136,7 +136,7 @@ namespace Sven.Command
 
             if (!string.IsNullOrEmpty(_duplicateError))
             {
-                GUIStyle errorStyle = new GUIStyle(EditorStyles.label)
+                GUIStyle errorStyle = new(EditorStyles.label)
                 {
                     normal = { textColor = Color.red }
                 };

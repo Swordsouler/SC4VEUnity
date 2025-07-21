@@ -12,7 +12,8 @@
             "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
             "$values": [
               "pomme",
-              "apple"
+              "apple",
+              "pommes"
             ]
           }
         },
@@ -23,7 +24,8 @@
             "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
             "$values": [
               "banane",
-              "banana"
+              "banana",
+              "bananes"
             ]
           }
         },
@@ -34,7 +36,8 @@
             "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
             "$values": [
               "carotte",
-              "carrot"
+              "carrot",
+              "carottes"
             ]
           }
         },
@@ -45,7 +48,8 @@
             "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
             "$values": [
               "nourriture",
-              "food"
+              "food",
+              "nourritures"
             ]
           }
         },
@@ -55,7 +59,8 @@
           "TriggerWords": {
             "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
             "$values": [
-              "fruit"
+              "fruit",
+              "fruits"
             ]
           }
         },
@@ -66,7 +71,9 @@
             "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
             "$values": [
               "citrouille",
-              "pumpkin"
+              "pumpkin",
+              "citrouilles",
+              "pumpkins"
             ]
           }
         },
@@ -76,7 +83,8 @@
           "TriggerWords": {
             "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
             "$values": [
-              "spray"
+              "spray",
+              "sprays"
             ]
           }
         },
@@ -87,7 +95,8 @@
             "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
             "$values": [
               "légume",
-              "vegetable"
+              "vegetable",
+              "légumes"
             ]
           }
         }
@@ -101,8 +110,8 @@
       "$values": [
         {
           "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-          "ColorThreshold": {
-            "$type": "Sven.Command.ColorThreshold, Assembly-CSharp",
+          "ColorParameter": {
+            "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
             "Red": 0.8,
             "Green": 0.2,
             "Blue": 0.2,
@@ -118,8 +127,8 @@
         },
         {
           "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-          "ColorThreshold": {
-            "$type": "Sven.Command.ColorThreshold, Assembly-CSharp",
+          "ColorParameter": {
+            "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
             "Red": 0.2,
             "Green": 0.8,
             "Blue": 0.2,
@@ -135,8 +144,8 @@
         },
         {
           "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-          "ColorThreshold": {
-            "$type": "Sven.Command.ColorThreshold, Assembly-CSharp",
+          "ColorParameter": {
+            "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
             "Red": 0.2,
             "Green": 0.2,
             "Blue": 0.8,
@@ -152,8 +161,8 @@
         },
         {
           "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-          "ColorThreshold": {
-            "$type": "Sven.Command.ColorThreshold, Assembly-CSharp",
+          "ColorParameter": {
+            "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
             "Red": 0.8,
             "Green": 0.8,
             "Blue": 0.2,
@@ -169,8 +178,8 @@
         },
         {
           "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-          "ColorThreshold": {
-            "$type": "Sven.Command.ColorThreshold, Assembly-CSharp",
+          "ColorParameter": {
+            "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
             "Red": 0.8,
             "Green": 0.2,
             "Blue": 0.8,
@@ -186,8 +195,8 @@
         },
         {
           "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-          "ColorThreshold": {
-            "$type": "Sven.Command.ColorThreshold, Assembly-CSharp",
+          "ColorParameter": {
+            "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
             "Red": 0.2,
             "Green": 0.8,
             "Blue": 0.8,
@@ -220,9 +229,9 @@
     "TriggerWords": {
       "$type": "System.Collections.Generic.List`1[[System.String, mscorlib]], mscorlib",
       "$values": [
-        "ce que je vois",
         "vision",
-        "ce que je regarde"
+        "que je vois",
+        "que je regarde"
       ]
     }
   },

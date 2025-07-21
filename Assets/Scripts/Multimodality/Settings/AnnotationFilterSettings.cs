@@ -63,7 +63,6 @@ namespace Sven.Command
             }
         }
     }
-
     [Serializable]
     public class AnnotationFilterEntry
     {
