@@ -6,14 +6,14 @@ using UnityEngine;
 namespace Sven.Command
 {
     [Serializable]
-    public class ColorFilterSettings : BaseCommandSettings
+    public class ColorFilterSettings : BaseSettingsGUI
     {
         public List<ColorFilterEntry> Entries = new();
 
         [NonSerialized] private Vector2 _scroll;
         [NonSerialized] private List<float> _buttonHeights = new();
 
-        public override void OnGUI(MultimodalitySettingsWindow window)
+        public override void OnGUI(S4MSettingsWindow window)
         {
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
 
@@ -101,7 +101,7 @@ namespace Sven.Command
 
         [NonSerialized] private TriggerWordsDrawer _triggerWordsDrawer;
 
-        public void DrawTriggerWordsUI(MultimodalitySettingsWindow window)
+        public void DrawTriggerWordsUI(S4MSettingsWindow window)
         {
             _triggerWordsDrawer ??= new TriggerWordsDrawer("Trigger words");
             _triggerWordsDrawer.Draw(window, TriggerWords);

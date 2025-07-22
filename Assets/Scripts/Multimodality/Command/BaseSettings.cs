@@ -5,7 +5,7 @@ using System.IO;
 
 namespace Sven.Command
 {
-    public abstract class BaseCommand<T> where T : BaseCommandSettings
+    public abstract class BaseSettings<T> where T : BaseSettingsGUI
     {
         protected static Dictionary<Type, T> _settings;
         public List<T> Settings

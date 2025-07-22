@@ -18,7 +18,7 @@ namespace Sven.Command
             _listName = listName;
         }
 
-        public void Draw(MultimodalitySettingsWindow window, List<string> words)
+        public void Draw(S4MSettingsWindow window, List<string> words)
         {
             EditorGUILayout.LabelField(_listName, EditorStyles.boldLabel);
 
@@ -40,7 +40,7 @@ namespace Sven.Command
             DrawWords(words, window);
         }
 
-        private bool HandleInputField(List<string> words, MultimodalitySettingsWindow window)
+        private bool HandleInputField(List<string> words, S4MSettingsWindow window)
         {
             Event e = Event.current;
             bool addRequested = false;
@@ -72,7 +72,7 @@ namespace Sven.Command
             return addRequested;
         }
 
-        private void TryAddWord(List<string> words, MultimodalitySettingsWindow window)
+        private void TryAddWord(List<string> words, S4MSettingsWindow window)
         {
             string trimmed = _newWord.Trim();
             if (!string.IsNullOrEmpty(trimmed))
@@ -81,7 +81,7 @@ namespace Sven.Command
                 {
                     _duplicateError = $"Word \"{_newWord}\" is already used in this list.";
                 }
-                else if (SettingsWordUtils.IsWordUsed(trimmed, window, out var foundInType, words))
+                else if (IsWordUsed(trimmed, window, out var foundInType, words))
                 {
                     _duplicateError = $"Word \"{_newWord}\" is already used in {foundInType}.";
                 }
@@ -96,7 +96,7 @@ namespace Sven.Command
             _requestFocus = true;
         }
 
-        private void DrawWords(List<string> words, MultimodalitySettingsWindow window)
+        private void DrawWords(List<string> words, S4MSettingsWindow window)
         {
             float viewWidth = EditorGUIUtility.currentViewWidth - 40;
             var lines = new List<List<int>>();
@@ -166,6 +166,60 @@ namespace Sven.Command
                 alignment = TextAnchor.MiddleLeft,
                 fixedHeight = 0
             };
+        }
+
+        public bool IsWordUsed(string word, S4MSettingsWindow window, out string foundInType, List<string> words)
+        {
+            word = word.Trim();
+            if (string.IsNullOrEmpty(word))
+            {
+                foundInType = null;
+                return false;
+            }
+
+            // Vérifie dans les filtres
+            foreach (var kvp in window.CommandSettings)
+            {
+                if (kvp.Value is CommandSettings cmd && cmd.TriggerWords.Contains(word))
+                {
+                    foundInType = kvp.Key.Name;
+                    return true;
+                }
+                else
+                // ColorFilterSettings
+                if (kvp.Value is ColorFilterSettings colorFilter)
+                {
+                    foreach (var entry in colorFilter.Entries)
+                    {
+                        if (entry.TriggerWords.Contains(word))
+                        {
+                            foundInType = kvp.Key.Name + " (ColorFilter)";
+                            return true;
+                        }
+                    }
+                }
+                // AnnotationFilterSettings
+                else if (kvp.Value is AnnotationFilterSettings annotationFilter)
+                {
+                    foreach (var entry in annotationFilter.Entries)
+                    {
+                        if (entry.TriggerWords.Contains(word))
+                        {
+                            foundInType = kvp.Key.Name + " (AnnotationFilter)";
+                            return true;
+                        }
+                    }
+                }
+                // Autres settings avec TriggerWords
+                else if (kvp.Value is CommandSettings filterCmd && filterCmd.TriggerWords.Contains(word))
+                {
+                    foundInType = kvp.Key.Name;
+                    return true;
+                }
+            }
+
+            foundInType = null;
+            return false;
         }
     }
 }

@@ -1,3 +1,4 @@
+using Sven.Command;
 using Sven.Content;
 using Sven.GraphManagement;
 using Sven.OwlTime;
@@ -89,48 +90,11 @@ namespace Sven.Multimodality
 
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Keypad1))
+            if (Input.GetKeyDown(KeyCode.T))
             {
-                Rollback(1f);
+                TestCommandChain();
             }
-            else if (Input.GetKeyDown(KeyCode.Keypad2))
-            {
-                Rollback(2f);
-            }
-            else if (Input.GetKeyDown(KeyCode.Keypad3))
-            {
-                Rollback(3f);
-            }
-            else if (Input.GetKeyDown(KeyCode.Keypad4))
-            {
-                Rollback(4f);
-            }
-            else if (Input.GetKeyDown(KeyCode.Keypad5))
-            {
-                Rollback(5f);
-            }
-            else if (Input.GetKeyDown(KeyCode.Keypad6))
-            {
-                Rollback(6f);
-            }
-            else if (Input.GetKeyDown(KeyCode.Keypad7))
-            {
-                Rollback(7f);
-            }
-            else if (Input.GetKeyDown(KeyCode.Keypad8))
-            {
-                Rollback(8f);
-            }
-            else if (Input.GetKeyDown(KeyCode.Keypad9))
-            {
-                Rollback(9f);
-            }
-            else if (Input.GetKeyDown(KeyCode.Keypad0))
-            {
-                Rollback(10f);
-            }
-
-            if (Input.GetKeyDown(KeyCode.Space))
+            /*if (Input.GetKeyDown(KeyCode.Space))
             {
                 // Récupère tous les objets SemantizationCore dans la scène
                 var semantizationCores = new List<SemantizationCore>(FindObjectsByType<SemantizationCore>(FindObjectsSortMode.None));
@@ -142,7 +106,7 @@ namespace Sven.Multimodality
                 // Récupère tous les objets SemantizationCore dans la scène
                 var semantizationCores = new List<SemantizationCore>(FindObjectsByType<SemantizationCore>(FindObjectsSortMode.None));
                 RemoveSelectedObjects(semantizationCores);
-            }
+            }*/
         }
 
         private async void Rollback(float time)
@@ -154,6 +118,28 @@ namespace Sven.Multimodality
             await GraphManager.SaveToEndpoint();
             await GraphManager.RetrieveSceneFromEndpoint(targetInstant);
             //await GraphManager.RetrieveSceneFromMemory(targetInstant);
+        }
+
+        private CommandChain _commandChain;
+
+        private async void TestCommandChain()
+        {
+            _commandChain = new CommandChain();
+            _commandChain.AddCommand(new SelectCommand
+            {
+                Parameter = new PointOfViewFilter()
+            });
+            _commandChain.AddCommand(new ColorizeCommand
+            {
+                Parameter = new ColorParameter
+                {
+                    Red = 1f,
+                    Green = 0f,
+                    Blue = 0f,
+                    Tolerance = 0f
+                }
+            });
+            await _commandChain.Execute();
         }
     }
 }

@@ -1,10 +1,7 @@
-using Sven.Content;
-using System.Collections.Generic;
-
 namespace Sven.Command
 {
-    public interface IBaseCommand<T>
+    public interface IBaseCommand
     {
-        public abstract T Execute(IReadOnlyList<SemantizationCore> semantizationCores);
+        void Execute();
     }
 }

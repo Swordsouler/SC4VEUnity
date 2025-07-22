@@ -1,6 +1,6 @@
 namespace Sven.Command
 {
-    public abstract class ActionCommand<TSettings, T> : BaseCommand<TSettings> where TSettings : BaseCommandSettings
+    public abstract class Command<TSettings, T> : BaseSettings<TSettings> where TSettings : BaseSettingsGUI
     {
         private T _parameter;
         public T Parameter

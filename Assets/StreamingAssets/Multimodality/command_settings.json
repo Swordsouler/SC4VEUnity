@@ -1,224 +1,161 @@
 {
-  "$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[Sven.Command.BaseCommandSettings, Assembly-CSharp]], mscorlib",
-  "Sven.Command.AnnotationFilter": {
-    "$type": "Sven.Command.AnnotationFilterSettings, Assembly-CSharp",
-    "Entries": [
-      {
-        "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "sven:Apple",
-        "TriggerWords": [
-          "pomme",
-          "apple",
-          "pommes"
+    "$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[Sven.Command.BaseCommandSettings, Assembly-CSharp]], mscorlib",
+    "Sven.Command.AnnotationFilter": {
+        "$type": "Sven.Command.AnnotationFilterSettings, Assembly-CSharp",
+        "Entries": [
+            {
+                "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+                "AnnotationType": "sven:Apple",
+                "TriggerWords": ["pomme", "apple", "pommes"]
+            },
+            {
+                "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+                "AnnotationType": "sven:Banana",
+                "TriggerWords": ["banane", "banana", "bananes"]
+            },
+            {
+                "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+                "AnnotationType": "sven:Carrot",
+                "TriggerWords": ["carotte", "carrot", "carottes"]
+            },
+            {
+                "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+                "AnnotationType": "sven:Food",
+                "TriggerWords": ["nourriture", "food", "nourritures"]
+            },
+            {
+                "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+                "AnnotationType": "sven:Fruit",
+                "TriggerWords": ["fruit", "fruits"]
+            },
+            {
+                "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+                "AnnotationType": "sven:Pumpkin",
+                "TriggerWords": [
+                    "citrouille",
+                    "pumpkin",
+                    "citrouilles",
+                    "pumpkins"
+                ]
+            },
+            {
+                "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+                "AnnotationType": "sven:Spray",
+                "TriggerWords": ["spray", "sprays"]
+            },
+            {
+                "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
+                "AnnotationType": "sven:Vegetable",
+                "TriggerWords": ["légume", "vegetable", "légumes"]
+            }
         ]
-      },
-      {
-        "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "sven:Banana",
-        "TriggerWords": [
-          "banane",
-          "banana",
-          "bananes"
+    },
+    "Sven.Command.ColorFilter": {
+        "$type": "Sven.Command.ColorFilterSettings, Assembly-CSharp",
+        "Entries": [
+            {
+                "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+                "ColorParameter": {
+                    "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
+                    "Red": 0.8,
+                    "Green": 0.2,
+                    "Blue": 0.2,
+                    "Tolerance": 0.2
+                },
+                "TriggerWords": ["rouge", "red"]
+            },
+            {
+                "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+                "ColorParameter": {
+                    "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
+                    "Red": 0.2,
+                    "Green": 0.8,
+                    "Blue": 0.2,
+                    "Tolerance": 0.2
+                },
+                "TriggerWords": ["vert", "green"]
+            },
+            {
+                "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+                "ColorParameter": {
+                    "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
+                    "Red": 0.2,
+                    "Green": 0.2,
+                    "Blue": 0.8,
+                    "Tolerance": 0.2
+                },
+                "TriggerWords": ["bleu", "blue"]
+            },
+            {
+                "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+                "ColorParameter": {
+                    "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
+                    "Red": 0.8,
+                    "Green": 0.8,
+                    "Blue": 0.2,
+                    "Tolerance": 0.2
+                },
+                "TriggerWords": ["jaune", "yellow"]
+            },
+            {
+                "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+                "ColorParameter": {
+                    "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
+                    "Red": 0.8,
+                    "Green": 0.2,
+                    "Blue": 0.8,
+                    "Tolerance": 0.2
+                },
+                "TriggerWords": ["rose", "pink"]
+            },
+            {
+                "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
+                "ColorParameter": {
+                    "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
+                    "Red": 0.2,
+                    "Green": 0.8,
+                    "Blue": 0.8,
+                    "Tolerance": 0.2
+                },
+                "TriggerWords": ["cyan", "teal"]
+            }
         ]
-      },
-      {
-        "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "sven:Carrot",
+    },
+    "Sven.Command.PointerFilter": {
+        "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+        "TriggerWords": ["ça", "this", "ici"]
+    },
+    "Sven.Command.PointOfViewFilter": {
+        "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+        "TriggerWords": ["vision", "que je vois", "que je regarde"]
+    },
+    "Sven.Command.ColorizeCommand": {
+        "$type": "Sven.Command.ColorizeSettings, Assembly-CSharp",
+        "PrefixWords": ["en", "into"],
+        "TriggerWords": ["colorie", "colorier", "colorize"]
+    },
+    "Sven.Command.MoveCommand": {
+        "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+        "TriggerWords": ["déplCommande", "déplCommander", "move"]
+    },
+    "Sven.Command.SelectCommand": {
+        "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
         "TriggerWords": [
-          "carotte",
-          "carrot",
-          "carottes"
+            "choose",
+            "sélection",
+            "sélectionne",
+            "sélectionner",
+            "select"
         ]
-      },
-      {
-        "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "sven:Food",
+    },
+    "Sven.Command.UnselectCommand": {
+        "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
         "TriggerWords": [
-          "nourriture",
-          "food",
-          "nourritures"
+            "désélectionne",
+            "désélectionner",
+            "unselect",
+            "unchoose",
+            "désélection"
         ]
-      },
-      {
-        "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "sven:Fruit",
-        "TriggerWords": [
-          "fruit",
-          "fruits"
-        ]
-      },
-      {
-        "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "sven:Pumpkin",
-        "TriggerWords": [
-          "citrouille",
-          "pumpkin",
-          "citrouilles",
-          "pumpkins"
-        ]
-      },
-      {
-        "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "sven:Spray",
-        "TriggerWords": [
-          "spray",
-          "sprays"
-        ]
-      },
-      {
-        "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "sven:Vegetable",
-        "TriggerWords": [
-          "légume",
-          "vegetable",
-          "légumes"
-        ]
-      }
-    ]
-  },
-  "Sven.Command.ColorFilter": {
-    "$type": "Sven.Command.ColorFilterSettings, Assembly-CSharp",
-    "Entries": [
-      {
-        "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-        "ColorParameter": {
-          "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
-          "Red": 0.8,
-          "Green": 0.2,
-          "Blue": 0.2,
-          "Tolerance": 0.2
-        },
-        "TriggerWords": [
-          "rouge",
-          "red"
-        ]
-      },
-      {
-        "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-        "ColorParameter": {
-          "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
-          "Red": 0.2,
-          "Green": 0.8,
-          "Blue": 0.2,
-          "Tolerance": 0.2
-        },
-        "TriggerWords": [
-          "vert",
-          "green"
-        ]
-      },
-      {
-        "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-        "ColorParameter": {
-          "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
-          "Red": 0.2,
-          "Green": 0.2,
-          "Blue": 0.8,
-          "Tolerance": 0.2
-        },
-        "TriggerWords": [
-          "bleu",
-          "blue"
-        ]
-      },
-      {
-        "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-        "ColorParameter": {
-          "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
-          "Red": 0.8,
-          "Green": 0.8,
-          "Blue": 0.2,
-          "Tolerance": 0.2
-        },
-        "TriggerWords": [
-          "jaune",
-          "yellow"
-        ]
-      },
-      {
-        "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-        "ColorParameter": {
-          "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
-          "Red": 0.8,
-          "Green": 0.2,
-          "Blue": 0.8,
-          "Tolerance": 0.2
-        },
-        "TriggerWords": [
-          "rose",
-          "pink"
-        ]
-      },
-      {
-        "$type": "Sven.Command.ColorFilterEntry, Assembly-CSharp",
-        "ColorParameter": {
-          "$type": "Sven.Command.ColorParameter, Assembly-CSharp",
-          "Red": 0.2,
-          "Green": 0.8,
-          "Blue": 0.8,
-          "Tolerance": 0.2
-        },
-        "TriggerWords": [
-          "cyan",
-          "teal"
-        ]
-      }
-    ]
-  },
-  "Sven.Command.PointerFilter": {
-    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
-    "TriggerWords": [
-      "ça",
-      "this",
-      "ici"
-    ]
-  },
-  "Sven.Command.PointOfViewFilter": {
-    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
-    "TriggerWords": [
-      "vision",
-      "que je vois",
-      "que je regarde"
-    ]
-  },
-  "Sven.Command.ColorizeAC": {
-    "$type": "Sven.Command.ColorizeSettings, Assembly-CSharp",
-    "PrefixWords": [
-      "en",
-      "into"
-    ],
-    "TriggerWords": [
-      "colorie",
-      "colorier",
-      "colorize"
-    ]
-  },
-  "Sven.Command.MoveAC": {
-    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
-    "TriggerWords": [
-      "déplace",
-      "déplacer",
-      "move"
-    ]
-  },
-  "Sven.Command.SelectAC": {
-    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
-    "TriggerWords": [
-      "choose",
-      "sélection",
-      "sélectionne",
-      "sélectionner",
-      "select"
-    ]
-  },
-  "Sven.Command.UnselectAC": {
-    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
-    "TriggerWords": [
-      "désélectionne",
-      "désélectionner",
-      "unselect",
-      "unchoose",
-      "désélection"
-    ]
-  }
+    }
 }

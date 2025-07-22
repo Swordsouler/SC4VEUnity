@@ -5,7 +5,7 @@ using System;
 namespace Sven.Command
 {
     [Serializable]
-    public class PositionParameter
+    public class PositionParameter : IBaseParameter
     {
         private RelativeDirection _direction = RelativeDirection.Forward;
         public RelativeDirection Direction

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Sven.Command
 {
     [Serializable]
-    public class ColorParameter
+    public class ColorParameter : IBaseParameter
     {
         private float _red = 0.5f;
         public float Red

@@ -1,5 +1,4 @@
 using Sven.Content;
-using Sven.GraphManagement;
 using Sven.OwlTime;
 using System;
 using System.Collections.Generic;
@@ -7,31 +6,31 @@ using System.Threading.Tasks;
 
 namespace Sven.Command
 {
-    public abstract class QueryFilter<T> : BaseCommand<T>, IBaseCommand<Task<List<SemantizationCore>>> where T : BaseCommandSettings
+    public abstract class QueryFilter<T> : BaseSettings<T>, IQueryFilter where T : BaseSettingsGUI
     {
         private readonly Instant _instant;
         public Instant Instant => _instant;
 
         public QueryFilter()
         {
-            _instant = GraphManager.SearchInstant(DateTime.Now);
+            _instant = new Instant(DateTime.UtcNow);
         }
 
         public QueryFilter(DateTime dateTime)
         {
-            _instant = GraphManager.SearchInstant(dateTime);
+            _instant = new Instant(dateTime);
         }
 
         public QueryFilter(Instant instant)
         {
             _instant = instant;
-
         }
 
         public Task<List<SemantizationCore>> Execute(IReadOnlyList<SemantizationCore> _)
         {
             return Execute();
         }
+
         public abstract Task<List<SemantizationCore>> Execute();
     }
 }

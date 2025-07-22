@@ -6,14 +6,14 @@ using UnityEngine;
 namespace Sven.Command
 {
     [Serializable]
-    public class CommandSettings : BaseCommandSettings
+    public class CommandSettings : BaseSettingsGUI
     {
         public List<string> TriggerWords { get; set; } = new();
 
         [NonSerialized] private TriggerWordsDrawer _triggerWordsDrawer;
         [NonSerialized] private Vector2 _scroll;
 
-        public override void OnGUI(MultimodalitySettingsWindow window)
+        public override void OnGUI(S4MSettingsWindow window)
         {
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
 
@@ -30,7 +30,7 @@ namespace Sven.Command
         /// <summary>
         /// A hook for derived classes to draw their specific settings inside the scroll view.
         /// </summary>
-        protected virtual void DrawCustomSettings(MultimodalitySettingsWindow window)
+        protected virtual void DrawCustomSettings(S4MSettingsWindow window)
         {
             // Base implementation is empty.
         }

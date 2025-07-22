@@ -11,7 +11,7 @@ namespace Sven.Command
 
         [NonSerialized] private TriggerWordsDrawer _prefixWordsDrawer;
 
-        protected override void DrawCustomSettings(MultimodalitySettingsWindow window)
+        protected override void DrawCustomSettings(S4MSettingsWindow window)
         {
             EditorGUILayout.Space(10);
 

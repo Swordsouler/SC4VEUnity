@@ -11,10 +11,10 @@ using UnityEngine;
 
 namespace Sven.Command
 {
-    public class MultimodalitySettingsWindow : EditorWindow
+    public class S4MSettingsWindow : EditorWindow
     {
-        public IReadOnlyDictionary<Type, BaseCommandSettings> CommandSettings => _commandSettings;
-        private readonly Dictionary<Type, BaseCommandSettings> _commandSettings = new();
+        public IReadOnlyDictionary<Type, BaseSettingsGUI> CommandSettings => _commandSettings;
+        private readonly Dictionary<Type, BaseSettingsGUI> _commandSettings = new();
         private readonly List<Type> _filterTypes = new();
         private readonly List<Type> _commandTypes = new();
 
@@ -25,7 +25,7 @@ namespace Sven.Command
         [MenuItem("Window/S4M Settings")]
         public static void ShowWindow()
         {
-            GetWindow<MultimodalitySettingsWindow>("S4M Settings");
+            GetWindow<S4MSettingsWindow>("S4M Settings");
         }
 
         private void OnEnable()
@@ -55,7 +55,7 @@ namespace Sven.Command
 
         private void DrawTypeTabs(List<Type> types)
         {
-            string[] tabNames = types.ConvertAll(t => t.Name.Replace("AC", "").Replace("Filter", "")).ToArray();
+            string[] tabNames = types.ConvertAll(t => t.Name.Replace("Command", "").Replace("Filter", "")).ToArray();
             if (tabNames.Length == 0)
             {
                 GUILayout.Label("No available type.");
@@ -64,7 +64,7 @@ namespace Sven.Command
             _selectedTypeTab = GUILayout.Toolbar(_selectedTypeTab, tabNames);
         }
 
-        private void DrawSettingsTabs(List<Type> types, Dictionary<Type, BaseCommandSettings> settingsDict, ref int selectedTab)
+        private void DrawSettingsTabs(List<Type> types, Dictionary<Type, BaseSettingsGUI> settingsDict, ref int selectedTab)
         {
             if (selectedTab >= 0 && selectedTab < types.Count)
             {
@@ -73,7 +73,7 @@ namespace Sven.Command
                 if (!settingsDict.ContainsKey(type))
                 {
                     var settingsType = GetSettingsTypeForCommand(type) ?? typeof(CommandSettings);
-                    settingsDict[type] = Activator.CreateInstance(settingsType) as BaseCommandSettings;
+                    settingsDict[type] = Activator.CreateInstance(settingsType) as BaseSettingsGUI;
                 }
 
                 var setting = settingsDict[type];
@@ -95,12 +95,12 @@ namespace Sven.Command
                 if (baseType.IsGenericType)
                 {
                     var genericDef = baseType.GetGenericTypeDefinition();
-                    if (genericDef == typeof(BaseCommand<>) || genericDef == typeof(QueryFilter<>) || genericDef == typeof(ActionCommand<,>))
+                    if (genericDef == typeof(BaseSettings<>) || genericDef == typeof(QueryFilter<>) || genericDef == typeof(Command<,>))
                     {
                         // The settings argument is now always the first one.
                         var settingsArg = baseType.GetGenericArguments()[0];
 
-                        if (typeof(BaseCommandSettings).IsAssignableFrom(settingsArg))
+                        if (typeof(BaseSettingsGUI).IsAssignableFrom(settingsArg))
                             return settingsArg;
                     }
                 }
@@ -141,7 +141,7 @@ namespace Sven.Command
             {
                 // Determine the correct settings type from the class definition.
                 var settingsType = GetSettingsTypeForCommand(type) ?? typeof(CommandSettings);
-                var settingsInstance = Activator.CreateInstance(settingsType) as BaseCommandSettings;
+                var settingsInstance = Activator.CreateInstance(settingsType) as BaseSettingsGUI;
 
                 // If there are saved settings, try to populate the instance.
                 if (savedSettings != null && savedSettings.TryGetValue(type.FullName, out var jObject))
@@ -198,7 +198,7 @@ namespace Sven.Command
                         {
                             _filterTypes.Add(type);
                         }
-                        else if (IsSubclassOfRawGeneric(typeof(BaseCommand<>), type))
+                        else if (IsSubclassOfRawGeneric(typeof(BaseSettings<>), type))
                         {
                             _commandTypes.Add(type);
                         }

@@ -8,12 +8,12 @@ using UnityEngine;
 namespace Sven.Command
 {
     [Serializable]
-    public class AnnotationFilterSettings : BaseCommandSettings
+    public class AnnotationFilterSettings : BaseSettingsGUI
     {
         public List<AnnotationFilterEntry> Entries = new();
         [NonSerialized] private Vector2 _scroll;
 
-        public override void OnGUI(MultimodalitySettingsWindow window)
+        public override void OnGUI(S4MSettingsWindow window)
         {
             var availableAnnotationTypes = ISemanticAnnotation.GetAvailableAnnotationTypes();
             SynchronizeEntries(availableAnnotationTypes, window);
@@ -35,7 +35,7 @@ namespace Sven.Command
             EditorGUILayout.EndScrollView();
         }
 
-        private void SynchronizeEntries(string[] availableTypes, MultimodalitySettingsWindow window)
+        private void SynchronizeEntries(string[] availableTypes, S4MSettingsWindow window)
         {
             bool changed = false;
             var currentTypesInEntries = Entries.Select(e => e.AnnotationType).ToList();
@@ -70,7 +70,7 @@ namespace Sven.Command
 
         [NonSerialized] private TriggerWordsDrawer _triggerWordsDrawer;
 
-        public void DrawTriggerWordsUI(MultimodalitySettingsWindow window)
+        public void DrawTriggerWordsUI(S4MSettingsWindow window)
         {
             _triggerWordsDrawer ??= new TriggerWordsDrawer("Trigger Words");
             _triggerWordsDrawer.Draw(window, TriggerWords);
