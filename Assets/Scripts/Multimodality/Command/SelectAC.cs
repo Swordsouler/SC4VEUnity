@@ -4,11 +4,11 @@ using System.Collections.Generic;
 
 namespace Sven.Command
 {
-    public class UnselectCommand : FilterCommand
+    public class SelectAC : FilterAC
     {
         public override object Execute(IReadOnlyList<SemantizationCore> semantizationCores)
         {
-            MultimodalityController.RemoveSelectedObjects(semantizationCores);
+            MultimodalityController.AddSelectedObjects(semantizationCores, true);
             return null;
         }
     }

@@ -48,7 +48,7 @@ namespace Sven.Command
         public async Task Execute(MultimodalityController multimodalityController)
         {
             await Task.Yield();
-            FilterCommand filterCommand = null;
+            FilterAC filterCommand = null;
             List<QueryFilter<BaseCommandSettings>> filters = new();
             foreach (var command in _commands)
             {
@@ -59,7 +59,7 @@ namespace Sven.Command
                         await ApplyFilters(filterCommand, filters);
                         break;
 
-                    case FilterCommand filter:
+                    case FilterAC filter:
                         filterCommand = filter;
                         await ApplyFilters(filterCommand, filters);
                         break;
@@ -71,7 +71,7 @@ namespace Sven.Command
             }
         }
 
-        public async Task ApplyFilters(FilterCommand filterCommand, List<QueryFilter<BaseCommandSettings>> filters)
+        public async Task ApplyFilters(FilterAC filterCommand, List<QueryFilter<BaseCommandSettings>> filters)
         {
             if (filterCommand == null) return;
             if (filters == null || filters.Count == 0) return;

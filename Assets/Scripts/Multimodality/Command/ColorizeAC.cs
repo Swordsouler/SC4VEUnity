@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Sven.Command
 {
-    public class ColorizeCommand : ActionCommand<ColorParameter>, IBaseCommand<object>
+    public class ColorizeAC : ActionCommand<ColorizeSettings, ColorParameter>, IBaseCommand<object>
     {
         public object Execute(IReadOnlyList<SemantizationCore> semantizationCores)
         {

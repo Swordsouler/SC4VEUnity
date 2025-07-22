@@ -1,6 +1,6 @@
 namespace Sven.Command
 {
-    public abstract class ActionCommand<T> : BaseCommand<CommandSettings>
+    public abstract class ActionCommand<TSettings, T> : BaseCommand<TSettings> where TSettings : BaseCommandSettings
     {
         private T _parameter;
         public T Parameter
@@ -8,7 +8,7 @@ namespace Sven.Command
             get => _parameter;
             set
             {
-                if (_parameter.Equals(value)) return;
+                if (_parameter != null && _parameter.Equals(value)) return;
                 _parameter = value;
             }
         }

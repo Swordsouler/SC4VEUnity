@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Sven.Command
 {
-    public class MoveCommand : ActionCommand<PositionParameter>, IBaseCommand<object>
+    public class MoveAC : ActionCommand<CommandSettings, PositionParameter>, IBaseCommand<object>
     {
         public object Execute(IReadOnlyList<SemantizationCore> semantizationCores)
         {

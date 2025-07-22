@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -54,7 +55,7 @@ namespace Sven.Command
 
         private void DrawTypeTabs(List<Type> types)
         {
-            string[] tabNames = types.ConvertAll(t => t.Name.Replace("Command", "").Replace("Filter", "")).ToArray();
+            string[] tabNames = types.ConvertAll(t => t.Name.Replace("AC", "").Replace("Filter", "")).ToArray();
             if (tabNames.Length == 0)
             {
                 GUILayout.Label("No available type.");
@@ -88,18 +89,19 @@ namespace Sven.Command
         /// </summary>
         private Type GetSettingsTypeForCommand(Type commandType)
         {
-            // If the commandType inherits from BaseCommand<T>, return T if it's a BaseCommandSettings
             var baseType = commandType;
             while (baseType != null && baseType != typeof(object))
             {
                 if (baseType.IsGenericType)
                 {
                     var genericDef = baseType.GetGenericTypeDefinition();
-                    if (genericDef.Name.StartsWith("BaseCommand") || genericDef.Name.StartsWith("QueryFilter"))
+                    if (genericDef == typeof(BaseCommand<>) || genericDef == typeof(QueryFilter<>) || genericDef == typeof(ActionCommand<,>))
                     {
-                        var arg = baseType.GetGenericArguments()[0];
-                        if (typeof(BaseCommandSettings).IsAssignableFrom(arg))
-                            return arg;
+                        // The settings argument is now always the first one.
+                        var settingsArg = baseType.GetGenericArguments()[0];
+
+                        if (typeof(BaseCommandSettings).IsAssignableFrom(settingsArg))
+                            return settingsArg;
                     }
                 }
                 baseType = baseType.BaseType;
@@ -124,31 +126,32 @@ namespace Sven.Command
 
         private void LoadSettings()
         {
+            _commandSettings.Clear();
+            var allTypes = _filterTypes.Concat(_commandTypes);
+            Dictionary<string, JObject> savedSettings = null;
+
             string path = Path.Combine(Application.streamingAssetsPath, "Multimodality/command_settings.json");
             if (File.Exists(path))
             {
                 var json = File.ReadAllText(path);
-                var allSettings = JsonConvert.DeserializeObject<Dictionary<string, BaseCommandSettings>>(json, new JsonSerializerSettings
-                {
-                    TypeNameHandling = TypeNameHandling.All
-                });
-
-                var allTypes = _filterTypes.Concat(_commandTypes);
-                foreach (var type in allTypes)
-                {
-                    if (allSettings != null && allSettings.TryGetValue(type.FullName, out var loadedSetting))
-                        _commandSettings[type] = loadedSetting;
-                    else
-                        _commandSettings[type] = Activator.CreateInstance(GetSettingsTypeForCommand(type) ?? typeof(CommandSettings)) as BaseCommandSettings;
-                }
+                savedSettings = JsonConvert.DeserializeObject<Dictionary<string, JObject>>(json);
             }
-            else
+
+            foreach (var type in allTypes)
             {
-                var allTypes = _filterTypes.Concat(_commandTypes);
-                foreach (var type in allTypes)
+                // Determine the correct settings type from the class definition.
+                var settingsType = GetSettingsTypeForCommand(type) ?? typeof(CommandSettings);
+                var settingsInstance = Activator.CreateInstance(settingsType) as BaseCommandSettings;
+
+                // If there are saved settings, try to populate the instance.
+                if (savedSettings != null && savedSettings.TryGetValue(type.FullName, out var jObject))
                 {
-                    _commandSettings[type] = Activator.CreateInstance(GetSettingsTypeForCommand(type) ?? typeof(CommandSettings)) as BaseCommandSettings;
+                    // Populate the newly created instance with data from the JSON.
+                    // This is safer than relying on the $type property.
+                    JsonConvert.PopulateObject(jObject.ToString(), settingsInstance);
                 }
+
+                _commandSettings[type] = settingsInstance;
             }
         }
 
@@ -160,9 +163,11 @@ namespace Sven.Command
 
             string path = Path.Combine(dir, "command_settings.json");
             var settingsToSave = CommandSettings.ToDictionary(kvp => kvp.Key.FullName, kvp => kvp.Value);
+            // We can remove TypeNameHandling.All now, as it's not strictly needed for loading,
+            // but keeping it can be useful for debugging or other tools.
             string json = JsonConvert.SerializeObject(settingsToSave, Formatting.Indented, new JsonSerializerSettings
             {
-                TypeNameHandling = TypeNameHandling.All
+                TypeNameHandling = TypeNameHandling.Objects
             });
             File.WriteAllText(path, json);
 

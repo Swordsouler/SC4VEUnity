@@ -2,7 +2,7 @@ namespace Sven.Command
 {
     public static class SettingsWordUtils
     {
-        public static bool IsWordUsed(string word, MultimodalitySettingsWindow window, out string foundInType)
+        public static bool IsWordUsed(string word, MultimodalitySettingsWindow window, out string foundInType, System.Collections.Generic.List<string> words)
         {
             word = word.Trim();
             if (string.IsNullOrEmpty(word))
