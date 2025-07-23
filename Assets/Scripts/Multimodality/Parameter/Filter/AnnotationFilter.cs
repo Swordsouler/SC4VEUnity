@@ -35,7 +35,7 @@ namespace Sven.Command
             _semanticTypeName = semanticTypeName;
         }
 
-        public override async Task<List<SemantizationCore>> Execute()
+        public override async Task<List<SemantizationCore>> Query()
         {
             string query = $@"PREFIX : <{GraphManager.BaseUri}>
 PREFIX time: <http://www.w3.org/2006/time#>

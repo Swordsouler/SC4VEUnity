@@ -6,6 +6,6 @@ namespace Sven.Command
 {
     public interface IQueryFilter : IBaseParameter
     {
-        public abstract Task<List<SemantizationCore>> Execute();
+        public abstract Task<List<SemantizationCore>> Query();
     }
 }

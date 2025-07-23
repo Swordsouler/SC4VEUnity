@@ -28,9 +28,9 @@ namespace Sven.Command
 
         public Task<List<SemantizationCore>> Execute(IReadOnlyList<SemantizationCore> _)
         {
-            return Execute();
+            return Query();
         }
 
-        public abstract Task<List<SemantizationCore>> Execute();
+        public abstract Task<List<SemantizationCore>> Query();
     }
 }

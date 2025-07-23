@@ -11,7 +11,7 @@ namespace Sven.Command
 
             Task.Run(async () =>
             {
-                var result = await Parameter.Execute();
+                var result = await Parameter.Query();
                 MultimodalityController.AddSelectedObjects(result, true);
             });
         }
