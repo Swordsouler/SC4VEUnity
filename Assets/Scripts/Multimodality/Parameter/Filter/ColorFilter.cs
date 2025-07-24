@@ -38,14 +38,12 @@ namespace Sven.Command
 
         public override async Task<List<SemantizationCore>> Query()
         {
-            string query = $@"PREFIX : <{GraphManager.BaseUri}>
-PREFIX time: <http://www.w3.org/2006/time#>
+            string query = $@"PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 SELECT DISTINCT ?object ?r ?g ?b ?a 
-FROM :
 WHERE {{
     {{
         ?object sven:component ?component .

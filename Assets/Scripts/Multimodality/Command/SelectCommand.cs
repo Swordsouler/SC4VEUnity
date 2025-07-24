@@ -5,15 +5,16 @@ namespace Sven.Command
 {
     public class SelectCommand : FilterCommand
     {
-        public override void Execute()
+        public override async Task Execute()
         {
             if (Parameter == null) return;
 
-            Task.Run(async () =>
+            var result = await Task.Run(async () =>
             {
                 var result = await Parameter.Query();
-                MultimodalityController.AddSelectedObjects(result, true);
+                return result;
             });
+            MultimodalityController.AddSelectedObjects(result, false);
         }
     }
 }

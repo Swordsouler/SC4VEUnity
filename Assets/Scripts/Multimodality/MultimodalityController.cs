@@ -25,10 +25,12 @@ namespace Sven.Multimodality
 
         public static void AddSelectedObjects(IEnumerable<SemantizationCore> semantizationCores, bool intersection)
         {
+            var semantizationCoreList = semantizationCores.ToList();
             if (_selectedObjects.Count != 0 && intersection)
             {
                 // Call removeSelectedObjects to remove objects not in the new selection
-                var toRemove = _selectedObjects.Except(semantizationCores).ToList();
+                var toRemove = _selectedObjects.Except(semantizationCoreList).ToList();
+                Debug.Log($"[MultimodalityController] Number of items to remove: {toRemove.Count}");
                 foreach (var semantizationCore in toRemove)
                 {
                     RemoveSelectedObject(semantizationCore);
@@ -36,9 +38,14 @@ namespace Sven.Multimodality
             }
             else
             {
-                // Add new objects to the selection
-                foreach (var semantizationCore in semantizationCores)
+                Debug.Log($"[MultimodalityController] Number of items to add: {semantizationCoreList.Count}");
+                foreach (SemantizationCore semantizationCore in semantizationCoreList)
                 {
+                    if (semantizationCore == null)
+                    {
+                        Debug.LogWarning("[MultimodalityController] A null SemantizationCore was found in the list and will be skipped.");
+                        continue;
+                    }
                     AddSelectedObject(semantizationCore);
                 }
             }
@@ -53,8 +60,9 @@ namespace Sven.Multimodality
             }
         }
 
-        public static void RemoveSelectedObjects(IEnumerable<SemantizationCore> semantizationCores)
+        public static void RemoveSelectedObjects(IReadOnlyList<SemantizationCore> semantizationCores)
         {
+            Debug.Log($"[MultimodalityController] Number of items to remove: {semantizationCores.Count}");
             foreach (var semantizationCore in semantizationCores)
             {
                 RemoveSelectedObject(semantizationCore);
@@ -63,6 +71,7 @@ namespace Sven.Multimodality
 
         public static void ClearSelectedObjects()
         {
+            Debug.Log($"[MultimodalityController] Number of items to clear: {_selectedObjects.Count}");
             foreach (var obj in _selectedObjects)
             {
                 SetHighlight(obj, false);
@@ -125,9 +134,11 @@ namespace Sven.Multimodality
         private async void TestCommandChain()
         {
             _commandChain = new CommandChain();
+            // now 1 seconds ago
+            DateTime dateTime = DateTime.Now.AddSeconds(-1);
             _commandChain.AddCommand(new SelectCommand
             {
-                Parameter = new PointOfViewFilter()
+                Parameter = new PointOfViewFilter(dateTime)
             });
             _commandChain.AddCommand(new ColorizeCommand
             {
@@ -138,6 +149,10 @@ namespace Sven.Multimodality
                     Blue = 0f,
                     Tolerance = 0f
                 }
+            });
+            _commandChain.AddCommand(new UnselectCommand
+            {
+                Parameter = new AllFilter(dateTime)
             });
             await _commandChain.Execute();
         }

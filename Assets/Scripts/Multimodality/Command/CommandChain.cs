@@ -54,7 +54,7 @@ namespace Sven.Command
             await Task.Yield();
             foreach (var command in _commands)
             {
-                command.Execute();
+                await command.Execute();
             }
             return;
             /*await Task.Yield();

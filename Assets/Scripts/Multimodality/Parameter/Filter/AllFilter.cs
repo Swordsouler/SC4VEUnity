@@ -10,30 +10,11 @@ using VDS.RDF.Query;
 
 namespace Sven.Command
 {
-    public class AnnotationFilter : QueryFilter<AnnotationFilterSettings>
+    public class AllFilter : QueryFilter<CommandSettings>
     {
-        private readonly string _semanticTypeName;
-        public string SemanticTypeName => _semanticTypeName;
-
-        public AnnotationFilter() : base()
-        {
-            _semanticTypeName = string.Empty;
-        }
-
-        public AnnotationFilter(string semanticTypeName) : base()
-        {
-            _semanticTypeName = semanticTypeName;
-        }
-
-        public AnnotationFilter(string semanticTypeName, DateTime dateTime) : base(dateTime)
-        {
-            _semanticTypeName = semanticTypeName;
-        }
-
-        public AnnotationFilter(string semanticTypeName, Instant instant) : base(instant)
-        {
-            _semanticTypeName = semanticTypeName;
-        }
+        public AllFilter() : base() { }
+        public AllFilter(DateTime dateTime) : base(dateTime) { }
+        public AllFilter(Instant instant) : base(instant) { }
 
         public override async Task<List<SemantizationCore>> Query()
         {
@@ -45,11 +26,8 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 SELECT DISTINCT ?object
 WHERE {{
     {{
-        ?object sven:component ?component .
-        ?component a sven:Annotation ;
-        		   sven:annotation ?property .
-        ?property sven:hasTemporalExtent ?interval ;
-        		  sven:value {SemanticTypeName} .
+        ?object a sven:VirtualObject ;
+                  sven:hasTemporalExtent ?interval .
     }}
     
 {GraphManager.RetrieveIntervalQuery(Instant)}

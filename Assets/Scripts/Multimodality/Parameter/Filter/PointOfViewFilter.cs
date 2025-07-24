@@ -1,5 +1,7 @@
 using Sven.Content;
 using Sven.GraphManagement;
+using Sven.OwlTime;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,16 +12,18 @@ namespace Sven.Command
 {
     public class PointOfViewFilter : QueryFilter<CommandSettings>
     {
+        public PointOfViewFilter() : base() { }
+        public PointOfViewFilter(DateTime dateTime) : base(dateTime) { }
+        public PointOfViewFilter(Instant instant) : base(instant) { }
+
         public override async Task<List<SemantizationCore>> Query()
         {
-            string query = $@"PREFIX : <{GraphManager.BaseUri}>
-PREFIX time: <http://www.w3.org/2006/time#>
+            string query = $@"PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 SELECT DISTINCT ?object
-FROM :
 WHERE {{
     {{
         ?event a sven:CollisionEvent ;
@@ -31,6 +35,7 @@ WHERE {{
     
 {GraphManager.RetrieveIntervalQuery(Instant)}
 }}";
+            await GraphManager.ApplyRulesAsync();
             SparqlResultSet resultSet = await GraphManager.QueryMemoryAsync(query);
             List<SemantizationCore> semantizationCores = new();
             foreach (SparqlResult result in resultSet.Cast<SparqlResult>())
