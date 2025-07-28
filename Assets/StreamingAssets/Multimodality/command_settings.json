@@ -112,7 +112,8 @@
         },
         "TriggerWords": [
           "vert",
-          "green"
+          "green",
+          "verte"
         ]
       },
       {
@@ -201,6 +202,14 @@
       "colorize"
     ]
   },
+  "Sven.Command.HideCommand": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": [
+      "hide",
+      "cache",
+      "cacher"
+    ]
+  },
   "Sven.Command.MoveCommand": {
     "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
     "TriggerWords": [
@@ -217,6 +226,14 @@
       "sélectionne",
       "sélectionner",
       "select"
+    ]
+  },
+  "Sven.Command.ShowCommand": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": [
+      "show",
+      "montre",
+      "montrer"
     ]
   },
   "Sven.Command.UnselectCommand": {

@@ -35,6 +35,17 @@ namespace Sven.Command
             set => _tolerance = Mathf.Clamp(value, 0f, 1f);
         }
 
+        public ColorParameter() { }
+
+        public ColorParameter(ColorFilterEntry entry)
+        {
+            if (entry == null) return;
+            Red = entry.ColorParameter.Red;
+            Green = entry.ColorParameter.Green;
+            Blue = entry.ColorParameter.Blue;
+            Tolerance = entry.ColorParameter.Tolerance;
+        }
+
         public bool IsMatching(Color color)
         {
             return Mathf.Abs(color.r - Red) <= Tolerance &&
@@ -57,5 +68,10 @@ namespace Sven.Command
                 Mathf.Clamp01(Green - Tolerance),
                 Mathf.Clamp01(Blue - Tolerance)
             );
+
+        public override string ToString()
+        {
+            return $"ColorParameter(R: {Red}, G: {Green}, B: {Blue}, Tolerance: {Tolerance})";
+        }
     }
 }

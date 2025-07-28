@@ -20,6 +20,11 @@ namespace Sven.Command
             _semanticTypeName = string.Empty;
         }
 
+        public AnnotationFilter(AnnotationFilterEntry entry) : base()
+        {
+            _semanticTypeName = entry?.AnnotationType;
+        }
+
         public AnnotationFilter(string semanticTypeName) : base()
         {
             _semanticTypeName = semanticTypeName;

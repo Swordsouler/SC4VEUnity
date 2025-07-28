@@ -21,6 +21,11 @@ namespace Sven.Command
             _colorParameter = new ColorParameter();
         }
 
+        public ColorFilter(ColorFilterEntry entry) : base()
+        {
+            _colorParameter = entry != null ? new ColorParameter(entry) : new ColorParameter();
+        }
+
         public ColorFilter(ColorParameter colorParameter) : base()
         {
             _colorParameter = colorParameter;
@@ -44,8 +49,8 @@ PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 SELECT DISTINCT ?object ?r ?g ?b ?a 
-WHERE {{
-    {{
+WHERE {{ 
+    {{ 
         ?object sven:component ?component .
         ?component sven:color ?property .
         ?property a sven:Color ;

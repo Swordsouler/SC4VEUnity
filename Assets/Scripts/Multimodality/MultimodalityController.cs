@@ -1,9 +1,11 @@
+using Newtonsoft.Json;
 using Sven.Command;
 using Sven.Content;
 using Sven.GraphManagement;
 using Sven.OwlTime;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEngine;
 
@@ -83,7 +85,7 @@ namespace Sven.Multimodality
         {
             if (highlight)
             {
-                // add outline
+                // Add outline
                 if (semantizationCore.TryGetComponent(out Outline outline))
                     outline.enabled = true;
                 else
@@ -91,7 +93,7 @@ namespace Sven.Multimodality
             }
             else
             {
-                // remove outline
+                // Remove outline
                 if (semantizationCore.TryGetComponent(out Outline outline))
                     outline.enabled = false;
             }
@@ -100,25 +102,25 @@ namespace Sven.Multimodality
         void Update()
         {
             if (Input.GetKeyDown(KeyCode.T))
-                T();
+                ExampleTest();
             if (Input.GetKeyDown(KeyCode.Y))
                 Y();
             if (Input.GetKeyDown(KeyCode.Alpha1))
-                Example1();
+                Example1Word();
             if (Input.GetKeyDown(KeyCode.Alpha2))
-                Example2();
+                Example2Word();
             if (Input.GetKeyDown(KeyCode.Alpha3))
-                Example3();
+                Example3Word();
             /*if (Input.GetKeyDown(KeyCode.Space))
             {
-                // Récupère tous les objets SemantizationCore dans la scène
+                // Retrieve all SemantizationCore objects in the scene
                 var semantizationCores = new List<SemantizationCore>(FindObjectsByType<SemantizationCore>(FindObjectsSortMode.None));
                 AddSelectedObjects(semantizationCores, false);
             }
 
             if (Input.GetKeyDown(KeyCode.LeftAlt))
             {
-                // Récupère tous les objets SemantizationCore dans la scène
+                // Retrieve all SemantizationCore objects in the scene
                 var semantizationCores = new List<SemantizationCore>(FindObjectsByType<SemantizationCore>(FindObjectsSortMode.None));
                 RemoveSelectedObjects(semantizationCores);
             }*/
@@ -181,6 +183,83 @@ namespace Sven.Multimodality
             _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 0f, Green = 0f, Blue = 1f } });
             _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) });
             await _commandChain.Execute();
+        }
+
+        private async void Example1Word()
+        {
+            Sentence sentence = new("colorie les pommes en rouge", new List<Word>
+                {
+                    new("colorie", DateTime.Now.AddSeconds(-5), DateTime.Now.AddSeconds(-4)),
+                    new("les", DateTime.Now.AddSeconds(-4), DateTime.Now.AddSeconds(-3)),
+                    new("pommes", DateTime.Now.AddSeconds(-3), DateTime.Now.AddSeconds(-2)),
+                    new("en", DateTime.Now.AddSeconds(-2), DateTime.Now.AddSeconds(-1)),
+                    new("rouge", DateTime.Now.AddSeconds(-1), DateTime.Now)
+                });
+            _commandChain = new CommandChain(sentence, Settings);
+            await _commandChain.Execute();
+        }
+
+        private async void Example2Word()
+        {
+            Sentence sentence = new("colorie ce que je vois en vert", new List<Word>
+                {
+                    new("colorie", DateTime.Now.AddSeconds(-7), DateTime.Now.AddSeconds(-6)),
+                    new("ce", DateTime.Now.AddSeconds(-6), DateTime.Now.AddSeconds(-5)),
+                    new("que", DateTime.Now.AddSeconds(-5), DateTime.Now.AddSeconds(-4)),
+                    new("je", DateTime.Now.AddSeconds(-4), DateTime.Now.AddSeconds(-3)),
+                    new("vois", DateTime.Now.AddSeconds(-3), DateTime.Now.AddSeconds(-2)),
+                    new("en", DateTime.Now.AddSeconds(-2), DateTime.Now.AddSeconds(-1)),
+                    new("vert", DateTime.Now.AddSeconds(-1), DateTime.Now)
+                });
+            _commandChain = new CommandChain(sentence, Settings);
+            await _commandChain.Execute();
+        }
+
+        private async void Example3Word()
+        {
+            Sentence sentence = new("colorie les citrouilles bleu en orange", new List<Word>
+                {
+                    new("colorie", DateTime.Now.AddSeconds(-6), DateTime.Now.AddSeconds(-5)),
+                    new("les", DateTime.Now.AddSeconds(-5), DateTime.Now.AddSeconds(-4)),
+                    new("citrouilles", DateTime.Now.AddSeconds(-4), DateTime.Now.AddSeconds(-3)),
+                    new("verte", DateTime.Now.AddSeconds(-3), DateTime.Now.AddSeconds(-2)),
+                    new("en", DateTime.Now.AddSeconds(-2), DateTime.Now.AddSeconds(-1)),
+                    new("bleu", DateTime.Now.AddSeconds(-1), DateTime.Now)
+                });
+            _commandChain = new CommandChain(sentence, Settings);
+            await _commandChain.Execute();
+        }
+
+        private async void ExampleTest()
+        {
+            Sentence sentence = new("Cache les bananes");
+            _commandChain = new CommandChain(sentence, Settings);
+            await _commandChain.Execute();
+        }
+
+        private static Dictionary<string, BaseSettingsGUI> _settings;
+        public static Dictionary<string, BaseSettingsGUI> Settings => _settings;
+
+        private void Awake()
+        {
+            if (_settings == null)
+            {
+                // Build the absolute path to the settings file in StreamingAssets
+                string settingsPath = Path.Combine(Application.streamingAssetsPath, "Multimodality", "command_settings.json");
+                if (!File.Exists(settingsPath))
+                {
+                    Debug.LogError($"[MultimodalityController] Command settings file not found at: {settingsPath}");
+                    _settings = new Dictionary<string, BaseSettingsGUI>();
+                    return;
+                }
+
+                string json = File.ReadAllText(settingsPath);
+                _settings = JsonConvert.DeserializeObject<Dictionary<string, BaseSettingsGUI>>(
+                    json,
+                    new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto }
+                );
+                Debug.Log("[MultimodalityController] CommandSettings loaded from StreamingAssets.");
+            }
         }
     }
 }
