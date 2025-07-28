@@ -100,9 +100,15 @@ namespace Sven.Multimodality
         void Update()
         {
             if (Input.GetKeyDown(KeyCode.T))
-            {
-                TestCommandChain();
-            }
+                T();
+            if (Input.GetKeyDown(KeyCode.Y))
+                Y();
+            if (Input.GetKeyDown(KeyCode.Alpha1))
+                Example1();
+            if (Input.GetKeyDown(KeyCode.Alpha2))
+                Example2();
+            if (Input.GetKeyDown(KeyCode.Alpha3))
+                Example3();
             /*if (Input.GetKeyDown(KeyCode.Space))
             {
                 // Récupère tous les objets SemantizationCore dans la scène
@@ -131,29 +137,49 @@ namespace Sven.Multimodality
 
         private CommandChain _commandChain;
 
-        private async void TestCommandChain()
+        private async void T()
         {
             _commandChain = new CommandChain();
-            // now 1 seconds ago
-            DateTime dateTime = DateTime.Now.AddSeconds(-1);
-            _commandChain.AddCommand(new SelectCommand
-            {
-                Parameter = new PointOfViewFilter(dateTime)
-            });
-            _commandChain.AddCommand(new ColorizeCommand
-            {
-                Parameter = new ColorParameter
-                {
-                    Red = 1f,
-                    Green = 0f,
-                    Blue = 0f,
-                    Tolerance = 0f
-                }
-            });
-            _commandChain.AddCommand(new UnselectCommand
-            {
-                Parameter = new AllFilter(dateTime)
-            });
+            _commandChain.AddCommand(new SelectCommand { Parameter = new PointOfViewFilter(DateTime.Now) });
+            _commandChain.AddCommand(new HideCommand());
+            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) });
+            await _commandChain.Execute();
+        }
+
+        private async void Y()
+        {
+            _commandChain = new CommandChain();
+            _commandChain.AddCommand(new SelectCommand { Parameter = new AnnotationFilter("sven:Pumpkin", DateTime.Now) });
+            _commandChain.AddCommand(new ShowCommand());
+            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) });
+            await _commandChain.Execute();
+        }
+
+        private async void Example1()
+        {
+            _commandChain = new CommandChain();
+            _commandChain.AddCommand(new SelectCommand { Parameter = new AnnotationFilter("sven:Apple", DateTime.Now) });
+            _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 1f, Green = 0f, Blue = 0f } });
+            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) });
+            await _commandChain.Execute();
+        }
+
+        private async void Example2()
+        {
+            _commandChain = new CommandChain();
+            _commandChain.AddCommand(new SelectCommand { Parameter = new PointOfViewFilter(DateTime.Now) });
+            _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 0f, Green = 1f, Blue = 0f } });
+            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) });
+            await _commandChain.Execute();
+        }
+
+        private async void Example3()
+        {
+            _commandChain = new CommandChain();
+            _commandChain.AddCommand(new SelectCommand { Parameter = new AnnotationFilter("sven:Pumpkin", DateTime.Now) });
+            _commandChain.AddCommand(new SelectCommand { Parameter = new ColorFilter(new ColorParameter { Red = 0.2f, Green = 0.8f, Blue = 0.2f, Tolerance = 0.2f }, DateTime.Now) });
+            _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 0f, Green = 0f, Blue = 1f } });
+            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) });
             await _commandChain.Execute();
         }
     }

@@ -13,4 +13,5 @@ namespace Sven.Command
             }
         }
     }
+    public abstract class Command<TSettings> : BaseSettings<TSettings> where TSettings : BaseSettingsGUI { }
 }

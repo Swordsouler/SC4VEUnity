@@ -62,14 +62,11 @@ WHERE {{
             List<SemantizationCore> semantizationCores = new();
             foreach (SparqlResult result in resultSet.Cast<SparqlResult>())
             {
-                string r = result["r"].AsValuedNode().ToString();
-                string g = result["g"].AsValuedNode().ToString();
-                string b = result["b"].AsValuedNode().ToString();
+                float r = Convert.ToSingle(result["r"].AsValuedNode().ToValue());
+                float g = Convert.ToSingle(result["g"].AsValuedNode().ToValue());
+                float b = Convert.ToSingle(result["b"].AsValuedNode().ToValue());
 
-                if (!ColorParameter.IsMatching(new Color(
-                    float.Parse(r, System.Globalization.CultureInfo.InvariantCulture),
-                    float.Parse(g, System.Globalization.CultureInfo.InvariantCulture),
-                    float.Parse(b, System.Globalization.CultureInfo.InvariantCulture))))
+                if (!ColorParameter.IsMatching(new Color(r, g, b)))
                     continue;
 
                 string objectUUID = result["object"].ToString()[(result["object"].ToString().LastIndexOf("/") + 1)..];

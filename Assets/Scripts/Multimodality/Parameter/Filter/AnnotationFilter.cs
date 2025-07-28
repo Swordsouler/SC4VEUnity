@@ -46,7 +46,7 @@ SELECT DISTINCT ?object
 WHERE {{
     {{
         ?object sven:component ?component .
-        ?component a sven:Annotation ;
+        ?component a sven:Annotator ;
         		   sven:annotation ?property .
         ?property sven:hasTemporalExtent ?interval ;
         		  sven:value {SemanticTypeName} .

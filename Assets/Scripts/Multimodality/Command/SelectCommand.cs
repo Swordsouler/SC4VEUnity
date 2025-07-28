@@ -14,7 +14,7 @@ namespace Sven.Command
                 var result = await Parameter.Query();
                 return result;
             });
-            MultimodalityController.AddSelectedObjects(result, false);
+            MultimodalityController.AddSelectedObjects(result, true);
         }
     }
 }
