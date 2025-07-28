@@ -35,7 +35,7 @@ WHERE {{
     
 {GraphManager.RetrieveIntervalQuery(Instant)}
 }}";
-            SparqlResultSet resultSet = await GraphManager.QueryMemoryAsync(query);
+            SparqlResultSet resultSet = await GraphManager.QueryMemoryAsync(query, true);
             List<SemantizationCore> semantizationCores = new();
             foreach (SparqlResult result in resultSet.Cast<SparqlResult>())
             {

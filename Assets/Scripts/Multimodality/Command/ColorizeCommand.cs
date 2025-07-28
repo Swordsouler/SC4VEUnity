@@ -9,6 +9,7 @@ namespace Sven.Command
     {
         public async Task Execute()
         {
+            await Task.Yield();
             foreach (SemantizationCore semantizationCore in MultimodalityController.SelectedObjects)
                 if (semantizationCore.TryGetComponent(out Renderer renderer))
                     renderer.material.color = Parameter.MaxColor;

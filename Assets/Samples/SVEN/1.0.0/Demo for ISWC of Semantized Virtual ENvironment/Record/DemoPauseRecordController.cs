@@ -92,7 +92,6 @@ namespace Sven.Demo
             if (saveQuitButton != null) saveQuitButton.gameObject.SetActive(false);
             if (sendingActivityIndicator != null) sendingActivityIndicator.SetActive(true);
 
-            await GraphManager.ApplyRulesAsync();
             await GraphManager.SaveToEndpoint();
 
             SceneManager.LoadScene("Demo Menu", LoadSceneMode.Single);
