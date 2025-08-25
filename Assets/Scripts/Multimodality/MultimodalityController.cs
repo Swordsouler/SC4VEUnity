@@ -2,6 +2,7 @@ using Newtonsoft.Json;
 using Sven.Command;
 using Sven.Content;
 using Sven.GraphManagement;
+using Sven.Multimodality.Voice;
 using Sven.OwlTime;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,20 @@ namespace Sven.Multimodality
     {
         private static List<SemantizationCore> _selectedObjects = new();
         public static IReadOnlyList<SemantizationCore> SelectedObjects => _selectedObjects;
+
+        public VoskSpeechToText VoskSpeechToText;
+
+        private async void OnTranscriptionResult(string obj)
+        {
+            var result = new RecognitionResult(obj);
+            for (int i = 0; i < result.Phrases.Length; i++)
+            {
+                if (result.Phrases[i].Text == "") continue;
+
+                _commandChain = new CommandChain(result.Phrases[i], Settings);
+                await _commandChain.Execute();
+            }
+        }
 
         public static void AddSelectedObject(SemantizationCore semantizationCore)
         {
@@ -187,7 +202,7 @@ namespace Sven.Multimodality
 
         private async void Example1Word()
         {
-            Sentence sentence = new("colorie les pommes en rouge", new List<Word>
+            Command.Sentence sentence = new("colorie les pommes en rouge", new List<Word>
                 {
                     new("colorie", DateTime.Now.AddSeconds(-5), DateTime.Now.AddSeconds(-4)),
                     new("les", DateTime.Now.AddSeconds(-4), DateTime.Now.AddSeconds(-3)),
@@ -201,7 +216,7 @@ namespace Sven.Multimodality
 
         private async void Example2Word()
         {
-            Sentence sentence = new("colorie ce que je vois en vert", new List<Word>
+            Command.Sentence sentence = new("colorie ce que je vois en vert", new List<Word>
                 {
                     new("colorie", DateTime.Now.AddSeconds(-7), DateTime.Now.AddSeconds(-6)),
                     new("ce", DateTime.Now.AddSeconds(-6), DateTime.Now.AddSeconds(-5)),
@@ -217,7 +232,7 @@ namespace Sven.Multimodality
 
         private async void Example3Word()
         {
-            Sentence sentence = new("colorie les citrouilles bleu en orange", new List<Word>
+            Command.Sentence sentence = new("colorie les citrouilles bleu en orange", new List<Word>
                 {
                     new("colorie", DateTime.Now.AddSeconds(-6), DateTime.Now.AddSeconds(-5)),
                     new("les", DateTime.Now.AddSeconds(-5), DateTime.Now.AddSeconds(-4)),
@@ -232,7 +247,7 @@ namespace Sven.Multimodality
 
         private async void ExampleTest()
         {
-            Sentence sentence = new("Cache les bananes");
+            Sentence sentence = new("coloris ce que je vois en bleu");
             _commandChain = new CommandChain(sentence, Settings);
             await _commandChain.Execute();
         }
@@ -260,6 +275,7 @@ namespace Sven.Multimodality
                 );
                 Debug.Log("[MultimodalityController] CommandSettings loaded from StreamingAssets.");
             }
+            VoskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
         }
     }
 }

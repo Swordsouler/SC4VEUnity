@@ -1,3 +1,5 @@
+using Sven.Command;
+
 namespace Sven.Multimodality.Voice
 {
     public class RecognitionResult
@@ -6,7 +8,7 @@ namespace Sven.Multimodality.Voice
         public const string ResultKey = "result";
         public const string PartialKey = "partial";
 
-        public RecognizedPhrase[] Phrases;
+        public Sentence[] Phrases;
         public bool Partial;
 
         public RecognitionResult(string json)
@@ -16,55 +18,38 @@ namespace Sven.Multimodality.Voice
             if (resultJson.HasKey(AlternativesKey))
             {
                 var alternatives = resultJson[AlternativesKey].AsArray;
-                Phrases = new RecognizedPhrase[alternatives.Count];
+                Phrases = new Sentence[alternatives.Count];
 
                 for (int i = 0; i < Phrases.Length; i++)
                 {
-                    Phrases[i] = new RecognizedPhrase(alternatives[i].AsObject);
+                    Phrases[i] = new Sentence(alternatives[i].AsObject);
                 }
 
             }
             else if (resultJson.HasKey(ResultKey))
             {
-                Phrases = new RecognizedPhrase[] { new RecognizedPhrase(resultJson.AsObject) };
+                Phrases = new Sentence[] { new(resultJson.AsObject) };
             }
             else if (resultJson.HasKey(PartialKey))
             {
                 Partial = true;
-                Phrases = new RecognizedPhrase[] { new RecognizedPhrase() { Text = resultJson[PartialKey] } };
+                Phrases = new Sentence[] { new(resultJson[PartialKey]) };
             }
             else
             {
-                Phrases = new[] { new RecognizedPhrase() { } };
+                Phrases = new[] { new Sentence() { } };
             }
+        }
+
+        // to string
+        public override string ToString()
+        {
+            string result = "RecognitionResult: \n";
+            foreach (var phrase in Phrases)
+            {
+                result += $"- {phrase}\n";
+            }
+            return result;
         }
     }
-
-    public class RecognizedPhrase
-    {
-        public const string ConfidenceKey = "confidence";
-        public const string TextKey = "text";
-
-        public string Text = "";
-        public float Confidence = 0.0f;
-
-        public RecognizedPhrase()
-        {
-        }
-
-        public RecognizedPhrase(JSONObject json)
-        {
-            if (json.HasKey(ConfidenceKey))
-            {
-                Confidence = json[ConfidenceKey].AsFloat;
-            }
-
-            if (json.HasKey(TextKey))
-            {
-                //Vosk adds an extra space at the start of the string.
-                Text = json[TextKey].Value.Trim();
-            }
-        }
-    }
-
 }

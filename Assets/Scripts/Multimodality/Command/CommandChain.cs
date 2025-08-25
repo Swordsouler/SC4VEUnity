@@ -25,7 +25,7 @@ namespace Sven.Command
                 return;
             }
 
-            Debug.Log($"[CommandChain] Building command chain for sentence: \"{sentence.Text}\"");
+            Debug.Log($"[CommandChain] Building command chain for sentence: \"{sentence}\"");
 
             var words = sentence.Words;
             var pendingParameters = new List<(IBaseParameter parameter, DateTime timestamp)>();

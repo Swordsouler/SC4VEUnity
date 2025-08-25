@@ -19,5 +19,10 @@ namespace Sven.Command
             _startedAt = startedAt;
             _endedAt = endedAt;
         }
+
+        public override string ToString()
+        {
+            return $"{_text} ({_startedAt:HH:mm:ss} - {_endedAt:HH:mm:ss})";
+        }
     }
 }

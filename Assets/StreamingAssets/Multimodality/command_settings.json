@@ -113,7 +113,8 @@
         "TriggerWords": [
           "vert",
           "green",
-          "verte"
+          "verte",
+          "verre"
         ]
       },
       {
@@ -199,7 +200,8 @@
     "TriggerWords": [
       "colorie",
       "colorier",
-      "colorize"
+      "colorize",
+      "coloris"
     ]
   },
   "Sven.Command.HideCommand": {
@@ -233,7 +235,9 @@
     "TriggerWords": [
       "show",
       "montre",
-      "montrer"
+      "montrer",
+      "affiche",
+      "afficher"
     ]
   },
   "Sven.Command.UnselectCommand": {
