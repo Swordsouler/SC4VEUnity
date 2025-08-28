@@ -313,7 +313,6 @@ namespace Sven.Command
 
         public async Task Execute()
         {
-            await Task.Yield();
             foreach (var command in _commands)
             {
                 var parameterProperty = command.GetType().GetProperty("Parameter");
