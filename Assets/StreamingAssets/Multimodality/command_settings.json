@@ -180,7 +180,8 @@
     "TriggerWords": [
       "ça",
       "this",
-      "ici"
+      "ici",
+      "pointage"
     ]
   },
   "Sven.Command.PointOfViewFilter": {
@@ -188,7 +189,8 @@
     "TriggerWords": [
       "vision",
       "que je vois",
-      "que je regarde"
+      "que je regarde",
+      "regard"
     ]
   },
   "Sven.Command.ColorizeCommand": {
@@ -196,12 +198,20 @@
     "PrefixWords": [
       "en",
       "into"
-    ],
-    "TriggerWords": [
-      "colorie",
-      "colorier",
-      "colorize",
-      "coloris"
+    ]
+  },
+  "Sven.Command.EventCommand": {
+    "$type": "Sven.Command.EventSettings, Assembly-CSharp",
+    "Entries": [
+      {
+        "$type": "Sven.Command.EventCommandEntry, Assembly-CSharp",
+        "TriggerWords": [
+          "test"
+        ],
+        "Actions": {
+          "$type": "UnityEngine.Events.UnityEvent, UnityEngine.CoreModule"
+        }
+      }
     ]
   },
   "Sven.Command.HideCommand": {
