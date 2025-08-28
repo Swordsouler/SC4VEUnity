@@ -93,6 +93,8 @@ namespace Sven.Command
                             bool isActionParameter = false;
                             if (colorizeSettings != null && i > 0)
                             {
+                                // Check for prefix word, but also check if the word before the prefix is not a colorize command trigger word
+                                // to avoid "colorize red in blue" creating two colorize commands.
                                 string previousWord = words[i - 1].Text.ToLower();
                                 if (colorizeSettings.PrefixWords.Contains(previousWord))
                                 {
@@ -102,8 +104,20 @@ namespace Sven.Command
 
                             if (isActionParameter)
                             {
-                                Debug.Log($"[CommandChain] Color '{bestMatch}' is preceded by a prefix. Creating ColorParameter.");
-                                instance = new ColorParameter(parameterData as ColorFilterEntry);
+                                Debug.Log($"[CommandChain] Color '{bestMatch}' is preceded by a prefix. Creating ColorParameter and implicit ColorizeCommand.");
+                                var colorParam = new ColorParameter(parameterData as ColorFilterEntry);
+                                pendingParameters.Add((colorParam, matchTimestamp));
+
+                                var colorizeCommand = new ColorizeCommand
+                                {
+                                    CompletionTime = matchTimestamp
+                                };
+                                AddCommand(colorizeCommand);
+                                Debug.Log($"[CommandChain] Collected command '{colorizeCommand.GetType().Name}'.");
+
+                                // Since we handled this case, we can skip the generic instance creation.
+                                i += bestMatch.Split(' ').Length - 1;
+                                continue; // Continue to the next word
                             }
                             else
                             {

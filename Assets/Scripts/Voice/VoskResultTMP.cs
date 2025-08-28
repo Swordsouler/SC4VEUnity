@@ -1,6 +1,6 @@
-using UnityEngine;
-using TMPro;
 using System.Linq;
+using TMPro;
+using UnityEngine;
 
 
 namespace Sven.Multimodality.Voice
@@ -18,6 +18,8 @@ namespace Sven.Multimodality.Voice
         private void OnTranscriptionResult(string obj)
         {
             var result = new RecognitionResult(obj);
+            if (result.Phrases.All(p => p.Text == "")) return;
+            ResultText.text = "";
             for (int i = 0; i < result.Phrases.Length; i++)
             {
                 if (result.Phrases[i].Text == "") continue;
@@ -28,8 +30,6 @@ namespace Sven.Multimodality.Voice
 
                 ResultText.text += result.Phrases[i].Text;
             }
-            if (!result.Phrases.All(p => p.Text == ""))
-                ResultText.text += "\n";
         }
     }
 }

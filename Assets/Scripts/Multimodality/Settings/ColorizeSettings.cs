@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
-using UnityEditor;
 
 namespace Sven.Command
 {
     [Serializable]
-    public class ColorizeSettings : CommandSettings
+    public class ColorizeSettings : BaseCommandSettings
     {
         public List<string> PrefixWords { get; set; } = new();
 
@@ -13,8 +12,7 @@ namespace Sven.Command
 
         protected override void DrawCustomSettings(S4MSettingsWindow window)
         {
-            EditorGUILayout.Space(10);
-
+            base.DrawCustomSettings(window);
             // Draw the PrefixWords part, specific to ColorizeSettings.
             _prefixWordsDrawer ??= new TriggerWordsDrawer("Prefix Words");
             _prefixWordsDrawer.Draw(window, PrefixWords);
