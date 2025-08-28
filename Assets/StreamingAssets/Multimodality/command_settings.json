@@ -206,10 +206,17 @@
       {
         "$type": "Sven.Command.EventCommandEntry, Assembly-CSharp",
         "TriggerWords": [
-          "test"
+          "sauvegarde"
         ],
-        "Actions": {
-          "$type": "UnityEngine.Events.UnityEvent, UnityEngine.CoreModule"
+        "EventParameter": {
+          "$type": "Sven.Command.EventParameter, Assembly-CSharp",
+          "Actions": {
+            "m_PersistentCalls": {
+              "m_Calls": []
+            }
+          },
+          "name": "",
+          "hideFlags": 0
         }
       }
     ]

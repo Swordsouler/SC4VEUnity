@@ -2,27 +2,17 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace Sven.Command
 {
-    /// <summary>
-    /// Conteneur ScriptableObject temporaire pour permettre l'édition d'un UnityEvent
-    /// via le système de sérialisation de l'éditeur.
-    /// </summary>
-    public class UnityEventHolder : ScriptableObject
-    {
-        public UnityEvent Actions;
-    }
 
     [Serializable]
     public class EventCommandEntry
     {
         public List<string> TriggerWords { get; set; } = new();
-        public UnityEvent Actions { get; set; } = new();
+        public EventParameter EventParameter { get; set; } = null!;
 
         [NonSerialized] private TriggerWordsDrawer _triggerWordsDrawer;
-        [NonSerialized] private UnityEventHolder _eventHolder;
 
         public void DrawUI(S4MSettingsWindow window)
         {
@@ -31,37 +21,41 @@ namespace Sven.Command
 
             EditorGUILayout.LabelField("Actions", EditorStyles.boldLabel);
 
-            // Créer un conteneur temporaire si nécessaire
-            if (_eventHolder == null)
+            // EventParameter est un ScriptableObject, nous pouvons l'utiliser pour la sérialisation de l'éditeur.
+            if (EventParameter == null)
             {
-                _eventHolder = ScriptableObject.CreateInstance<UnityEventHolder>();
+                EventParameter = ScriptableObject.CreateInstance<EventParameter>();
             }
-            // Copier l'état actuel de l'UnityEvent dans le conteneur
-            _eventHolder.Actions = Actions;
 
-            // Utiliser SerializedObject pour dessiner le champ UnityEvent
-            var serializedObject = new SerializedObject(_eventHolder);
-            var property = serializedObject.FindProperty("Actions");
+            // Créer un SerializedObject pour l'instance de EventParameter
+            var serializedObject = new SerializedObject(EventParameter);
+            // Trouver la propriété pour le champ '_actions'. Cette ligne est maintenant correcte.
+            var property = serializedObject.FindProperty("_actions");
 
-            EditorGUI.BeginChangeCheck();
-            EditorGUILayout.PropertyField(property, true);
-            if (EditorGUI.EndChangeCheck())
+            if (property != null)
             {
-                // Appliquer les modifications au SerializedObject
-                serializedObject.ApplyModifiedProperties();
-                // Reporter les modifications sur notre objet de données
-                Actions = _eventHolder.Actions;
-                window.SaveSettings();
+                EditorGUI.BeginChangeCheck();
+                // Dessiner le champ de propriété pour le UnityEvent
+                EditorGUILayout.PropertyField(property, true);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    // Appliquer les modifications et sauvegarder
+                    serializedObject.ApplyModifiedProperties();
+                    window.SaveSettings();
+                }
+            }
+            else
+            {
+                EditorGUILayout.HelpBox("Impossible de trouver la propriété sérialisée pour 'Actions'. Vérifiez le nom du champ dans EventParameter.", MessageType.Error);
             }
         }
 
-        // S'assurer de nettoyer le ScriptableObject temporaire
         public void OnDestroy()
         {
-            if (_eventHolder != null)
+            if (EventParameter != null)
             {
-                ScriptableObject.DestroyImmediate(_eventHolder);
-                _eventHolder = null;
+                ScriptableObject.DestroyImmediate(EventParameter);
+                EventParameter = null;
             }
         }
     }

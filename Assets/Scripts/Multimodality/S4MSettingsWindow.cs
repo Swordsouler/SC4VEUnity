@@ -34,6 +34,18 @@ namespace Sven.Command
             LoadSettings();
         }
 
+        private void OnDisable()
+        {
+            // S'assurer que les ressources temporaires sont libérées
+            foreach (var setting in _commandSettings.Values)
+            {
+                if (setting is EventSettings eventSettings)
+                {
+                    eventSettings.OnDisable();
+                }
+            }
+        }
+
         private void OnGUI()
         {
             DrawMainTabs();
@@ -134,7 +146,11 @@ namespace Sven.Command
             if (File.Exists(path))
             {
                 var json = File.ReadAllText(path);
-                savedSettings = JsonConvert.DeserializeObject<Dictionary<string, JObject>>(json);
+                var settings = new JsonSerializerSettings
+                {
+                    Converters = new List<JsonConverter> { new UnityEventConverter() }
+                };
+                savedSettings = JsonConvert.DeserializeObject<Dictionary<string, JObject>>(json, settings);
             }
 
             foreach (var type in allTypes)
@@ -146,9 +162,12 @@ namespace Sven.Command
                 // If there are saved settings, try to populate the instance.
                 if (savedSettings != null && savedSettings.TryGetValue(type.FullName, out var jObject))
                 {
+                    var settings = new JsonSerializerSettings
+                    {
+                        Converters = new List<JsonConverter> { new UnityEventConverter() }
+                    };
                     // Populate the newly created instance with data from the JSON.
-                    // This is safer than relying on the $type property.
-                    JsonConvert.PopulateObject(jObject.ToString(), settingsInstance);
+                    JsonConvert.PopulateObject(jObject.ToString(), settingsInstance, settings);
                 }
 
                 _commandSettings[type] = settingsInstance;
@@ -163,12 +182,15 @@ namespace Sven.Command
 
             string path = Path.Combine(dir, "command_settings.json");
             var settingsToSave = CommandSettings.ToDictionary(kvp => kvp.Key.FullName, kvp => kvp.Value);
-            // We can remove TypeNameHandling.All now, as it's not strictly needed for loading,
-            // but keeping it can be useful for debugging or other tools.
-            string json = JsonConvert.SerializeObject(settingsToSave, Formatting.Indented, new JsonSerializerSettings
+
+            var settings = new JsonSerializerSettings
             {
-                TypeNameHandling = TypeNameHandling.Objects
-            });
+                Formatting = Formatting.Indented,
+                TypeNameHandling = TypeNameHandling.Objects,
+                Converters = new List<JsonConverter> { new UnityEventConverter() }
+            };
+
+            string json = JsonConvert.SerializeObject(settingsToSave, settings);
             File.WriteAllText(path, json);
 
             AssetDatabase.Refresh();

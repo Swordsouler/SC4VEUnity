@@ -75,6 +75,17 @@ namespace Sven.Command
                                 matchTimestamp = words[j].EndedAt;
                             }
                         }
+                        else if (setting is EventSettings eventSettings)
+                        {
+                            var entry = eventSettings.Entries.FirstOrDefault(e => e.TriggerWords.Contains(currentNgram));
+                            if (entry != null)
+                            {
+                                bestMatch = currentNgram;
+                                bestMatchTypeName = kvp.Key;
+                                parameterData = entry;
+                                matchTimestamp = words[j].EndedAt;
+                            }
+                        }
                     }
                 }
 
@@ -129,6 +140,11 @@ namespace Sven.Command
                         {
                             Debug.Log($"[CommandChain] Creating AnnotationFilter with specific entry.");
                             instance = new AnnotationFilter(parameterData as AnnotationFilterEntry);
+                        }
+                        else if (type.FullName == "Sven.Command.EventParameter")
+                        {
+                            Debug.Log($"[CommandChain] Creating EventParameter with specific entry.");
+                            instance = new EventParameter(parameterData as EventCommandEntry);
                         }
                         else
                         {

@@ -271,7 +271,13 @@ namespace Sven.Multimodality
                 string json = File.ReadAllText(settingsPath);
                 _settings = JsonConvert.DeserializeObject<Dictionary<string, BaseSettingsGUI>>(
                     json,
-                    new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto }
+                    new JsonSerializerSettings
+                    {
+                        TypeNameHandling = TypeNameHandling.Auto,
+#if UNITY_EDITOR
+                        Converters = new List<JsonConverter> { new UnityEventConverter() }
+#endif
+                    }
                 );
                 Debug.Log("[MultimodalityController] CommandSettings loaded from StreamingAssets.");
             }
