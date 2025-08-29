@@ -212,7 +212,14 @@
           "$type": "Sven.Command.EventParameter, Assembly-CSharp",
           "Actions": {
             "m_PersistentCalls": {
-              "m_Calls": []
+              "m_Calls": [
+                {
+                  "targetPath": "/Graph Controller",
+                  "targetType": "Sven.GraphManagement.GraphController, com.nsaintl.sven, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
+                  "methodName": "SaveAndQuitGraph",
+                  "mode": 1
+                }
+              ]
             }
           },
           "name": "",

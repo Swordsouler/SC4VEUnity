@@ -187,7 +187,7 @@ namespace Sven.Command
             {
                 Formatting = Formatting.Indented,
                 TypeNameHandling = TypeNameHandling.Objects,
-                Converters = new List<JsonConverter> { new UnityEventConverter() }
+                Converters = new List<JsonConverter> { new UnityEventConverter(), new EventParameterConverter() }
             };
 
             string json = JsonConvert.SerializeObject(settingsToSave, settings);

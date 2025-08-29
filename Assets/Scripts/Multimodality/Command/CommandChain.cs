@@ -141,10 +141,22 @@ namespace Sven.Command
                             Debug.Log($"[CommandChain] Creating AnnotationFilter with specific entry.");
                             instance = new AnnotationFilter(parameterData as AnnotationFilterEntry);
                         }
-                        else if (type.FullName == "Sven.Command.EventParameter")
+                        else if (type.FullName == "Sven.Command.EventCommand")
                         {
-                            Debug.Log($"[CommandChain] Creating EventParameter with specific entry.");
-                            instance = new EventParameter(parameterData as EventCommandEntry);
+                            Debug.Log($"[CommandChain] Creating EventCommand with specific entry.");
+                            var eventEntry = parameterData as EventCommandEntry;
+                            var eventParam = eventEntry.EventParameter;
+                            var eventCommand = new EventCommand
+                            {
+                                CompletionTime = matchTimestamp
+                            };
+                            TrySetParameter(eventCommand, eventParam);
+                            Debug.Log(eventParam == null);
+                            AddCommand(eventCommand);
+                            Debug.Log($"[CommandChain] Collected command '{eventCommand.GetType().Name}' with parameter.");
+
+                            i += bestMatch.Split(' ').Length - 1;
+                            continue; // Continue to the next word
                         }
                         else
                         {

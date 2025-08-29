@@ -5,8 +5,9 @@ using UnityEngine.Events;
 namespace Sven.Command
 {
     [Serializable]
-    public class EventParameter : ScriptableObject
+    public class EventParameter : ScriptableObject, IBaseParameter
     {
+        [SerializeField]
         private UnityEvent _actions = new();
         public UnityEvent Actions
         {
