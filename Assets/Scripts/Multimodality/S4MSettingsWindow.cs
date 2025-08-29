@@ -164,7 +164,7 @@ namespace Sven.Command
                 {
                     var settings = new JsonSerializerSettings
                     {
-                        Converters = new List<JsonConverter> { new UnityEventConverter() }
+                        Converters = new List<JsonConverter> { new UnityEventConverter(), new EventParameterConverter() }
                     };
                     // Populate the newly created instance with data from the JSON.
                     JsonConvert.PopulateObject(jObject.ToString(), settingsInstance, settings);
