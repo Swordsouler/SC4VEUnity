@@ -213,7 +213,8 @@
     "TriggerWords": [
       "destroy",
       "détruit",
-      "détruire"
+      "détruire",
+      "détruis"
     ]
   },
   "Sven.Command.EventCommand": {
