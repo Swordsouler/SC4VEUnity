@@ -200,6 +200,22 @@
       "into"
     ]
   },
+  "Sven.Command.CreateCommand": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": [
+      "create",
+      "créer",
+      "création"
+    ]
+  },
+  "Sven.Command.DestroyCommand": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": [
+      "destroy",
+      "détruit",
+      "détruire"
+    ]
+  },
   "Sven.Command.EventCommand": {
     "$type": "Sven.Command.EventSettings, Assembly-CSharp",
     "Entries": [
