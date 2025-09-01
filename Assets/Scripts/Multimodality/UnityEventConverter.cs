@@ -67,27 +67,26 @@ namespace Sven.Command
                 {
                     object argumentValue = null;
                     string argumentTypeName = null;
-
                     switch (mode)
                     {
                         case PersistentListenerMode.Bool:
-                            argumentValue = argumentCache.GetType().GetField("m_BoolArgument").GetValue(argumentCache);
+                            argumentValue = argumentCache.GetType().GetProperty("boolArgument").GetValue(argumentCache);
                             argumentTypeName = typeof(bool).AssemblyQualifiedName;
                             break;
                         case PersistentListenerMode.Int:
-                            argumentValue = argumentCache.GetType().GetField("m_IntArgument").GetValue(argumentCache);
+                            argumentValue = argumentCache.GetType().GetProperty("intArgument").GetValue(argumentCache);
                             argumentTypeName = typeof(int).AssemblyQualifiedName;
                             break;
                         case PersistentListenerMode.Float:
-                            argumentValue = argumentCache.GetType().GetField("m_FloatArgument").GetValue(argumentCache);
+                            argumentValue = argumentCache.GetType().GetProperty("floatArgument").GetValue(argumentCache);
                             argumentTypeName = typeof(float).AssemblyQualifiedName;
                             break;
                         case PersistentListenerMode.String:
-                            argumentValue = argumentCache.GetType().GetField("m_StringArgument").GetValue(argumentCache);
+                            argumentValue = argumentCache.GetType().GetProperty("stringArgument").GetValue(argumentCache);
                             argumentTypeName = typeof(string).AssemblyQualifiedName;
                             break;
                         case PersistentListenerMode.Object:
-                            argumentValue = argumentCache.GetType().GetField("m_ObjectArgument").GetValue(argumentCache);
+                            argumentValue = argumentCache.GetType().GetProperty("unityObjectArgument").GetValue(argumentCache);
                             if (argumentValue != null)
                                 argumentTypeName = argumentValue.GetType().AssemblyQualifiedName;
                             break;
