@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 1955774393498099542}
   - component: {fileID: 6600700753549179312}
   - component: {fileID: -5545939183990103048}
+  - component: {fileID: 9011243784680204855}
   m_Layer: 7
   m_Name: Apple
   m_TagString: Pickup
@@ -97,10 +98,10 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4008610799542497148}
-  serializedVersion: 4
+  serializedVersion: 5
   m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -129,7 +130,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e518ae278ae889448712861370435c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  componentsToSemantize:
+  componentsToSemanticize:
   - <Component>k__BackingField: {fileID: 4389499887083206086}
     <ProcessingMode>k__BackingField: 0
   - <Component>k__BackingField: {fileID: 812188835142777443}
@@ -138,7 +139,8 @@ MonoBehaviour:
     <ProcessingMode>k__BackingField: 0
   - <Component>k__BackingField: {fileID: -5545939183990103048}
     <ProcessingMode>k__BackingField: 1
-  _graphBuffer: {fileID: 0}
+  - <Component>k__BackingField: {fileID: 9011243784680204855}
+    <ProcessingMode>k__BackingField: 1
 --- !u!64 &6600700753549179312
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -173,3 +175,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74872d56b9fd6d54ba6fe197990d59e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &9011243784680204855
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4008610799542497148}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9a82d68b20156845a78acda341113cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _annotations:
+  - sven:Apple
+  - sven:Fruit
+  - sven:Food

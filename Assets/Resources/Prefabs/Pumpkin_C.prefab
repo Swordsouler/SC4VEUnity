@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: -8445367921552523128}
   - component: {fileID: 884546847530545418}
   - component: {fileID: 4074069109082357095}
+  - component: {fileID: 754984339237977041}
   m_Layer: 7
   m_Name: Pumpkin_C
   m_TagString: Pickup
@@ -125,16 +126,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e518ae278ae889448712861370435c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  componentsToSemantize:
+  componentsToSemanticize:
   - <Component>k__BackingField: {fileID: 3942236668726152164}
-    <ProcessingMode>k__BackingField: 0
-  - <Component>k__BackingField: {fileID: 2809841004690993291}
     <ProcessingMode>k__BackingField: 0
   - <Component>k__BackingField: {fileID: 79508744995472449}
     <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 2809841004690993291}
+    <ProcessingMode>k__BackingField: 0
+  - <Component>k__BackingField: {fileID: 754984339237977041}
+    <ProcessingMode>k__BackingField: 1
   - <Component>k__BackingField: {fileID: 4074069109082357095}
     <ProcessingMode>k__BackingField: 1
-  _graphBuffer: {fileID: 0}
 --- !u!54 &884546847530545418
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -142,10 +144,10 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4467135361893618014}
-  serializedVersion: 4
+  serializedVersion: 5
   m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -174,3 +176,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 96a492372cd6ad44abe2e98338c37a52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &754984339237977041
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4467135361893618014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9a82d68b20156845a78acda341113cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _annotations:
+  - sven:Pumpkin
+  - sven:Vegetable
+  - sven:Food

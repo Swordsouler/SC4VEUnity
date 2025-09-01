@@ -168,7 +168,7 @@ namespace Sven.Command
                 var json = File.ReadAllText(path);
                 var settings = new JsonSerializerSettings
                 {
-                    Converters = new List<JsonConverter> { new UnityEventConverter(), new EventParameterConverter() }
+                    Converters = new List<JsonConverter> { new UnityEventConverter(), new EventParameterConverter(), new GameObjectConverter() }
                 };
                 savedSettings = JsonConvert.DeserializeObject<Dictionary<string, JObject>>(json, settings);
             }
@@ -184,7 +184,7 @@ namespace Sven.Command
                 {
                     var settings = new JsonSerializerSettings
                     {
-                        Converters = new List<JsonConverter> { new UnityEventConverter(), new EventParameterConverter() }
+                        Converters = new List<JsonConverter> { new UnityEventConverter(), new EventParameterConverter(), new GameObjectConverter() }
                     };
                     // Populate the newly created instance with data from the JSON.
                     JsonConvert.PopulateObject(jObject.ToString(), settingsInstance, settings);
@@ -207,7 +207,7 @@ namespace Sven.Command
             {
                 Formatting = Formatting.Indented,
                 TypeNameHandling = TypeNameHandling.Objects,
-                Converters = new List<JsonConverter> { new UnityEventConverter(), new EventParameterConverter() }
+                Converters = new List<JsonConverter> { new UnityEventConverter(), new EventParameterConverter(), new GameObjectConverter() }
             };
 
             string json = JsonConvert.SerializeObject(settingsToSave, settings);

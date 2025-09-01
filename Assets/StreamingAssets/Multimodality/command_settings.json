@@ -17,7 +17,7 @@
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
           "AnnotationType": "sven:Apple",
           "Prefabs": [
-            null
+            "Assets/Resources/Prefabs/Apple.prefab"
           ]
         },
         "TriggerWords": [
@@ -31,7 +31,9 @@
         "AnnotationParameter": {
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
           "AnnotationType": "sven:Banana",
-          "Prefabs": []
+          "Prefabs": [
+            "Assets/Resources/Prefabs/Banana.prefab"
+          ]
         },
         "TriggerWords": [
           "banane",
@@ -44,7 +46,9 @@
         "AnnotationParameter": {
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
           "AnnotationType": "sven:Carrot",
-          "Prefabs": []
+          "Prefabs": [
+            "Assets/Resources/Prefabs/Carrot.prefab"
+          ]
         },
         "TriggerWords": [
           "carotte",
@@ -82,7 +86,15 @@
         "AnnotationParameter": {
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
           "AnnotationType": "sven:Pumpkin",
-          "Prefabs": []
+          "Prefabs": [
+            "Assets/Resources/Prefabs/Pumpkin_A.prefab",
+            "Assets/Resources/Prefabs/Pumpkin_B.prefab",
+            "Assets/Resources/Prefabs/Pumpkin_C.prefab",
+            "Assets/Resources/Prefabs/Pumpkin_D.prefab",
+            "Assets/Resources/Prefabs/Pumpkin_E.prefab",
+            "Assets/Resources/Prefabs/Pumpkin_F.prefab",
+            "Assets/Resources/Prefabs/Pumpkin_G.prefab"
+          ]
         },
         "TriggerWords": [
           "citrouille",
@@ -96,7 +108,9 @@
         "AnnotationParameter": {
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
           "AnnotationType": "sven:Spray",
-          "Prefabs": []
+          "Prefabs": [
+            "Assets/Resources/Prefabs/Spray_Can.prefab"
+          ]
         },
         "TriggerWords": [
           "spray",
@@ -240,7 +254,8 @@
     "TriggerWords": [
       "create",
       "créer",
-      "création"
+      "création",
+      "crée"
     ]
   },
   "Sven.Command.DestroyCommand": {
