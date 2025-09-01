@@ -63,6 +63,14 @@ namespace Sven.Command
 
         private void OnGUI()
         {
+            Event e = Event.current;
+            if (e.type == EventType.KeyDown && e.control && e.keyCode == KeyCode.S)
+            {
+                e.Use();
+                SaveSettings();
+                ShowNotification(new GUIContent("Settings Saved!"), 2);
+            }
+
             DrawMainTabs();
             List<Type> shownTypes = _selectedMainTab == 0 ? _filterTypes : _commandTypes;
             DrawTypeTabs(shownTypes);
