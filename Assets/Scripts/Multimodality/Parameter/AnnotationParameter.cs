@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace Sven.Command
 {
@@ -12,12 +14,15 @@ namespace Sven.Command
             set => _annotationType = value;
         }
 
+        public List<GameObject> Prefabs { get; set; } = new();
+
         public AnnotationParameter() { }
 
         public AnnotationParameter(AnnotationFilterEntry entry)
         {
             if (entry == null) return;
             AnnotationType = entry.AnnotationParameter.AnnotationType;
+            Prefabs = new List<GameObject>(entry.AnnotationParameter.Prefabs);
         }
     }
 }

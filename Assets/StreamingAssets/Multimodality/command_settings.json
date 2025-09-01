@@ -13,10 +13,12 @@
     "Entries": [
       {
         "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "",
         "AnnotationParameter": {
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
-          "AnnotationType": "sven:Apple"
+          "AnnotationType": "sven:Apple",
+          "Prefabs": [
+            null
+          ]
         },
         "TriggerWords": [
           "pomme",
@@ -26,10 +28,10 @@
       },
       {
         "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "",
         "AnnotationParameter": {
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
-          "AnnotationType": "sven:Banana"
+          "AnnotationType": "sven:Banana",
+          "Prefabs": []
         },
         "TriggerWords": [
           "banane",
@@ -39,10 +41,10 @@
       },
       {
         "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "",
         "AnnotationParameter": {
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
-          "AnnotationType": "sven:Carrot"
+          "AnnotationType": "sven:Carrot",
+          "Prefabs": []
         },
         "TriggerWords": [
           "carotte",
@@ -52,10 +54,10 @@
       },
       {
         "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "",
         "AnnotationParameter": {
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
-          "AnnotationType": "sven:Food"
+          "AnnotationType": "sven:Food",
+          "Prefabs": []
         },
         "TriggerWords": [
           "nourriture",
@@ -65,10 +67,10 @@
       },
       {
         "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "",
         "AnnotationParameter": {
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
-          "AnnotationType": "sven:Fruit"
+          "AnnotationType": "sven:Fruit",
+          "Prefabs": []
         },
         "TriggerWords": [
           "fruit",
@@ -77,10 +79,10 @@
       },
       {
         "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "",
         "AnnotationParameter": {
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
-          "AnnotationType": "sven:Pumpkin"
+          "AnnotationType": "sven:Pumpkin",
+          "Prefabs": []
         },
         "TriggerWords": [
           "citrouille",
@@ -91,10 +93,10 @@
       },
       {
         "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "",
         "AnnotationParameter": {
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
-          "AnnotationType": "sven:Spray"
+          "AnnotationType": "sven:Spray",
+          "Prefabs": []
         },
         "TriggerWords": [
           "spray",
@@ -103,10 +105,10 @@
       },
       {
         "$type": "Sven.Command.AnnotationFilterEntry, Assembly-CSharp",
-        "AnnotationType": "",
         "AnnotationParameter": {
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
-          "AnnotationType": "sven:Vegetable"
+          "AnnotationType": "sven:Vegetable",
+          "Prefabs": []
         },
         "TriggerWords": [
           "légume",

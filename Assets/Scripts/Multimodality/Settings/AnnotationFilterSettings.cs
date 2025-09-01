@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditorInternal;
 using UnityEngine;
 
 namespace Sven.Command
@@ -28,6 +29,7 @@ namespace Sven.Command
                 EditorGUILayout.BeginVertical("box");
                 EditorGUILayout.LabelField(entry.AnnotationParameter.AnnotationType, EditorStyles.boldLabel);
                 entry.DrawTriggerWordsUI(window);
+                entry.DrawPrefabsUI(window);
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.Space();
             }
@@ -69,11 +71,50 @@ namespace Sven.Command
         public List<string> TriggerWords { get; set; } = new();
 
         [NonSerialized] private TriggerWordsDrawer _triggerWordsDrawer;
+        [NonSerialized] private ReorderableList _prefabsList;
 
         public void DrawTriggerWordsUI(S4MSettingsWindow window)
         {
             _triggerWordsDrawer ??= new TriggerWordsDrawer("Trigger Words");
             _triggerWordsDrawer.Draw(window, TriggerWords);
+        }
+
+        public void DrawPrefabsUI(S4MSettingsWindow window)
+        {
+            _prefabsList ??= new ReorderableList(AnnotationParameter.Prefabs, typeof(GameObject), true, true, true, true)
+            {
+                drawHeaderCallback = (Rect rect) =>
+                {
+                    EditorGUI.LabelField(rect, "Prefabs");
+                },
+                drawElementCallback = (Rect rect, int index, bool isActive, bool isFocused) =>
+                {
+                    rect.y += 2;
+                    rect.height = EditorGUIUtility.singleLineHeight;
+                    var newPrefab = (GameObject)EditorGUI.ObjectField(rect, AnnotationParameter.Prefabs[index], typeof(GameObject), false);
+                    if (newPrefab != AnnotationParameter.Prefabs[index])
+                    {
+                        AnnotationParameter.Prefabs[index] = newPrefab;
+                        window.SaveSettings();
+                    }
+                },
+                onAddCallback = (ReorderableList list) =>
+                {
+                    list.list.Add(null);
+                    window.SaveSettings();
+                },
+                onRemoveCallback = (ReorderableList list) =>
+                {
+                    ReorderableList.defaultBehaviours.DoRemoveButton(list);
+                    window.SaveSettings();
+                },
+                onReorderCallback = (ReorderableList list) =>
+                {
+                    window.SaveSettings();
+                }
+            };
+
+            _prefabsList.DoLayoutList();
         }
     }
 }
