@@ -355,6 +355,23 @@ namespace Sven.Command
                 }
                 await command.Execute();
             }
+            if (!HasRepeatCommand) _lastCommandChain = this;
         }
+
+        private static CommandChain _lastCommandChain;
+
+        public static async void Repeat()
+        {
+            if (_lastCommandChain != null)
+            {
+                await _lastCommandChain.Execute();
+            }
+            else
+            {
+                Debug.LogWarning("[MultimodalityController] No last command chain to repeat.");
+            }
+        }
+
+        public bool HasRepeatCommand => _commands.Any(c => c is RepeatCommand);
     }
 }

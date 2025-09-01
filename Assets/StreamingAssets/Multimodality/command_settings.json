@@ -219,7 +219,7 @@
                   "targetPath": "/Graph Controller",
                   "targetType": "Sven.GraphManagement.GraphController, com.nsaintl.sven, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null",
                   "methodName": "SaveAndQuitGraph",
-                  "mode": 1
+                  "mode": 0
                 }
               ]
             }
@@ -244,6 +244,31 @@
       "déplCommande",
       "déplCommander",
       "move"
+    ]
+  },
+  "Sven.Command.RepeatCommand": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": [
+      "répète"
+    ]
+  },
+  "Sven.Command.ScaleDownCommand": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": [
+      "rétrecir",
+      "rétrécit",
+      "rétréci",
+      "rétrécie"
+    ]
+  },
+  "Sven.Command.ScaleUpCommand": {
+    "$type": "Sven.Command.CommandSettings, Assembly-CSharp",
+    "TriggerWords": [
+      "agrandir",
+      "a grandi",
+      "agrandit",
+      "agrandie",
+      "agrandi"
     ]
   },
   "Sven.Command.SelectCommand": {

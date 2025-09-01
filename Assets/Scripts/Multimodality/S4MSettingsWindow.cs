@@ -35,12 +35,9 @@ namespace Sven.Command
 
         private static void LogPlayModeState(PlayModeStateChange state)
         {
-            if (state == PlayModeStateChange.EnteredEditMode)
-            {
-                S4MSettingsWindow window = GetWindow<S4MSettingsWindow>("S4M Settings");
-                window.LoadAllCommandTypes();
-                window.LoadSettings();
-            }
+            S4MSettingsWindow window = GetWindow<S4MSettingsWindow>("S4M Settings");
+            window.LoadAllCommandTypes();
+            window.LoadSettings();
         }
 
         private void OnEnable()
