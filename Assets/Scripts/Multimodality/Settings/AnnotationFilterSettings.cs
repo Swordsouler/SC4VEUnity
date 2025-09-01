@@ -26,7 +26,7 @@ namespace Sven.Command
             foreach (var entry in Entries)
             {
                 EditorGUILayout.BeginVertical("box");
-                EditorGUILayout.LabelField(entry.AnnotationType, EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(entry.AnnotationParameter.AnnotationType, EditorStyles.boldLabel);
                 entry.DrawTriggerWordsUI(window);
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.Space();
@@ -38,25 +38,25 @@ namespace Sven.Command
         private void SynchronizeEntries(string[] availableTypes, S4MSettingsWindow window)
         {
             bool changed = false;
-            var currentTypesInEntries = Entries.Select(e => e.AnnotationType).ToList();
+            var currentTypesInEntries = Entries.Select(e => e.AnnotationParameter.AnnotationType).ToList();
 
             foreach (var type in availableTypes)
             {
                 if (!currentTypesInEntries.Contains(type))
                 {
-                    Entries.Add(new AnnotationFilterEntry { AnnotationType = type });
+                    Entries.Add(new AnnotationFilterEntry { AnnotationParameter = new AnnotationParameter() { AnnotationType = type } });
                     changed = true;
                 }
             }
 
-            if (Entries.RemoveAll(e => !availableTypes.Contains(e.AnnotationType)) > 0)
+            if (Entries.RemoveAll(e => !availableTypes.Contains(e.AnnotationParameter.AnnotationType)) > 0)
             {
                 changed = true;
             }
 
             if (changed)
             {
-                Entries = Entries.OrderBy(e => e.AnnotationType).ToList();
+                Entries = Entries.OrderBy(e => e.AnnotationParameter.AnnotationType).ToList();
                 window.SaveSettings();
             }
         }
@@ -66,6 +66,8 @@ namespace Sven.Command
     public class AnnotationFilterEntry
     {
         public string AnnotationType { get; set; } = string.Empty;
+
+        public AnnotationParameter AnnotationParameter { get; set; } = new();
         public List<string> TriggerWords { get; set; } = new();
 
         [NonSerialized] private TriggerWordsDrawer _triggerWordsDrawer;
