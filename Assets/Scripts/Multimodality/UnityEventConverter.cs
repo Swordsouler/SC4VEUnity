@@ -184,16 +184,20 @@ namespace Sven.Command
                         switch (mode)
                         {
                             case PersistentListenerMode.Bool:
-                                UnityEventTools.AddBoolPersistentListener(newEvent, new UnityAction<bool>((bool arg) => methodInfo.Invoke(targetComponent, new object[] { arg })), call["argumentValue"].Value<bool>());
+                                var boolAction = (UnityAction<bool>)Delegate.CreateDelegate(typeof(UnityAction<bool>), targetComponent, methodInfo);
+                                UnityEventTools.AddBoolPersistentListener(newEvent, boolAction, call["argumentValue"].Value<bool>());
                                 break;
                             case PersistentListenerMode.Int:
-                                UnityEventTools.AddIntPersistentListener(newEvent, new UnityAction<int>((int arg) => methodInfo.Invoke(targetComponent, new object[] { arg })), call["argumentValue"].Value<int>());
+                                var intAction = (UnityAction<int>)Delegate.CreateDelegate(typeof(UnityAction<int>), targetComponent, methodInfo);
+                                UnityEventTools.AddIntPersistentListener(newEvent, intAction, call["argumentValue"].Value<int>());
                                 break;
                             case PersistentListenerMode.Float:
-                                UnityEventTools.AddFloatPersistentListener(newEvent, new UnityAction<float>((float arg) => methodInfo.Invoke(targetComponent, new object[] { arg })), call["argumentValue"].Value<float>());
+                                var floatAction = (UnityAction<float>)Delegate.CreateDelegate(typeof(UnityAction<float>), targetComponent, methodInfo);
+                                UnityEventTools.AddFloatPersistentListener(newEvent, floatAction, call["argumentValue"].Value<float>());
                                 break;
                             case PersistentListenerMode.String:
-                                UnityEventTools.AddStringPersistentListener(newEvent, new UnityAction<string>((string arg) => methodInfo.Invoke(targetComponent, new object[] { arg })), call["argumentValue"].Value<string>());
+                                var stringAction = (UnityAction<string>)Delegate.CreateDelegate(typeof(UnityAction<string>), targetComponent, methodInfo);
+                                UnityEventTools.AddStringPersistentListener(newEvent, stringAction, call["argumentValue"].Value<string>());
                                 break;
                             case PersistentListenerMode.Object:
                                 var argPath = call["argumentValue"]?.Value<string>();
@@ -201,7 +205,8 @@ namespace Sven.Command
                                 if (argGO != null)
                                 {
                                     var argComp = argGO.GetComponent(argumentType);
-                                    UnityEventTools.AddObjectPersistentListener(newEvent, new UnityAction<UnityEngine.Object>((UnityEngine.Object arg) => methodInfo.Invoke(targetComponent, new object[] { arg })), argComp);
+                                    var objectAction = (UnityAction<UnityEngine.Object>)Delegate.CreateDelegate(typeof(UnityAction<UnityEngine.Object>), targetComponent, methodInfo);
+                                    UnityEventTools.AddObjectPersistentListener(newEvent, objectAction, argComp);
                                 }
                                 break;
                         }
