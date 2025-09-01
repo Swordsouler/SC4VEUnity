@@ -93,7 +93,7 @@ namespace Sven.Command
                 GUILayout.Label("No available type.");
                 return;
             }
-            _selectedTypeTab = GUILayout.Toolbar(_selectedTypeTab, tabNames);
+            _selectedTypeTab = GUILayout.SelectionGrid(_selectedTypeTab, tabNames, 5);
         }
 
         private void DrawSettingsTabs(List<Type> types, Dictionary<Type, BaseSettingsGUI> settingsDict, ref int selectedTab)
