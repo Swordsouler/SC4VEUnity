@@ -17,7 +17,7 @@ namespace Sven.Command
         public AnnotationParameter(AnnotationFilterEntry entry)
         {
             if (entry == null) return;
-            AnnotationType = entry.AnnotationType;
+            AnnotationType = entry.AnnotationParameter.AnnotationType;
         }
     }
 }

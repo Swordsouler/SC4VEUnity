@@ -65,8 +65,6 @@ namespace Sven.Command
     [Serializable]
     public class AnnotationFilterEntry
     {
-        public string AnnotationType { get; set; } = string.Empty;
-
         public AnnotationParameter AnnotationParameter { get; set; } = new();
         public List<string> TriggerWords { get; set; } = new();
 

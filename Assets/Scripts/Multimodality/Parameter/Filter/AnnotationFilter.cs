@@ -22,7 +22,7 @@ namespace Sven.Command
 
         public AnnotationFilter(AnnotationFilterEntry entry) : base()
         {
-            _semanticTypeName = entry?.AnnotationType;
+            _semanticTypeName = entry?.AnnotationParameter.AnnotationType;
         }
 
         public AnnotationFilter(string semanticTypeName) : base()
