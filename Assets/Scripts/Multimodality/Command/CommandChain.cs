@@ -151,7 +151,6 @@ namespace Sven.Command
                                 CompletionTime = matchTimestamp
                             };
                             TrySetParameter(eventCommand, eventParam);
-                            Debug.Log(eventParam == null);
                             AddCommand(eventCommand);
                             Debug.Log($"[CommandChain] Collected command '{eventCommand.GetType().Name}' with parameter.");
 

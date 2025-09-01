@@ -206,7 +206,9 @@
       {
         "$type": "Sven.Command.EventCommandEntry, Assembly-CSharp",
         "TriggerWords": [
-          "sauvegarde"
+          "sauvegarde",
+          "sauvegarder",
+          "save"
         ],
         "EventParameter": {
           "$type": "Sven.Command.EventParameter, Assembly-CSharp",
