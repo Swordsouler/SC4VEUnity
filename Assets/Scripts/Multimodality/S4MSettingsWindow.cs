@@ -153,7 +153,6 @@ namespace Sven.Command
 
         private void LoadSettings()
         {
-            Debug.Log("Loading command settings...");
             _commandSettings.Clear();
             var allTypes = _filterTypes.Concat(_commandTypes);
             Dictionary<string, JObject> savedSettings = null;
