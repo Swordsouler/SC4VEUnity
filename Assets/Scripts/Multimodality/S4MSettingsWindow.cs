@@ -28,6 +28,21 @@ namespace Sven.Command
             GetWindow<S4MSettingsWindow>("S4M Settings");
         }
 
+        static S4MSettingsWindow()
+        {
+            EditorApplication.playModeStateChanged += LogPlayModeState;
+        }
+
+        private static void LogPlayModeState(PlayModeStateChange state)
+        {
+            if (state == PlayModeStateChange.EnteredEditMode)
+            {
+                S4MSettingsWindow window = GetWindow<S4MSettingsWindow>("S4M Settings");
+                window.LoadAllCommandTypes();
+                window.LoadSettings();
+            }
+        }
+
         private void OnEnable()
         {
             LoadAllCommandTypes();
@@ -138,6 +153,7 @@ namespace Sven.Command
 
         private void LoadSettings()
         {
+            Debug.Log("Loading command settings...");
             _commandSettings.Clear();
             var allTypes = _filterTypes.Concat(_commandTypes);
             Dictionary<string, JObject> savedSettings = null;
@@ -148,7 +164,7 @@ namespace Sven.Command
                 var json = File.ReadAllText(path);
                 var settings = new JsonSerializerSettings
                 {
-                    Converters = new List<JsonConverter> { new UnityEventConverter() }
+                    Converters = new List<JsonConverter> { new UnityEventConverter(), new EventParameterConverter() }
                 };
                 savedSettings = JsonConvert.DeserializeObject<Dictionary<string, JObject>>(json, settings);
             }
