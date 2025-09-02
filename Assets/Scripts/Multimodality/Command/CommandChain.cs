@@ -138,8 +138,15 @@ namespace Sven.Command
                         }
                         else if (type.FullName == "Sven.Command.AnnotationFilter")
                         {
-                            Debug.Log($"[CommandChain] Creating AnnotationFilter with specific entry.");
-                            instance = new AnnotationFilter(parameterData as AnnotationFilterEntry);
+                            Debug.Log($"[CommandChain] Found annotation '{bestMatch}'. Creating AnnotationParameter and AnnotationFilter, putting them in pending.");
+                            var entry = parameterData as AnnotationFilterEntry;
+                            var annotationParam = new AnnotationParameter(entry);
+                            var annotationFilter = new AnnotationFilter(entry);
+                            pendingParameters.Add((annotationParam, matchTimestamp));
+                            pendingParameters.Add((annotationFilter, matchTimestamp));
+
+                            i += bestMatch.Split(' ').Length - 1;
+                            continue;
                         }
                         else if (type.FullName == "Sven.Command.EventCommand")
                         {
@@ -192,6 +199,13 @@ namespace Sven.Command
                     TrySetParameter(command, foundMatch.parameter);
                     // The command is complete when its last component (the parameter) is spoken
                     command.CompletionTime = new DateTime(Math.Max(command.CompletionTime.Ticks, foundMatch.timestamp.Ticks));
+
+                    // If an AnnotationParameter was used, remove its corresponding AnnotationFilter
+                    if (foundMatch.parameter is AnnotationParameter usedParam)
+                    {
+                        pendingParameters.RemoveAll(p => p.parameter is AnnotationFilter filter && filter.SemanticTypeName == usedParam.AnnotationType);
+                    }
+
                     pendingParameters.Remove(foundMatch); // Consume the parameter
                     Debug.Log($"[CommandChain] Linked parameter '{foundMatch.parameter.GetType().Name}' to command '{command.GetType().Name}'.");
                 }
@@ -229,9 +243,9 @@ namespace Sven.Command
             // Initial sort by completion time to get a baseline order
             _commands = _commands.OrderBy(c => c.CompletionTime).ToList();
 
-            // Rule 1: A command chain must start with a selection.
-            // If the first command is an action, prepend a "Select All".
-            bool isFirstCommandAction = !(_commands[0] is SelectCommand);
+            // Rule 1: A command chain must start with a selection or creation.
+            // If the first command is an action (not Select or Create), prepend a "Select All".
+            bool isFirstCommandAction = !(_commands[0] is SelectCommand || _commands[0] is CreateCommand);
             if (isFirstCommandAction)
             {
                 Debug.Log("[CommandChain] First command is an action. Prepending a 'Select All' command.");
@@ -244,7 +258,7 @@ namespace Sven.Command
             }
 
             // Rule 2: Group all initial selections together.
-            // Find the first action command.
+            // Find the first action command (not a SelectCommand).
             int firstActionIndex = _commands.FindIndex(c => !(c is SelectCommand));
 
             // If there are no actions, the order is already correct.

@@ -17,7 +17,7 @@
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
           "AnnotationType": "sven:Apple",
           "Prefabs": [
-            "Assets/Resources/Prefabs/Apple.prefab"
+            "Assets/Resources/Prefabs/Interactable Apple.prefab"
           ]
         },
         "TriggerWords": [
@@ -32,7 +32,7 @@
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
           "AnnotationType": "sven:Banana",
           "Prefabs": [
-            "Assets/Resources/Prefabs/Banana.prefab"
+            "Assets/Resources/Prefabs/Interactable Banana.prefab"
           ]
         },
         "TriggerWords": [
@@ -47,7 +47,7 @@
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
           "AnnotationType": "sven:Carrot",
           "Prefabs": [
-            "Assets/Resources/Prefabs/Carrot.prefab"
+            "Assets/Resources/Prefabs/Interactable Carrot.prefab"
           ]
         },
         "TriggerWords": [
@@ -87,13 +87,13 @@
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
           "AnnotationType": "sven:Pumpkin",
           "Prefabs": [
-            "Assets/Resources/Prefabs/Pumpkin_A.prefab",
-            "Assets/Resources/Prefabs/Pumpkin_B.prefab",
-            "Assets/Resources/Prefabs/Pumpkin_C.prefab",
-            "Assets/Resources/Prefabs/Pumpkin_D.prefab",
-            "Assets/Resources/Prefabs/Pumpkin_E.prefab",
-            "Assets/Resources/Prefabs/Pumpkin_F.prefab",
-            "Assets/Resources/Prefabs/Pumpkin_G.prefab"
+            "Assets/Resources/Prefabs/Interactable Pumpkin_A.prefab",
+            "Assets/Resources/Prefabs/Interactable Pumpkin_B.prefab",
+            "Assets/Resources/Prefabs/Interactable Pumpkin_C.prefab",
+            "Assets/Resources/Prefabs/Interactable Pumpkin_D.prefab",
+            "Assets/Resources/Prefabs/Interactable Pumpkin_E.prefab",
+            "Assets/Resources/Prefabs/Interactable Pumpkin_F.prefab",
+            "Assets/Resources/Prefabs/Interactable Pumpkin_G.prefab"
           ]
         },
         "TriggerWords": [
@@ -109,7 +109,7 @@
           "$type": "Sven.Command.AnnotationParameter, Assembly-CSharp",
           "AnnotationType": "sven:Spray",
           "Prefabs": [
-            "Assets/Resources/Prefabs/Spray_Can.prefab"
+            "Assets/Resources/Prefabs/Spray can.prefab"
           ]
         },
         "TriggerWords": [

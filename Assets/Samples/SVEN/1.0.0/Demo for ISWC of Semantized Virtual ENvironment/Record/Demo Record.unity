@@ -194,6 +194,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1687359903}
     m_Modifications:
+    - target: {fileID: -5977668364426240361, guid: 771932a47c83ffc4f817ae0a8171d29f, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7129618346194545963, guid: 771932a47c83ffc4f817ae0a8171d29f, type: 3}
       propertyPath: m_Name
       value: Interactable Pumpkin 3
@@ -448,6 +452,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2077134054}
     m_Modifications:
+    - target: {fileID: -8992647528248777478, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 363914734931802952, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -725,6 +733,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2077134054}
     m_Modifications:
+    - target: {fileID: -8992647528248777478, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 363914734931802952, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -878,6 +890,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1687359903}
     m_Modifications:
+    - target: {fileID: 3792773938656617937, guid: 738b5a9777fd2fb4fb52c057138df7fc, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7483341640500924427, guid: 738b5a9777fd2fb4fb52c057138df7fc, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1.81
@@ -1454,6 +1470,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2077134054}
     m_Modifications:
+    - target: {fileID: -8992647528248777478, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 363914734931802952, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -1593,6 +1613,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1687359903}
     m_Modifications:
+    - target: {fileID: 3792773938656617937, guid: 738b5a9777fd2fb4fb52c057138df7fc, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7483341640500924427, guid: 738b5a9777fd2fb4fb52c057138df7fc, type: 3}
       propertyPath: m_LocalPosition.x
       value: -4.43
@@ -1698,6 +1722,10 @@ PrefabInstance:
     - target: {fileID: 4389499887083206086, guid: 54545446ea7bb1d49a60e927b5cc5fe6, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617042565024800936, guid: 54545446ea7bb1d49a60e927b5cc5fe6, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2458,6 +2486,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1687359903}
     m_Modifications:
+    - target: {fileID: 5010609374202493501, guid: aa925dce6c9f94b4b8818aab84246b9f, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7064514491660987492, guid: aa925dce6c9f94b4b8818aab84246b9f, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1.062
@@ -2563,6 +2595,10 @@ PrefabInstance:
     - target: {fileID: 4389499887083206086, guid: 54545446ea7bb1d49a60e927b5cc5fe6, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4617042565024800936, guid: 54545446ea7bb1d49a60e927b5cc5fe6, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -3021,6 +3057,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1687359903}
     m_Modifications:
+    - target: {fileID: 5010609374202493501, guid: aa925dce6c9f94b4b8818aab84246b9f, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7064514491660987492, guid: aa925dce6c9f94b4b8818aab84246b9f, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1.553
@@ -3083,6 +3123,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1687359903}
     m_Modifications:
+    - target: {fileID: 884546847530545418, guid: bad15bf9648b35346a364933a7c3600b, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3942236668726152164, guid: bad15bf9648b35346a364933a7c3600b, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1.9914434
@@ -3396,6 +3440,10 @@ PrefabInstance:
     - target: {fileID: 591600745194366970, guid: cfff5931185e83346b8f21b68dedb42a, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1331245352589101359, guid: cfff5931185e83346b8f21b68dedb42a, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -3897,6 +3945,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2077134054}
     m_Modifications:
+    - target: {fileID: -8992647528248777478, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 363914734931802952, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -4081,6 +4133,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2077134054}
     m_Modifications:
+    - target: {fileID: -8992647528248777478, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 363914734931802952, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -4234,6 +4290,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2077134054}
     m_Modifications:
+    - target: {fileID: -8992647528248777478, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 363914734931802952, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -4387,6 +4447,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2077134054}
     m_Modifications:
+    - target: {fileID: -8992647528248777478, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 363914734931802952, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -4731,6 +4795,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1687359903}
     m_Modifications:
+    - target: {fileID: -5292411258456019718, guid: 9f6d716d51799e24bbab869ec450b8c4, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 218855170364935037, guid: 9f6d716d51799e24bbab869ec450b8c4, type: 3}
       propertyPath: m_Name
       value: Interactable Pumpkin 2
@@ -4914,6 +4982,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2077134054}
     m_Modifications:
+    - target: {fileID: -8992647528248777478, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
+      propertyPath: m_IsKinematic
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 363914734931802952, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
