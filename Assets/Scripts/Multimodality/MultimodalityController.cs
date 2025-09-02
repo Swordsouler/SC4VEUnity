@@ -275,7 +275,7 @@ namespace Sven.Multimodality
                     {
                         TypeNameHandling = TypeNameHandling.Auto,
 #if UNITY_EDITOR
-                        Converters = new List<JsonConverter> { new UnityEventConverter(), new EventParameterConverter() }
+                        Converters = new List<JsonConverter> { new UnityEventConverter(), new EventParameterConverter(), new GameObjectConverter() }
 #endif
                     }
                 );
