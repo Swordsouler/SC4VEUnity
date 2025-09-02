@@ -3616,7 +3616,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad9dac0bb99777244b1e26b52c3d27fc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ModelPath: P:\SVENMultimodailty\Assets\StreamingAssets\Models\vosk-model-small-fr-0.22.zip
+  ModelPath: /Models/vosk-model-small-fr-0.22.zip
   VoiceProcessor: {fileID: 1806090969}
   MaxAlternatives: 1
   MaxRecordLength: 5
