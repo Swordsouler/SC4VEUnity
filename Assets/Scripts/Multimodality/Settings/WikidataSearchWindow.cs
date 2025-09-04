@@ -30,6 +30,7 @@ namespace Sven.Command
         private bool _isLoading = false;
         private string _statusMessage = "Enter a term and click Search.";
         private string _languages = "en,fr";
+        private readonly string _searchControlName = $"WikidataSearch_{Guid.NewGuid()}";
 
         static WikidataSearchWindow()
         {
@@ -56,13 +57,24 @@ namespace Sven.Command
             EditorGUILayout.LabelField("Wikidata Word Search", EditorStyles.boldLabel);
             EditorGUILayout.Space();
 
+            Event e = Event.current;
+
             EditorGUILayout.BeginHorizontal();
+            GUI.SetNextControlName(_searchControlName);
             _searchTerm = EditorGUILayout.TextField("Search Term", _searchTerm);
             if (GUILayout.Button("Search", GUILayout.Width(80)))
             {
                 Search();
             }
             EditorGUILayout.EndHorizontal();
+
+            if (e.type == EventType.KeyUp &&
+                (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter) &&
+                GUI.GetNameOfFocusedControl() == _searchControlName)
+            {
+                Search();
+                e.Use();
+            }
 
             _languages = EditorGUILayout.TextField("Languages (csv)", _languages);
             EditorGUILayout.Space();
