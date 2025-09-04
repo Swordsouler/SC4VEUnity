@@ -346,7 +346,8 @@
       "sélection",
       "sélectionne",
       "sélectionner",
-      "select"
+      "select",
+      "sélectionnez"
     ]
   },
   "Sven.Command.ShowCommand": {
@@ -366,7 +367,12 @@
       "désélectionner",
       "unselect",
       "unchoose",
-      "désélection"
+      "désélection",
+      "désélectionnez",
+      "dès sélectionner",
+      "des sélectionnés",
+      "dès sélectionne",
+      "des sélectionne"
     ]
   }
 }

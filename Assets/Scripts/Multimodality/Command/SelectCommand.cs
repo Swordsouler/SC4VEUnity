@@ -1,11 +1,14 @@
 using Sven.Multimodality;
+using System;
 using System.Threading.Tasks;
 
 namespace Sven.Command
 {
-    public class SelectCommand : FilterCommand
+    public class SelectCommand : Command<CommandSettings, IQueryFilter>, IBaseCommand
     {
-        public override async Task Execute()
+        public DateTime CompletionTime { get; set; }
+
+        public async Task Execute()
         {
             if (Parameter == null) return;
 

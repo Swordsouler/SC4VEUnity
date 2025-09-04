@@ -191,6 +191,7 @@ namespace Sven.Command
 
             foreach (var command in commandsWaitingForParameter)
             {
+                Debug.Log($"[CommandChain] Command '{command.GetType().Name}' needs a parameter. Searching for suitable parameters...");
                 // Find a suitable parameter from the list of pending ones
                 var foundMatch = pendingParameters.FirstOrDefault(p => IsParameterSuitable(command, p.parameter));
 
@@ -311,7 +312,7 @@ namespace Sven.Command
         private void TrySetParameter(IBaseCommand command, IBaseParameter parameter)
         {
             var parameterProperty = command.GetType().GetProperty("Parameter");
-            if (parameterProperty != null && parameterProperty.PropertyType.IsInstanceOfType(parameter))
+            if (parameterProperty != null && parameterProperty.PropertyType.IsAssignableFrom(parameter.GetType()))
             {
                 parameterProperty.SetValue(command, parameter);
             }
