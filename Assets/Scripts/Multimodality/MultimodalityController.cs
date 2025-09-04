@@ -157,46 +157,46 @@ namespace Sven.Multimodality
         private async void T()
         {
             _commandChain = new CommandChain();
-            _commandChain.AddCommand(new SelectCommand { Parameter = new PointOfViewFilter(DateTime.Now) });
-            _commandChain.AddCommand(new HideCommand());
-            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) });
+            _commandChain.AddCommand(new SelectCommand { Parameter = new PointOfViewFilter(DateTime.Now) }, "Manual Test T");
+            _commandChain.AddCommand(new HideCommand(), "Manual Test T");
+            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) }, "Manual Test T");
             await _commandChain.Execute();
         }
 
         private async void Y()
         {
             _commandChain = new CommandChain();
-            _commandChain.AddCommand(new SelectCommand { Parameter = new AnnotationFilter("sven:Pumpkin", DateTime.Now) });
-            _commandChain.AddCommand(new ShowCommand());
-            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) });
+            _commandChain.AddCommand(new SelectCommand { Parameter = new AnnotationFilter("sven:Pumpkin", DateTime.Now) }, "Manual Test Y");
+            _commandChain.AddCommand(new ShowCommand(), "Manual Test Y");
+            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) }, "Manual Test Y");
             await _commandChain.Execute();
         }
 
         private async void Example1()
         {
             _commandChain = new CommandChain();
-            _commandChain.AddCommand(new SelectCommand { Parameter = new AnnotationFilter("sven:Apple", DateTime.Now) });
-            _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 1f, Green = 0f, Blue = 0f } });
-            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) });
+            _commandChain.AddCommand(new SelectCommand { Parameter = new AnnotationFilter("sven:Apple", DateTime.Now) }, "Manual Test Example1");
+            _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 1f, Green = 0f, Blue = 0f } }, "Manual Test Example1");
+            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) }, "Manual Test Example1");
             await _commandChain.Execute();
         }
 
         private async void Example2()
         {
             _commandChain = new CommandChain();
-            _commandChain.AddCommand(new SelectCommand { Parameter = new PointOfViewFilter(DateTime.Now) });
-            _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 0f, Green = 1f, Blue = 0f } });
-            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) });
+            _commandChain.AddCommand(new SelectCommand { Parameter = new PointOfViewFilter(DateTime.Now) }, "Manual Test Example2");
+            _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 0f, Green = 1f, Blue = 0f } }, "Manual Test Example2");
+            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) }, "Manual Test Example2");
             await _commandChain.Execute();
         }
 
         private async void Example3()
         {
             _commandChain = new CommandChain();
-            _commandChain.AddCommand(new SelectCommand { Parameter = new AnnotationFilter("sven:Pumpkin", DateTime.Now) });
-            _commandChain.AddCommand(new SelectCommand { Parameter = new ColorFilter(new ColorParameter { Red = 0.2f, Green = 0.8f, Blue = 0.2f, Tolerance = 0.2f }, DateTime.Now) });
-            _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 0f, Green = 0f, Blue = 1f } });
-            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) });
+            _commandChain.AddCommand(new SelectCommand { Parameter = new AnnotationFilter("sven:Pumpkin", DateTime.Now) }, "Manual Test Example3");
+            _commandChain.AddCommand(new SelectCommand { Parameter = new ColorFilter(new ColorParameter { Red = 0.2f, Green = 0.8f, Blue = 0.2f, Tolerance = 0.2f }, DateTime.Now) }, "Manual Test Example3");
+            _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 0f, Green = 0f, Blue = 1f } }, "Manual Test Example3");
+            _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) }, "Manual Test Example3");
             await _commandChain.Execute();
         }
 

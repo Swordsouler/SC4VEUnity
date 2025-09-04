@@ -8,12 +8,27 @@ namespace Sven.Command
 {
     public class CommandChain
     {
-        private List<IBaseCommand> _commands = new();
-        public IReadOnlyList<IBaseCommand> Commands => _commands;
+        /// <summary>
+        /// Conteneur interne pour une commande et ses métadonnées.
+        /// </summary>
+        private class CommandContainer
+        {
+            public IBaseCommand Command { get; }
+            public string Origin { get; set; }
+
+            public CommandContainer(IBaseCommand command, string origin)
+            {
+                Command = command;
+                Origin = origin;
+            }
+        }
+
+        private List<CommandContainer> _commandContainers = new();
+        public IReadOnlyList<IBaseCommand> Commands => _commandContainers.Select(c => c.Command).ToList();
 
         public CommandChain()
         {
-            _commands = new();
+            _commandContainers = new();
         }
 
         // Generic constructor: builds the command chain from a sentence and settings dictionary
@@ -123,7 +138,7 @@ namespace Sven.Command
                                 {
                                     CompletionTime = matchTimestamp
                                 };
-                                AddCommand(colorizeCommand);
+                                AddCommand(colorizeCommand, $"Implicit (prefix for '{bestMatch}')");
                                 Debug.Log($"[CommandChain] Collected command '{colorizeCommand.GetType().Name}'.");
 
                                 // Since we handled this case, we can skip the generic instance creation.
@@ -158,7 +173,7 @@ namespace Sven.Command
                                 CompletionTime = matchTimestamp
                             };
                             TrySetParameter(eventCommand, eventParam);
-                            AddCommand(eventCommand);
+                            AddCommand(eventCommand, $"Keyword: '{bestMatch}'");
                             Debug.Log($"[CommandChain] Collected command '{eventCommand.GetType().Name}' with parameter.");
 
                             i += bestMatch.Split(' ').Length - 1;
@@ -177,7 +192,7 @@ namespace Sven.Command
                         else if (instance is IBaseCommand command)
                         {
                             command.CompletionTime = matchTimestamp;
-                            AddCommand(command);
+                            AddCommand(command, $"Keyword: '{bestMatch}'");
                             Debug.Log($"[CommandChain] Collected command '{command.GetType().Name}'.");
                         }
                     }
@@ -187,10 +202,11 @@ namespace Sven.Command
 
             // Phase 2: Link parameters to commands that need them
             Debug.Log("[CommandChain] Phase 2: Linking parameters to commands...");
-            var commandsWaitingForParameter = _commands.Where(NeedsParameter).ToList();
+            var commandsWaitingForParameter = _commandContainers.Where(c => NeedsParameter(c.Command)).ToList();
 
-            foreach (var command in commandsWaitingForParameter)
+            foreach (var container in commandsWaitingForParameter)
             {
+                var command = container.Command;
                 Debug.Log($"[CommandChain] Command '{command.GetType().Name}' needs a parameter. Searching for suitable parameters...");
                 // Find a suitable parameter from the list of pending ones
                 var foundMatch = pendingParameters.FirstOrDefault(p => IsParameterSuitable(command, p.parameter));
@@ -221,7 +237,7 @@ namespace Sven.Command
                 var selectCommand = new SelectCommand();
                 TrySetParameter(selectCommand, filterTuple.parameter);
                 selectCommand.CompletionTime = filterTuple.timestamp;
-                AddCommand(selectCommand);
+                AddCommand(selectCommand, $"Implicit (unassigned filter: {filterTuple.parameter.GetType().Name})");
                 pendingParameters.Remove(filterTuple);
             }
 
@@ -229,50 +245,62 @@ namespace Sven.Command
             ReorderCommands();
 
             Debug.Log("[CommandChain] Final command order after reordering:");
-            foreach (var cmd in _commands)
+            foreach (var container in _commandContainers)
             {
-                Debug.Log($" - {cmd.GetType().Name} (Completed at: {cmd.CompletionTime:HH:mm:ss.fff})");
+                var cmd = container.Command;
+                var parameterProperty = cmd.GetType().GetProperty("Parameter");
+                object parameterValue = parameterProperty?.GetValue(cmd);
+                string parameterInfo = parameterValue != null ? $"Parameter: {parameterValue.GetType().Name}" : "No Parameter";
+
+                Debug.Log($" - {cmd.GetType().Name} (Origin: {container.Origin}) ({parameterInfo}) (Completed at: {cmd.CompletionTime:HH:mm:ss.fff})");
             }
-            AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) });
+            AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) }, "Implicit (end of chain)");
 
         }
 
         private void ReorderCommands()
         {
-            if (!_commands.Any()) return;
+            if (!_commandContainers.Any()) return;
 
             // Initial sort by completion time to get a baseline order
-            _commands = _commands.OrderBy(c => c.CompletionTime).ToList();
+            _commandContainers = _commandContainers.OrderBy(c => c.Command.CompletionTime).ToList();
 
             // Rule 1: A command chain must start with a selection or creation.
-            // If the first command is an action (not Select or Create), prepend a "Select All".
-            bool isFirstCommandAction = !(_commands[0] is SelectCommand || _commands[0] is CreateCommand);
+            bool isFirstCommandAction = !(_commandContainers[0].Command is SelectCommand || _commandContainers[0].Command is CreateCommand);
             if (isFirstCommandAction)
             {
-                Debug.Log("[CommandChain] First command is an action. Prepending a 'Select All' command.");
-                var selectAll = new SelectCommand
+                // If the first command is an action, check if there are other selections later in the chain.
+                bool hasOtherSelects = _commandContainers.Any(c => c.Command is SelectCommand);
+
+                // If there are no other selections, prepend a "Select All".
+                if (!hasOtherSelects)
                 {
-                    Parameter = new AllFilter(_commands[0].CompletionTime.AddMilliseconds(-1)),
-                    CompletionTime = _commands[0].CompletionTime.AddMilliseconds(-1)
-                };
-                _commands.Insert(0, selectAll);
+                    Debug.Log("[CommandChain] First command is an action and no other selection found. Prepending a 'Select All' command.");
+                    var selectAll = new SelectCommand
+                    {
+                        Parameter = new AllFilter(_commandContainers[0].Command.CompletionTime.AddMilliseconds(-1)),
+                        CompletionTime = _commandContainers[0].Command.CompletionTime.AddMilliseconds(-1)
+                    };
+                    _commandContainers.Insert(0, new CommandContainer(selectAll, "Implicit (action needs selection)"));
+                }
+                // If there are other selections, they will be moved to the front by Rule 2.
             }
 
-            // Rule 2: Group all initial selections together.
+            // Rule 2: Group all selection commands at the beginning of the chain.
             // Find the first action command (not a SelectCommand).
-            int firstActionIndex = _commands.FindIndex(c => !(c is SelectCommand));
+            int firstActionIndex = _commandContainers.FindIndex(c => !(c.Command is SelectCommand));
 
-            // If there are no actions, the order is already correct.
+            // If there are no actions, the order is already correct (all are selections).
             if (firstActionIndex == -1) return;
 
             // Find all selections that appear *after* the first action.
-            var selectionsToMove = new List<IBaseCommand>();
-            for (int i = _commands.Count - 1; i > firstActionIndex; i--)
+            var selectionsToMove = new List<CommandContainer>();
+            for (int i = _commandContainers.Count - 1; i > firstActionIndex; i--)
             {
-                if (_commands[i] is SelectCommand)
+                if (_commandContainers[i].Command is SelectCommand)
                 {
-                    selectionsToMove.Add(_commands[i]);
-                    _commands.RemoveAt(i);
+                    selectionsToMove.Add(_commandContainers[i]);
+                    _commandContainers.RemoveAt(i);
                 }
             }
 
@@ -281,7 +309,7 @@ namespace Sven.Command
             {
                 // Reverse the list to maintain their relative order
                 selectionsToMove.Reverse();
-                _commands.InsertRange(firstActionIndex, selectionsToMove);
+                _commandContainers.InsertRange(firstActionIndex, selectionsToMove);
                 Debug.Log($"[CommandChain] Moved {selectionsToMove.Count} subsequent selection command(s) to the initial selection block.");
             }
         }
@@ -322,41 +350,42 @@ namespace Sven.Command
             }
         }
 
-        public void AddCommand(IBaseCommand command)
+        public void AddCommand(IBaseCommand command, string origin)
         {
-            _commands.Add(command);
+            _commandContainers.Add(new CommandContainer(command, origin));
         }
 
-        public void AddCommands(IEnumerable<IBaseCommand> commands)
+        public void AddCommands(IEnumerable<IBaseCommand> commands, string origin)
         {
             foreach (var command in commands)
             {
-                _commands.Add(command);
+                AddCommand(command, origin);
             }
         }
 
         public void ClearCommands()
         {
-            _commands.Clear();
+            _commandContainers.Clear();
         }
 
         public void RemoveCommand(IBaseCommand command)
         {
-            _commands.Remove(command);
+            _commandContainers.RemoveAll(c => c.Command == command);
         }
 
         public void RemoveCommands(IEnumerable<IBaseCommand> commands)
         {
             foreach (var command in commands)
             {
-                _commands.Remove(command);
+                RemoveCommand(command);
             }
         }
 
         public async Task Execute()
         {
-            foreach (var command in _commands)
+            foreach (var container in _commandContainers)
             {
+                var command = container.Command;
                 var parameterProperty = command.GetType().GetProperty("Parameter");
                 object parameterValue = parameterProperty?.GetValue(command);
 
@@ -387,6 +416,6 @@ namespace Sven.Command
             }
         }
 
-        public bool HasRepeatCommand => _commands.Any(c => c is RepeatCommand);
+        public bool HasRepeatCommand => _commandContainers.Any(c => c.Command is RepeatCommand);
     }
 }
