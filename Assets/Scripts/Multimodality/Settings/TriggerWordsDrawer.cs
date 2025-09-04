@@ -53,6 +53,30 @@ namespace Sven.Command
             {
                 addRequested = true;
             }
+
+            if (GUILayout.Button("Search", GUILayout.Width(60)))
+            {
+                WikidataSearchWindow.ShowWindow(_newWord, (foundWords) =>
+                {
+                    bool changed = false;
+                    foreach (var word in foundWords)
+                    {
+                        string trimmed = word.Trim().ToLower();
+                        if (!string.IsNullOrEmpty(trimmed) && !words.Contains(trimmed))
+                        {
+                            if (!IsWordUsed(trimmed, window, out _, words))
+                            {
+                                words.Add(trimmed);
+                                changed = true;
+                            }
+                        }
+                    }
+                    if (changed)
+                    {
+                        window.SaveSettings();
+                    }
+                });
+            }
             EditorGUILayout.EndHorizontal();
 
             if (e.type == EventType.KeyUp &&
