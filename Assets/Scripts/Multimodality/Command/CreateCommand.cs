@@ -34,7 +34,10 @@ namespace Sven.Command
                 {
                     Debug.Log($"[CreateCommand] Instantiating prefab '{prefab.name}' for type '{Parameter.AnnotationType}'.");
                     // Instancie l'objet à 2 mètres devant la caméra principale
-                    GameObject.Instantiate(prefab, Camera.main.transform.position + Camera.main.transform.forward * 2, Quaternion.identity);
+                    GameObject go = GameObject.Instantiate(prefab, Camera.main.transform.position + Camera.main.transform.forward * 2, Quaternion.identity);
+
+                    // Auto select the newly created object
+                    MultimodalityController.AddSelectedObjects(new List<SemantizationCore> { go.GetComponent<SemantizationCore>() }, false);
                 }
                 else
                 {
