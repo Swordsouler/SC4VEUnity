@@ -5,6 +5,8 @@ using Sven.GraphManagement;
 using Sven.Multimodality.Voice;
 using Sven.OwlTime;
 using System;
+using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,20 +16,25 @@ namespace Sven.Multimodality
 {
     public class MultimodalityController : MonoBehaviour
     {
+        private static MultimodalityController _instance;
+
         private static List<SemantizationCore> _selectedObjects = new();
         public static IReadOnlyList<SemantizationCore> SelectedObjects => _selectedObjects;
 
         public VoskSpeechToText VoskSpeechToText;
+        [SerializeField] private CommandExecutionMode _commandExecutionMode = CommandExecutionMode.Algorithm;
 
-        private async void OnTranscriptionResult(string obj)
+        private static readonly ConcurrentQueue<Action> _mainThreadActions = new();
+
+        private void OnTranscriptionResult(string obj)
         {
             var result = new RecognitionResult(obj);
             for (int i = 0; i < result.Phrases.Length; i++)
             {
                 if (result.Phrases[i].Text == "") continue;
 
-                _commandChain = new CommandChain(result.Phrases[i], Settings);
-                await _commandChain.Execute();
+                _commandChain = new CommandChain(_commandExecutionMode, result.Phrases[i], Settings);
+                _commandChain.Execute();
             }
         }
 
@@ -98,9 +105,18 @@ namespace Sven.Multimodality
 
         private static void SetHighlight(SemantizationCore semantizationCore, bool highlight)
         {
+            if (_instance != null)
+            {
+                // Place l'action dans la file d'attente pour exécution sur le thread principal
+                _mainThreadActions.Enqueue(() => _instance.StartCoroutine(_instance.SetHighlightCoroutine(semantizationCore, highlight)));
+            }
+        }
+
+        public IEnumerator SetHighlightCoroutine(SemantizationCore semantizationCore, bool highlight)
+        {
+            yield return null;
             if (highlight)
             {
-                // Add outline
                 if (semantizationCore.TryGetComponent(out Outline outline))
                     outline.enabled = true;
                 else
@@ -108,7 +124,6 @@ namespace Sven.Multimodality
             }
             else
             {
-                // Remove outline
                 if (semantizationCore.TryGetComponent(out Outline outline))
                     outline.enabled = false;
             }
@@ -116,6 +131,11 @@ namespace Sven.Multimodality
 
         void Update()
         {
+            while (_mainThreadActions.TryDequeue(out var action))
+            {
+                action?.Invoke();
+            }
+
             if (Input.GetKeyDown(KeyCode.T))
                 ExampleTest();
             if (Input.GetKeyDown(KeyCode.Y))
@@ -154,53 +174,53 @@ namespace Sven.Multimodality
 
         private CommandChain _commandChain;
 
-        private async void T()
+        private void T()
         {
             _commandChain = new CommandChain();
             _commandChain.AddCommand(new SelectCommand { Parameter = new PointOfViewFilter(DateTime.Now) }, "Manual Test T");
             _commandChain.AddCommand(new HideCommand(), "Manual Test T");
             _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) }, "Manual Test T");
-            await _commandChain.Execute();
+            _commandChain.Execute();
         }
 
-        private async void Y()
+        private void Y()
         {
             _commandChain = new CommandChain();
             _commandChain.AddCommand(new SelectCommand { Parameter = new AnnotationFilter("sven:Pumpkin", DateTime.Now) }, "Manual Test Y");
             _commandChain.AddCommand(new ShowCommand(), "Manual Test Y");
             _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) }, "Manual Test Y");
-            await _commandChain.Execute();
+            _commandChain.Execute();
         }
 
-        private async void Example1()
+        private void Example1()
         {
             _commandChain = new CommandChain();
             _commandChain.AddCommand(new SelectCommand { Parameter = new AnnotationFilter("sven:Apple", DateTime.Now) }, "Manual Test Example1");
             _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 1f, Green = 0f, Blue = 0f } }, "Manual Test Example1");
             _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) }, "Manual Test Example1");
-            await _commandChain.Execute();
+            _commandChain.Execute();
         }
 
-        private async void Example2()
+        private void Example2()
         {
             _commandChain = new CommandChain();
             _commandChain.AddCommand(new SelectCommand { Parameter = new PointOfViewFilter(DateTime.Now) }, "Manual Test Example2");
             _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 0f, Green = 1f, Blue = 0f } }, "Manual Test Example2");
             _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) }, "Manual Test Example2");
-            await _commandChain.Execute();
+            _commandChain.Execute();
         }
 
-        private async void Example3()
+        private void Example3()
         {
             _commandChain = new CommandChain();
             _commandChain.AddCommand(new SelectCommand { Parameter = new AnnotationFilter("sven:Pumpkin", DateTime.Now) }, "Manual Test Example3");
             _commandChain.AddCommand(new SelectCommand { Parameter = new ColorFilter(new ColorParameter { Red = 0.2f, Green = 0.8f, Blue = 0.2f, Tolerance = 0.2f }, DateTime.Now) }, "Manual Test Example3");
             _commandChain.AddCommand(new ColorizeCommand { Parameter = new ColorParameter { Red = 0f, Green = 0f, Blue = 1f } }, "Manual Test Example3");
             _commandChain.AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) }, "Manual Test Example3");
-            await _commandChain.Execute();
+            _commandChain.Execute();
         }
 
-        private async void Example1Word()
+        private void Example1Word()
         {
             Command.Sentence sentence = new("colorie les pommes en rouge", new List<Word>
                 {
@@ -210,11 +230,11 @@ namespace Sven.Multimodality
                     new("en", DateTime.Now.AddSeconds(-2), DateTime.Now.AddSeconds(-1)),
                     new("rouge", DateTime.Now.AddSeconds(-1), DateTime.Now)
                 });
-            _commandChain = new CommandChain(sentence, Settings);
-            await _commandChain.Execute();
+            _commandChain = new CommandChain(_commandExecutionMode, sentence, Settings);
+            _commandChain.Execute();
         }
 
-        private async void Example2Word()
+        private void Example2Word()
         {
             Command.Sentence sentence = new("colorie ce que je vois en vert", new List<Word>
                 {
@@ -226,11 +246,11 @@ namespace Sven.Multimodality
                     new("en", DateTime.Now.AddSeconds(-2), DateTime.Now.AddSeconds(-1)),
                     new("vert", DateTime.Now.AddSeconds(-1), DateTime.Now)
                 });
-            _commandChain = new CommandChain(sentence, Settings);
-            await _commandChain.Execute();
+            _commandChain = new CommandChain(_commandExecutionMode, sentence, Settings);
+            _commandChain.Execute();
         }
 
-        private async void Example3Word()
+        private void Example3Word()
         {
             Command.Sentence sentence = new("colorie les citrouilles bleu en orange", new List<Word>
                 {
@@ -241,15 +261,15 @@ namespace Sven.Multimodality
                     new("en", DateTime.Now.AddSeconds(-2), DateTime.Now.AddSeconds(-1)),
                     new("bleu", DateTime.Now.AddSeconds(-1), DateTime.Now)
                 });
-            _commandChain = new CommandChain(sentence, Settings);
-            await _commandChain.Execute();
+            _commandChain = new CommandChain(_commandExecutionMode, sentence, Settings);
+            _commandChain.Execute();
         }
 
-        private async void ExampleTest()
+        private void ExampleTest()
         {
-            Sentence sentence = new("coloris ce que je vois en bleu");
-            _commandChain = new CommandChain(sentence, Settings);
-            await _commandChain.Execute();
+            Sentence sentence = new("colorie en rouge les citrouille que je vois, puis cache les");
+            _commandChain = new CommandChain(_commandExecutionMode, sentence, Settings);
+            _commandChain.Execute();
         }
 
         private static Dictionary<string, BaseSettingsGUI> _settings;
@@ -257,6 +277,7 @@ namespace Sven.Multimodality
 
         private void Awake()
         {
+            _instance = this;
             if (_settings == null)
             {
                 // Build the absolute path to the settings file in StreamingAssets
@@ -282,6 +303,11 @@ namespace Sven.Multimodality
                 Debug.Log("[MultimodalityController] CommandSettings loaded from StreamingAssets.");
             }
             VoskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
+        }
+
+        public static void EnqueueMainThreadAction(Action action)
+        {
+            _mainThreadActions.Enqueue(action);
         }
     }
 }

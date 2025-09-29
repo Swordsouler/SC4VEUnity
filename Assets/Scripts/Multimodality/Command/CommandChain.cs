@@ -6,6 +6,13 @@ using UnityEngine;
 
 namespace Sven.Command
 {
+    public enum CommandExecutionMode
+    {
+        Algorithm,
+        LLM,
+        TrainedModel
+    }
+
     public class CommandChain
     {
         /// <summary>
@@ -32,13 +39,49 @@ namespace Sven.Command
         }
 
         // Generic constructor: builds the command chain from a sentence and settings dictionary
-        public CommandChain(Sentence sentence, Dictionary<string, BaseSettingsGUI> settings) : this()
+        public CommandChain(CommandExecutionMode commandExecutionMode, Sentence sentence, Dictionary<string, BaseSettingsGUI> settings) : this()
         {
             if (sentence == null || sentence.Words == null || settings == null)
             {
                 Debug.LogWarning("[CommandChain] Sentence or settings are null, cannot build command chain.");
                 return;
             }
+            InitializeCommandChain(commandExecutionMode, sentence, settings);
+        }
+
+        private void InitializeCommandChain(CommandExecutionMode commandExecutionMode, Sentence sentence, Dictionary<string, BaseSettingsGUI> settings)
+        {
+            switch (commandExecutionMode)
+            {
+                case CommandExecutionMode.Algorithm:
+                    InitializeCommandChainAlgorithm(sentence, settings);
+                    break;
+                case CommandExecutionMode.LLM:
+                    InitializeCommandChainLLM(sentence, settings);
+                    break;
+                case CommandExecutionMode.TrainedModel:
+                    InitializeCommandChainTrainedModel(sentence, settings);
+                    break;
+                default:
+                    Debug.LogWarning($"[CommandChain] Unsupported command execution mode: {commandExecutionMode}. Command chain building aborted.");
+                    break;
+            }
+        }
+
+        private void InitializeCommandChainLLM(Sentence sentence, Dictionary<string, BaseSettingsGUI> settings)
+        {
+            Debug.LogWarning("[CommandChain] LLM-based command chain initialization is not yet implemented.");
+
+        }
+
+        private void InitializeCommandChainTrainedModel(Sentence sentence, Dictionary<string, BaseSettingsGUI> settings)
+        {
+            Debug.LogWarning("[CommandChain] Trained model-based command chain initialization is not yet implemented.");
+
+        }
+
+        private void InitializeCommandChainAlgorithm(Sentence sentence, Dictionary<string, BaseSettingsGUI> settings)
+        {
 
             Debug.Log($"[CommandChain] Building command chain for sentence: \"{sentence}\"");
 
@@ -255,7 +298,6 @@ namespace Sven.Command
                 Debug.Log($" - {cmd.GetType().Name} (Origin: {container.Origin}) ({parameterInfo}) (Completed at: {cmd.CompletionTime:HH:mm:ss.fff})");
             }
             AddCommand(new UnselectCommand { Parameter = new AllFilter(DateTime.Now) }, "Implicit (end of chain)");
-
         }
 
         private void ReorderCommands()
@@ -381,34 +423,38 @@ namespace Sven.Command
             }
         }
 
-        public async Task Execute()
+        public void Execute()
         {
-            foreach (var container in _commandContainers)
+            // await task run
+            Task.Run(async () =>
             {
-                var command = container.Command;
-                var parameterProperty = command.GetType().GetProperty("Parameter");
-                object parameterValue = parameterProperty?.GetValue(command);
+                foreach (var container in _commandContainers)
+                {
+                    var command = container.Command;
+                    var parameterProperty = command.GetType().GetProperty("Parameter");
+                    object parameterValue = parameterProperty?.GetValue(command);
 
-                if (parameterValue != null)
-                {
-                    Debug.Log($"[CommandChain] Executing command: {command.GetType().Name} with parameter: {parameterValue}");
+                    if (parameterValue != null)
+                    {
+                        Debug.Log($"[CommandChain] Executing command: {command.GetType().Name} with parameter: {parameterValue}");
+                    }
+                    else
+                    {
+                        Debug.Log($"[CommandChain] Executing command: {command.GetType().Name}");
+                    }
+                    await command.Execute();
                 }
-                else
-                {
-                    Debug.Log($"[CommandChain] Executing command: {command.GetType().Name}");
-                }
-                await command.Execute();
-            }
-            if (!HasRepeatCommand) _lastCommandChain = this;
+                if (!HasRepeatCommand) _lastCommandChain = this;
+            });
         }
 
         private static CommandChain _lastCommandChain;
 
-        public static async void Repeat()
+        public static void Repeat()
         {
             if (_lastCommandChain != null)
             {
-                await _lastCommandChain.Execute();
+                _lastCommandChain.Execute();
             }
             else
             {

@@ -12,8 +12,11 @@ namespace Sven.Command
         public async Task Execute()
         {
             await Task.Yield();
-            foreach (SemantizationCore semantizationCore in MultimodalityController.SelectedObjects)
-                semantizationCore.transform.localScale *= 1.25f;
+            MultimodalityController.EnqueueMainThreadAction(() =>
+            {
+                foreach (SemantizationCore semantizationCore in MultimodalityController.SelectedObjects)
+                    semantizationCore.transform.localScale *= 1.25f;
+            });
         }
     }
 }
