@@ -3540,6 +3540,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   VoskSpeechToText: {fileID: 1806090970}
+  _commandExecutionMode: 0
 --- !u!4 &1598960387
 Transform:
   m_ObjectHideFlags: 0

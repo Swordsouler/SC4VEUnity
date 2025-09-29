@@ -290,6 +290,7 @@ namespace Sven.Multimodality
                 }
 
                 string json = File.ReadAllText(settingsPath);
+                CommandChain.SettingsJson = json;
                 _settings = JsonConvert.DeserializeObject<Dictionary<string, BaseSettingsGUI>>(
                     json,
                     new JsonSerializerSettings

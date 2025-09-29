@@ -1,7 +1,9 @@
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -17,7 +19,7 @@ namespace Sven.Command
     public class CommandChain
     {
         /// <summary>
-        /// Conteneur interne pour une commande et ses m�tadonn�es.
+        /// Conteneur interne pour une commande et ses métadonnées.
         /// </summary>
         private class CommandContainer
         {
@@ -28,6 +30,17 @@ namespace Sven.Command
             {
                 Command = command;
                 Origin = origin;
+            }
+        }
+
+        private static string _settingsJson = string.Empty;
+        public static string SettingsJson
+        {
+            get => _settingsJson;
+            set
+            {
+                if (_settingsJson == value) return;
+                _settingsJson = value;
             }
         }
 
@@ -69,11 +82,62 @@ namespace Sven.Command
             }
         }
 
-        private void InitializeCommandChainLLM(Sentence sentence, Dictionary<string, BaseSettingsGUI> settings)
+        private async void InitializeCommandChainLLM(Sentence sentence, Dictionary<string, BaseSettingsGUI> settings)
         {
-            Debug.LogWarning("[CommandChain] LLM-based command chain initialization is not yet implemented.");
             string sentenceJson = JsonConvert.SerializeObject(sentence);
-            Debug.Log($"[CommandChain] Sentence JSON: {sentenceJson}");
+            string prompt = $@"Input JSON: {sentenceJson}
+Config JSON: {SettingsJson}
+Tâche: À partir de JSON_INPUT et OPTIONNEL_CONFIG, produire uniquement la chaîne de commandes C#-like à exécuter pour réaliser la phrase contenue dans Text. Suivre strictement ces règles :
+- Pour chaque Filter utiliser le StartedAt du token déclencheur selon les règles de choix de token (AnnotationFilter → mot d’objet; ColorFilter → mot de couleur; PointOfViewFilter → verbe de perception; Pointer/All → verbe d’action principal; fallback → StartedAt racine).
+- Si OPTIONNEL_CONFIG contient une table de couleurs, utiliser ses valeurs RGB; sinon utiliser le mappage par défaut (rouge=1,0,0; vert=0,1,0; bleu=0,0,1; jaune=1,1,0; noir=0,0,0; blanc=1,1,1). Tolérance = 0.05 par défaut.
+- Si OPTIONNEL_CONFIG liste les types d'annotations connus, valider le nom d’objet; si non listé, utiliser le nom tel quel.
+- Pour toute action ciblant un type d’objet, générer d’abord une SelectCommand {{ Parameter = new AnnotationFilter(""<name>"", <StartedAt du mot objet>) }} sauf si l’action est explicitement une désélection.
+- Si la phrase contient une clause de perception (ex. ""que je vois""), après la SelectCommand ajouter un PointOfViewFilter en utilisant le StartedAt du verbe de perception.
+- Respecter l’ordre narratif (conjonctions de séquence comme ""puis"" produisent lignes successives).
+- Sortie : une ligne par instruction, exactement dans les formes C#-like listées ci‑dessus, sans texte additionnel, sans guillemets, sans commentaires.
+Exemples de mapping d’éléments de la phrase en commandes :
+- ""colorie en rouge les citrouille que je vois, puis cache les"" → sélectionner ""citrouille"" (StartedAt token ""citrouille""), colorize avec RGB de ""rouge"" (StartedAt token ""rouge"" pour ColorFilter si créé), ajouter PointOfViewFilter (StartedAt du token ""vois""), puis Hide pour la séquence suivante.
+Ne pas ajouter texte explicatif hors des lignes d’instructions.
+";
+            Debug.Log(prompt);
+
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    string ApiKey = "***CLE-RETIREE***";
+                    client.BaseAddress = new Uri("https://api.openai.com");
+                    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {ApiKey}");
+
+                    var requestBody = new
+                    {
+                        model = "gpt-3.5-turbo", // ou "gpt-3.5-turbo"
+                        messages = new[]
+                        {
+                            new { role = "user", content = prompt }
+                        },
+                        max_tokens = 512
+                    };
+                    string jsonBody = JsonConvert.SerializeObject(requestBody);
+                    var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+
+                    HttpResponseMessage response = await client.PostAsync("/v1/chat/completions", content);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string responseBody = await response.Content.ReadAsStringAsync();
+                        Debug.Log($"[CommandChain] Réponse ChatGPT : {responseBody}");
+                        // Ici tu peux parser la réponse pour extraire les commandes
+                    }
+                    else
+                    {
+                        Debug.LogError("[CommandChain] Erreur ChatGPT : " + response.StatusCode);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[CommandChain] Exception ChatGPT : {ex.Message}");
+            }
         }
 
         private void InitializeCommandChainTrainedModel(Sentence sentence, Dictionary<string, BaseSettingsGUI> settings)
