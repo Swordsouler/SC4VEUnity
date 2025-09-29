@@ -4,11 +4,13 @@ using UnityEngine;
 
 namespace Sven.Command
 {
+    [Serializable]
     public class Sentence
     {
         public const string ConfidenceKey = "confidence";
         public const string TextKey = "text";
         public const string WordsKey = "result";
+
 
         private readonly float _confidence = 0.0f;
         public float Confidence => _confidence;

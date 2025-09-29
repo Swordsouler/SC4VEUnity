@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -71,13 +72,13 @@ namespace Sven.Command
         private void InitializeCommandChainLLM(Sentence sentence, Dictionary<string, BaseSettingsGUI> settings)
         {
             Debug.LogWarning("[CommandChain] LLM-based command chain initialization is not yet implemented.");
-
+            string sentenceJson = JsonConvert.SerializeObject(sentence);
+            Debug.Log($"[CommandChain] Sentence JSON: {sentenceJson}");
         }
 
         private void InitializeCommandChainTrainedModel(Sentence sentence, Dictionary<string, BaseSettingsGUI> settings)
         {
             Debug.LogWarning("[CommandChain] Trained model-based command chain initialization is not yet implemented.");
-
         }
 
         private void InitializeCommandChainAlgorithm(Sentence sentence, Dictionary<string, BaseSettingsGUI> settings)

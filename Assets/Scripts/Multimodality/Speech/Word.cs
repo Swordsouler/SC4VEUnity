@@ -2,6 +2,7 @@ using System;
 
 namespace Sven.Command
 {
+    [Serializable]
     public class Word
     {
         private readonly string _text;
