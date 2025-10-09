@@ -11,10 +11,11 @@
 @prefix sven: <https://sven.lisn.upsaclay.fr/ontology#> .
 @prefix time: <http://www.w3.org/2006/time#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
-@base <https://s4m.lisn.upsaclay.fr/ontology> .
+@base <https://s4m.lisn.upsaclay.fr/ontology#> .
 
 <https://s4m.lisn.upsaclay.fr/ontology> rdf:type owl:Ontology ;
-                                         dcterms:license <https://opensource.org/licenses/MIT> .
+                                         dcterms:license <https://opensource.org/licenses/MIT> ;
+                                         rdfs:comment "Ontologie S4M — Modélisation des Commandes avec paramètres requis, optionnels et ordonnés (utilisant RDF*)."@fr .
 
 #################################################################
 #    Annotation properties
@@ -31,29 +32,37 @@ dcterms:license rdf:type owl:AnnotationProperty .
 ###  https://s4m.lisn.upsaclay.fr/ontology#boundParameter
 s4m:boundParameter rdf:type owl:ObjectProperty ;
                    rdfs:domain s4m:ParameterBinding ;
-                   rdfs:range s4m:Parameter .
+                   rdfs:range s4m:Parameter ;
+                   rdfs:comment "Indique le paramètre associé à un binding." ;
+                   rdfs:label "bound parameter" .
 
 
-###  https://s4m.lisn.upsaclay.fr/ontology#parameter
-s4m:parameter rdf:type owl:ObjectProperty ;
-              rdfs:domain s4m:Command ;
-              rdfs:range s4m:Parameter .
-
-
-###  https://s4m.lisn.upsaclay.fr/ontology#parameterIndex
-s4m:parameterIndex rdf:type owl:ObjectProperty ;
-                   rdfs:domain s4m:Command ,
-                               s4m:ParameterBinding ;
-                   rdfs:range s4m:ParameterBinding .
+###  https://s4m.lisn.upsaclay.fr/ontology#hasParameterBinding
+s4m:hasParameterBinding rdf:type owl:ObjectProperty ;
+                        rdfs:domain s4m:Command ;
+                        rdfs:range s4m:ParameterBinding ;
+                        rdfs:comment "Relie une commande à un binding de paramètre." ;
+                        rdfs:label "has parameter binding" .
 
 
 #################################################################
 #    Data properties
 #################################################################
 
+###  https://s4m.lisn.upsaclay.fr/ontology#isRequired
+s4m:isRequired rdf:type owl:DatatypeProperty ;
+               rdfs:domain s4m:ParameterBinding ;
+               rdfs:range xsd:boolean ;
+               rdfs:comment "Indique si le paramètre est requis (true) ou optionnel (false)." ;
+               rdfs:label "is required" .
+
+
 ###  https://s4m.lisn.upsaclay.fr/ontology#parameterIndex
 s4m:parameterIndex rdf:type owl:DatatypeProperty ;
-                   rdfs:range xsd:integer .
+                   rdfs:domain s4m:ParameterBinding ;
+                   rdfs:range xsd:integer ;
+                   rdfs:comment "Indice de position du paramètre dans l’ordre d’appel." ;
+                   rdfs:label "parameter index" .
 
 
 #################################################################
@@ -65,26 +74,91 @@ s4m:ColorParameter rdf:type owl:Class ;
                    rdfs:subClassOf s4m:Parameter .
 
 
-###  https://s4m.lisn.upsaclay.fr/ontology#ColorizeCommand
-s4m:ColorizeCommand rdf:type owl:Class ;
-                    rdfs:subClassOf s4m:Command .
-
-
 ###  https://s4m.lisn.upsaclay.fr/ontology#Command
-s4m:Command rdf:type owl:Class .
+s4m:Command rdf:type owl:Class ;
+            rdfs:subClassOf [ rdf:type owl:Restriction ;
+                              owl:onProperty s4m:hasParameterBinding ;
+                              owl:minCardinality "1"^^xsd:nonNegativeInteger
+                            ] ;
+            rdfs:comment "Représente une commande exécutée dans un environnement virtuel."@fr ;
+            rdfs:label "Command" .
+
+
+###  https://s4m.lisn.upsaclay.fr/ontology#FilterParameter
+s4m:FilterParameter rdf:type owl:Class ;
+                    rdfs:subClassOf s4m:Parameter ;
+                    rdfs:comment "Paramètre représentant un filtre d'entités." ;
+                    rdfs:label "Filter Parameter" .
+
+
+###  https://s4m.lisn.upsaclay.fr/ontology#MoveToPointWithColor
+s4m:MoveToPointWithColor rdf:type owl:Class ;
+                         rdfs:subClassOf s4m:Command ,
+                                         [ rdf:type owl:Restriction ;
+                                           owl:onProperty s4m:hasParameterBinding ;
+                                           owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                           owl:onClass [ owl:intersectionOf ( s4m:ParameterBinding
+                                                                              [ rdf:type owl:Restriction ;
+                                                                                owl:onProperty s4m:boundParameter ;
+                                                                                owl:allValuesFrom s4m:ColorParameter
+                                                                              ]
+                                                                              [ rdf:type owl:Restriction ;
+                                                                                owl:onProperty s4m:isRequired ;
+                                                                                owl:hasValue "true"^^xsd:boolean
+                                                                              ]
+                                                                            ) ;
+                                                         rdf:type owl:Class
+                                                       ]
+                                         ] ,
+                                         [ rdf:type owl:Restriction ;
+                                           owl:onProperty s4m:hasParameterBinding ;
+                                           owl:qualifiedCardinality "2"^^xsd:nonNegativeInteger ;
+                                           owl:onClass [ owl:intersectionOf ( s4m:ParameterBinding
+                                                                              [ rdf:type owl:Restriction ;
+                                                                                owl:onProperty s4m:boundParameter ;
+                                                                                owl:allValuesFrom s4m:PointParameter
+                                                                              ]
+                                                                              [ rdf:type owl:Restriction ;
+                                                                                owl:onProperty s4m:isRequired ;
+                                                                                owl:hasValue "true"^^xsd:boolean
+                                                                              ]
+                                                                            ) ;
+                                                         rdf:type owl:Class
+                                                       ]
+                                         ] ,
+                                         [ rdf:type owl:Restriction ;
+                                           owl:onProperty s4m:hasParameterBinding ;
+                                           owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                           owl:onClass [ owl:intersectionOf ( s4m:ParameterBinding
+                                                                              [ rdf:type owl:Restriction ;
+                                                                                owl:onProperty s4m:boundParameter ;
+                                                                                owl:allValuesFrom s4m:SelectionParameter
+                                                                              ]
+                                                                              [ rdf:type owl:Restriction ;
+                                                                                owl:onProperty s4m:isRequired ;
+                                                                                owl:hasValue "false"^^xsd:boolean
+                                                                              ]
+                                                                            ) ;
+                                                         rdf:type owl:Class
+                                                       ]
+                                         ] .
 
 
 ###  https://s4m.lisn.upsaclay.fr/ontology#Parameter
-s4m:Parameter rdf:type owl:Class .
+s4m:Parameter rdf:type owl:Class ;
+              rdfs:comment "Paramètre abstrait pouvant être lié à une commande."@fr ;
+              rdfs:label "Parameter" .
 
 
 ###  https://s4m.lisn.upsaclay.fr/ontology#ParameterBinding
-s4m:ParameterBinding rdf:type owl:Class .
+s4m:ParameterBinding rdf:type owl:Class ;
+                     rdfs:comment "Liaison entre une commande et un paramètre donné." ;
+                     rdfs:label "Parameter Binding" .
 
 
-###  https://s4m.lisn.upsaclay.fr/ontology#SelectCommand
-s4m:SelectCommand rdf:type owl:Class ;
-                  rdfs:subClassOf s4m:Command .
+###  https://s4m.lisn.upsaclay.fr/ontology#PointParameter
+s4m:PointParameter rdf:type owl:Class ;
+                   rdfs:subClassOf s4m:Parameter .
 
 
 ###  https://s4m.lisn.upsaclay.fr/ontology#SelectionParameter
@@ -92,23 +166,92 @@ s4m:SelectionParameter rdf:type owl:Class ;
                        rdfs:subClassOf s4m:Parameter .
 
 
+#################################################################
+#    Individuals
+#################################################################
+
+###  <<https://s4m.lisn.upsaclay.fr/ontology#MoveToPointWithColor https://s4m.lisn.upsaclay.fr/ontology#hasParameterBinding https://s4m.lisn.upsaclay.fr/ontology#binding_color>>
+<<<https://s4m.lisn.upsaclay.fr/ontology#MoveToPointWithColor https://s4m.lisn.upsaclay.fr/ontology#hasParameterBinding https://s4m.lisn.upsaclay.fr/ontology#binding_color>>> rdf:type owl:NamedIndividual ;
+                                                                                                                                                                               s4m:isRequired "true"^^xsd:boolean ;
+                                                                                                                                                                               s4m:parameterIndex 4 .
+
+
+###  <<https://s4m.lisn.upsaclay.fr/ontology#MoveToPointWithColor https://s4m.lisn.upsaclay.fr/ontology#hasParameterBinding https://s4m.lisn.upsaclay.fr/ontology#binding_pointA>>
+<<<https://s4m.lisn.upsaclay.fr/ontology#MoveToPointWithColor https://s4m.lisn.upsaclay.fr/ontology#hasParameterBinding https://s4m.lisn.upsaclay.fr/ontology#binding_pointA>>> rdf:type owl:NamedIndividual ;
+                                                                                                                                                                                s4m:isRequired "true"^^xsd:boolean ;
+                                                                                                                                                                                s4m:parameterIndex 2 .
+
+
+###  <<https://s4m.lisn.upsaclay.fr/ontology#MoveToPointWithColor https://s4m.lisn.upsaclay.fr/ontology#hasParameterBinding https://s4m.lisn.upsaclay.fr/ontology#binding_pointB>>
+<<<https://s4m.lisn.upsaclay.fr/ontology#MoveToPointWithColor https://s4m.lisn.upsaclay.fr/ontology#hasParameterBinding https://s4m.lisn.upsaclay.fr/ontology#binding_pointB>>> rdf:type owl:NamedIndividual ;
+                                                                                                                                                                                s4m:isRequired "true"^^xsd:boolean ;
+                                                                                                                                                                                s4m:parameterIndex 3 .
+
+
+###  <<https://s4m.lisn.upsaclay.fr/ontology#MoveToPointWithColor https://s4m.lisn.upsaclay.fr/ontology#hasParameterBinding https://s4m.lisn.upsaclay.fr/ontology#binding_selection>>
+<<<https://s4m.lisn.upsaclay.fr/ontology#MoveToPointWithColor https://s4m.lisn.upsaclay.fr/ontology#hasParameterBinding https://s4m.lisn.upsaclay.fr/ontology#binding_selection>>> rdf:type owl:NamedIndividual ;
+                                                                                                                                                                                   s4m:isRequired "false"^^xsd:boolean ;
+                                                                                                                                                                                   s4m:parameterIndex 1 .
+
+
+###  https://s4m.lisn.upsaclay.fr/ontology#ColorParameter
+s4m:ColorParameter rdf:type owl:NamedIndividual .
+
+
+###  https://s4m.lisn.upsaclay.fr/ontology#MoveToPointWithColor
+s4m:MoveToPointWithColor rdf:type owl:NamedIndividual ;
+                         s4m:hasParameterBinding s4m:binding_color ,
+                                                 s4m:binding_pointA ,
+                                                 s4m:binding_pointB ,
+                                                 s4m:binding_selection .
+
+
+###  https://s4m.lisn.upsaclay.fr/ontology#PointParameter
+s4m:PointParameter rdf:type owl:NamedIndividual .
+
+
+###  https://s4m.lisn.upsaclay.fr/ontology#SelectionParameter
+s4m:SelectionParameter rdf:type owl:NamedIndividual .
+
+
+###  https://s4m.lisn.upsaclay.fr/ontology#binding_color
+s4m:binding_color rdf:type owl:NamedIndividual ;
+                  s4m:boundParameter s4m:ColorParameter .
+
+
+###  https://s4m.lisn.upsaclay.fr/ontology#binding_pointA
+s4m:binding_pointA rdf:type owl:NamedIndividual ;
+                   s4m:boundParameter s4m:PointParameter .
+
+
+###  https://s4m.lisn.upsaclay.fr/ontology#binding_pointB
+s4m:binding_pointB rdf:type owl:NamedIndividual ;
+                   s4m:boundParameter s4m:PointParameter .
+
+
+###  https://s4m.lisn.upsaclay.fr/ontology#binding_selection
+s4m:binding_selection rdf:type owl:NamedIndividual ;
+                      s4m:boundParameter s4m:SelectionParameter .
+
+
+#################################################################
+#    Annotations
+#################################################################
+
+s4m:ColorParameter rdfs:comment "Paramètre représentant une couleur." ;
+                   rdfs:label "Color Parameter" .
+
+
+s4m:MoveToPointWithColor rdfs:comment "Commande qui déplace une sélection optionnelle d'entités entre deux points, avec une couleur associée." ;
+                         rdfs:label "MoveToPointWithColor Command" .
+
+
+s4m:PointParameter rdfs:comment "Paramètre représentant un point géométrique." ;
+                   rdfs:label "Point Parameter" .
+
+
+s4m:SelectionParameter rdfs:comment "Paramètre représentant une sélection d'objets ou d'entités." ;
+                       rdfs:label "Selection Parameter" .
+
+
 ###  Generated by the OWL API (version 4.5.26.2023-07-17T20:34:13Z) https://github.com/owlcs/owlapi
-# Sous-classes pour distinguer requis / optionnel
-s4m:RequiredParameterBinding rdf:type owl:Class ;
-    rdfs:subClassOf s4m:ParameterBinding .
-
-s4m:OptionalParameterBinding rdf:type owl:Class ;
-    rdfs:subClassOf s4m:ParameterBinding .
-
-s4m:ColorBinding rdf:type owl:Class ;
-    rdfs:subClassOf s4m:RequiredParameterBinding ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty s4m:boundParameter ;
-        owl:allValuesFrom s4m:ColorParameter
-    ] ;
-    rdfs:subClassOf [
-        rdf:type owl:Restriction ;
-        owl:onProperty s4m:parameterIndex ;
-        owl:hasValue "1"^^xsd:integer
-    ] .
