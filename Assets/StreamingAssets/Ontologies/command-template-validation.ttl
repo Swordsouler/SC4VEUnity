@@ -1,0 +1,203 @@
+@prefix : <https://s4m.lisn.upsaclay.fr/ontology#> .
+@prefix s4m: <https://s4m.lisn.upsaclay.fr/ontology#> .
+@prefix sven: <https://sven.lisn.upsaclay.fr/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@base <https://s4m.lisn.upsaclay.fr/ontology> .
+
+<https://s4m.lisn.upsaclay.fr/ontology> rdf:type owl:Ontology ;
+    dcterms:license <https://opensource.org/licenses/MIT> ;
+    rdfs:comment "Ontologie S4M : modélisation des Commandes avec paramètres ordonnés et requis/optionnels, compatible Protégé." .
+
+#################################################################
+# CLASSES
+#################################################################
+
+s4m:Command rdf:type owl:Class .
+s4m:Parameter rdf:type owl:Class .
+s4m:ParameterBinding rdf:type owl:Class .
+
+s4m:PointParameter rdf:type owl:Class ; rdfs:subClassOf s4m:Parameter .
+s4m:ColorParameter rdf:type owl:Class ; rdfs:subClassOf s4m:Parameter .
+s4m:SelectionParameter rdf:type owl:Class ; rdfs:subClassOf s4m:Parameter .
+
+#################################################################
+# PROPRIÉTÉS
+#################################################################
+
+s4m:hasParameterBinding rdf:type owl:ObjectProperty ;
+    rdfs:domain s4m:Command ;
+    rdfs:range s4m:ParameterBinding .
+
+s4m:boundParameter rdf:type owl:ObjectProperty ;
+    rdfs:domain s4m:ParameterBinding ;
+    rdfs:range s4m:Parameter .
+
+s4m:parameterIndex rdf:type owl:DatatypeProperty ;
+    rdfs:domain s4m:ParameterBinding ;
+    rdfs:range xsd:integer .
+
+s4m:isRequired rdf:type owl:DatatypeProperty ;
+    rdfs:domain s4m:ParameterBinding ;
+    rdfs:range xsd:boolean .
+
+#################################################################
+# COMMANDE MoveToPointWithColor
+#################################################################
+
+s4m:ColorizeCommand rdf:type owl:Class ;
+    rdfs:subClassOf s4m:Command ,
+        # 1 couleur requise
+        [ rdf:type owl:Restriction ;
+          owl:onProperty s4m:hasParameterBinding ;
+          owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+          owl:onClass [ rdf:type owl:Class ;
+              owl:intersectionOf (
+                  s4m:ParameterBinding
+                  [ rdf:type owl:Restriction ;
+                    owl:onProperty s4m:boundParameter ;
+                    owl:allValuesFrom s4m:ColorParameter ]
+                  [ rdf:type owl:Restriction ;
+                    owl:onProperty s4m:isRequired ;
+                    owl:hasValue true ]
+              )
+          ]
+        ] ,
+        # 1 sélection optionnelle
+        [ rdf:type owl:Restriction ;
+          owl:onProperty s4m:hasParameterBinding ;
+          owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+          owl:onClass [ rdf:type owl:Class ;
+              owl:intersectionOf (
+                  s4m:ParameterBinding
+                  [ rdf:type owl:Restriction ;
+                    owl:onProperty s4m:boundParameter ;
+                    owl:allValuesFrom s4m:SelectionParameter ]
+                  [ rdf:type owl:Restriction ;
+                    owl:onProperty s4m:isRequired ;
+                    owl:hasValue false ]
+              )
+          ]
+        ] .
+
+s4m:MoveToPointWithColor rdf:type owl:Class ;
+    rdfs:subClassOf s4m:Command ,
+        # 2 points requis
+        [ rdf:type owl:Restriction ;
+          owl:onProperty s4m:hasParameterBinding ;
+          owl:minQualifiedCardinality "2"^^xsd:nonNegativeInteger ;
+          owl:onClass [ rdf:type owl:Class ;
+              owl:intersectionOf ( 
+                  s4m:ParameterBinding
+                  [ rdf:type owl:Restriction ;
+                    owl:onProperty s4m:boundParameter ;
+                    owl:allValuesFrom s4m:PointParameter ]
+                  [ rdf:type owl:Restriction ;
+                    owl:onProperty s4m:isRequired ;
+                    owl:hasValue true ]
+              )
+          ]
+        ] ,
+        # 1 couleur requise
+        [ rdf:type owl:Restriction ;
+          owl:onProperty s4m:hasParameterBinding ;
+          owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+          owl:onClass [ rdf:type owl:Class ;
+              owl:intersectionOf (
+                  s4m:ParameterBinding
+                  [ rdf:type owl:Restriction ;
+                    owl:onProperty s4m:boundParameter ;
+                    owl:allValuesFrom s4m:ColorParameter ]
+                  [ rdf:type owl:Restriction ;
+                    owl:onProperty s4m:isRequired ;
+                    owl:hasValue true ]
+              )
+          ]
+        ] ,
+        # 1 sélection optionnelle
+        [ rdf:type owl:Restriction ;
+          owl:onProperty s4m:hasParameterBinding ;
+          owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+          owl:onClass [ rdf:type owl:Class ;
+              owl:intersectionOf (
+                  s4m:ParameterBinding
+                  [ rdf:type owl:Restriction ;
+                    owl:onProperty s4m:boundParameter ;
+                    owl:allValuesFrom s4m:SelectionParameter ]
+                  [ rdf:type owl:Restriction ;
+                    owl:onProperty s4m:isRequired ;
+                    owl:hasValue false ]
+              )
+          ]
+        ] .
+
+#################################################################
+# INSTANCES D’ORDRE (compatibles Protégé)
+#################################################################
+
+# On crée les bindings explicitement
+s4m:binding_sel a s4m:ParameterBinding ;
+    s4m:parameterIndex 1 ;
+    s4m:isRequired false ;
+    s4m:boundParameter s4m:SelectionParameter .
+
+s4m:binding_pointA a s4m:ParameterBinding ;
+    s4m:parameterIndex 2 ;
+    s4m:isRequired true ;
+    s4m:boundParameter s4m:PointParameter .
+
+s4m:binding_pointB a s4m:ParameterBinding ;
+    s4m:parameterIndex 3 ;
+    s4m:isRequired true ;
+    s4m:boundParameter s4m:PointParameter .
+
+s4m:binding_color a s4m:ParameterBinding ;
+    s4m:parameterIndex 4 ;
+    s4m:isRequired true ;
+    s4m:boundParameter s4m:ColorParameter .
+
+s4m:MoveToPointWithColorCommandInstance a s4m:MoveToPointWithColor ;
+    s4m:hasParameterBinding s4m:binding_sel , s4m:binding_pointA , s4m:binding_pointB , s4m:binding_color .
+    
+s4m:ColorizeCommandShape
+    a sh:NodeShape ;
+    sh:targetClass s4m:ColorizeCommand ;
+    sh:property [
+        sh:path s4m:hasParameterBinding ;
+        sh:message "Une ColorizeCommand doit avoir exactement 1 paramètre de couleur requis." ;
+        sh:qualifiedValueShape [
+            sh:class s4m:ParameterBinding ;
+            sh:property [
+                sh:path s4m:boundParameter ;
+                sh:hasValue s4m:ColorParameter ;
+            ] ;
+            sh:property [
+                sh:path s4m:isRequired ;
+                sh:hasValue true ;
+            ] ;
+        ] ;
+        sh:qualifiedMinCount 1 ;
+        sh:qualifiedMaxCount 1 ;
+    ] ;
+    sh:property [
+        sh:path s4m:hasParameterBinding ;
+        sh:message "Une ColorizeCommand peut avoir au plus un paramètre de sélection optionnel." ;
+        sh:qualifiedValueShape [
+            sh:class s4m:ParameterBinding ;
+            sh:property [
+                sh:path s4m:boundParameter ;
+                sh:hasValue s4m:SelectionParameter ;
+            ] ;
+            sh:property [
+                sh:path s4m:isRequired ;
+                sh:hasValue false ;
+            ] ;
+        ] ;
+        sh:qualifiedMinCount 0 ;
+        sh:qualifiedMaxCount 1 ;
+    ] ;
+    sh:closed true ;
+    sh:ignoredProperties ( rdf:type ) .
