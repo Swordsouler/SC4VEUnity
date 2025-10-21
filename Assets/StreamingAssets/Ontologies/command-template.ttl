@@ -1,203 +1,134 @@
 @prefix : <https://sc4ve.lisn.upsaclay.fr/ontology#> .
-@prefix sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#> .
-@prefix sven: <https://sven.lisn.upsaclay.fr/ontology#> .
-@prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-@prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
-@base <https://sc4ve.lisn.upsaclay.fr/ontology> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sven: <https://sven.lisn.upsaclay.fr/ontology#> .
+@prefix sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@base <https://sc4ve.lisn.upsaclay.fr/ontology#> .
 
 <https://sc4ve.lisn.upsaclay.fr/ontology> rdf:type owl:Ontology ;
-    dcterms:license <https://opensource.org/licenses/MIT> ;
-    rdfs:comment "Ontologie SC4VE (Semantic Command for Virtual Environment) : modélisation des Commandes avec paramètres ordonnés et requis/optionnels, compatible Protégé." .
+                                           dcterms:license <https://opensource.org/licenses/MIT> ;
+                                           rdfs:comment "Ontologie SC4VE (Semantic Command for Virtual Environment) : modélisation simplifiée des Commandes avec paramètres requis et optionnels, sans notion de binding ni d'index." .
 
 #################################################################
-# CLASSES
+#    Annotation properties
 #################################################################
 
-sc4ve:Command rdf:type owl:Class .
-sc4ve:Parameter rdf:type owl:Class .
-sc4ve:ParameterBinding rdf:type owl:Class .
+###  http://purl.org/dc/terms/license
+dcterms:license rdf:type owl:AnnotationProperty .
 
-sc4ve:PointParameter rdf:type owl:Class ; rdfs:subClassOf sc4ve:Parameter .
-sc4ve:ColorParameter rdf:type owl:Class ; rdfs:subClassOf sc4ve:Parameter .
-sc4ve:SelectionParameter rdf:type owl:Class ; rdfs:subClassOf sc4ve:Parameter .
 
 #################################################################
-# PROPRIÉTÉS
+#    Object Properties
 #################################################################
 
-sc4ve:hasParameterBinding rdf:type owl:ObjectProperty ;
-    rdfs:domain sc4ve:Command ;
-    rdfs:range sc4ve:ParameterBinding .
+###  https://sc4ve.lisn.upsaclay.fr/ontology#hasOptionalParameter
+sc4ve:hasOptionalParameter rdf:type owl:ObjectProperty ;
+                           rdfs:subPropertyOf sc4ve:hasParameter .
 
-sc4ve:boundParameter rdf:type owl:ObjectProperty ;
-    rdfs:domain sc4ve:ParameterBinding ;
-    rdfs:range sc4ve:Parameter .
 
-sc4ve:parameterIndex rdf:type owl:DatatypeProperty ;
-    rdfs:domain sc4ve:ParameterBinding ;
-    rdfs:range xsd:integer .
+###  https://sc4ve.lisn.upsaclay.fr/ontology#hasParameter
+sc4ve:hasParameter rdf:type owl:ObjectProperty ;
+                   rdfs:domain sc4ve:Command ;
+                   rdfs:range sc4ve:Parameter .
 
-sc4ve:isRequired rdf:type owl:DatatypeProperty ;
-    rdfs:domain sc4ve:ParameterBinding ;
-    rdfs:range xsd:boolean .
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#hasRequiredParameter
+sc4ve:hasRequiredParameter rdf:type owl:ObjectProperty ;
+                           rdfs:subPropertyOf sc4ve:hasParameter .
+
 
 #################################################################
-# COMMANDE MoveToPointWithColor
+#    Classes
 #################################################################
 
+###  https://sc4ve.lisn.upsaclay.fr/ontology#ColorParameter
+sc4ve:ColorParameter rdf:type owl:Class ;
+                     rdfs:subClassOf sc4ve:Parameter , sven:Color .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#ColorizeCommand
 sc4ve:ColorizeCommand rdf:type owl:Class ;
-    rdfs:subClassOf sc4ve:Command ,
-        # 1 couleur requise
-        [ rdf:type owl:Restriction ;
-          owl:onProperty sc4ve:hasParameterBinding ;
-          owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-          owl:onClass [ rdf:type owl:Class ;
-              owl:intersectionOf (
-                  sc4ve:ParameterBinding
-                  [ rdf:type owl:Restriction ;
-                    owl:onProperty sc4ve:boundParameter ;
-                    owl:allValuesFrom sc4ve:ColorParameter ]
-                  [ rdf:type owl:Restriction ;
-                    owl:onProperty sc4ve:isRequired ;
-                    owl:hasValue true ]
-              )
-          ]
-        ] ,
-        # 1 sélection optionnelle
-        [ rdf:type owl:Restriction ;
-          owl:onProperty sc4ve:hasParameterBinding ;
-          owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-          owl:onClass [ rdf:type owl:Class ;
-              owl:intersectionOf (
-                  sc4ve:ParameterBinding
-                  [ rdf:type owl:Restriction ;
-                    owl:onProperty sc4ve:boundParameter ;
-                    owl:allValuesFrom sc4ve:SelectionParameter ]
-                  [ rdf:type owl:Restriction ;
-                    owl:onProperty sc4ve:isRequired ;
-                    owl:hasValue false ]
-              )
-          ]
-        ] .
+                      rdfs:subClassOf sc4ve:Command ,
+                                      [ rdf:type owl:Restriction ;
+                                        owl:onProperty sc4ve:hasParameter ;
+                                        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                        owl:onClass sc4ve:ColorParameter
+                                      ] ,
+                                      [ rdf:type owl:Restriction ;
+                                        owl:onProperty sc4ve:hasParameter ;
+                                        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                        owl:onClass sc4ve:SelectionParameter
+                                      ] .
 
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#Command
+sc4ve:Command rdf:type owl:Class .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#MoveToPointWithColor
 sc4ve:MoveToPointWithColor rdf:type owl:Class ;
-    rdfs:subClassOf sc4ve:Command ,
-        # 2 points requis
-        [ rdf:type owl:Restriction ;
-          owl:onProperty sc4ve:hasParameterBinding ;
-          owl:minQualifiedCardinality "2"^^xsd:nonNegativeInteger ;
-          owl:onClass [ rdf:type owl:Class ;
-              owl:intersectionOf ( 
-                  sc4ve:ParameterBinding
-                  [ rdf:type owl:Restriction ;
-                    owl:onProperty sc4ve:boundParameter ;
-                    owl:allValuesFrom sc4ve:PointParameter ]
-                  [ rdf:type owl:Restriction ;
-                    owl:onProperty sc4ve:isRequired ;
-                    owl:hasValue true ]
-              )
-          ]
-        ] ,
-        # 1 couleur requise
-        [ rdf:type owl:Restriction ;
-          owl:onProperty sc4ve:hasParameterBinding ;
-          owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-          owl:onClass [ rdf:type owl:Class ;
-              owl:intersectionOf (
-                  sc4ve:ParameterBinding
-                  [ rdf:type owl:Restriction ;
-                    owl:onProperty sc4ve:boundParameter ;
-                    owl:allValuesFrom sc4ve:ColorParameter ]
-                  [ rdf:type owl:Restriction ;
-                    owl:onProperty sc4ve:isRequired ;
-                    owl:hasValue true ]
-              )
-          ]
-        ] ,
-        # 1 sélection optionnelle
-        [ rdf:type owl:Restriction ;
-          owl:onProperty sc4ve:hasParameterBinding ;
-          owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-          owl:onClass [ rdf:type owl:Class ;
-              owl:intersectionOf (
-                  sc4ve:ParameterBinding
-                  [ rdf:type owl:Restriction ;
-                    owl:onProperty sc4ve:boundParameter ;
-                    owl:allValuesFrom sc4ve:SelectionParameter ]
-                  [ rdf:type owl:Restriction ;
-                    owl:onProperty sc4ve:isRequired ;
-                    owl:hasValue false ]
-              )
-          ]
-        ] .
+                           rdfs:subClassOf sc4ve:Command ,
+                                           [ rdf:type owl:Restriction ;
+                                             owl:onProperty sc4ve:hasParameter ;
+                                             owl:qualifiedCardinality "2"^^xsd:nonNegativeInteger ;
+                                             owl:onClass sc4ve:PointParameter
+                                           ] ,
+                                           [ rdf:type owl:Restriction ;
+                                             owl:onProperty sc4ve:hasParameter ;
+                                             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                             owl:onClass sc4ve:ColorParameter
+                                           ] ,
+                                           [ rdf:type owl:Restriction ;
+                                             owl:onProperty sc4ve:hasParameter ;
+                                             owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                             owl:onClass sc4ve:SelectionParameter
+                                           ] .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#Parameter
+sc4ve:Parameter rdf:type owl:Class .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#PointParameter
+sc4ve:PointParameter rdf:type owl:Class ;
+                     rdfs:subClassOf sc4ve:Parameter , sven:Vector2 .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#SelectionParameter
+sc4ve:SelectionParameter rdf:type owl:Class ;
+                         rdfs:subClassOf sc4ve:Parameter , sven:Primitive .
+
 
 #################################################################
-# INSTANCES D’ORDRE (compatibles Protégé)
+#    Individuals
 #################################################################
 
-# On crée les bindings explicitement
-sc4ve:binding_sel a sc4ve:ParameterBinding ;
-    sc4ve:parameterIndex 1 ;
-    sc4ve:isRequired false ;
-    sc4ve:boundParameter sc4ve:SelectionParameter .
+###  https://sc4ve.lisn.upsaclay.fr/ontology#MoveToPointWithColorCommandInstance
+sc4ve:MoveToPointWithColorCommandInstance rdf:type owl:NamedIndividual ,
+                                                   sc4ve:MoveToPointWithColor ;
+                                          sc4ve:hasParameter sc4ve:param_color ,
+                                                             sc4ve:param_pointA ,
+                                                             sc4ve:param_pointB .
 
-sc4ve:binding_pointA a sc4ve:ParameterBinding ;
-    sc4ve:parameterIndex 2 ;
-    sc4ve:isRequired true ;
-    sc4ve:boundParameter sc4ve:PointParameter .
 
-sc4ve:binding_pointB a sc4ve:ParameterBinding ;
-    sc4ve:parameterIndex 3 ;
-    sc4ve:isRequired true ;
-    sc4ve:boundParameter sc4ve:PointParameter .
+###  https://sc4ve.lisn.upsaclay.fr/ontology#param_color
+sc4ve:param_color rdf:type owl:NamedIndividual ,
+                           sc4ve:ColorParameter .
 
-sc4ve:binding_color a sc4ve:ParameterBinding ;
-    sc4ve:parameterIndex 4 ;
-    sc4ve:isRequired true ;
-    sc4ve:boundParameter sc4ve:ColorParameter .
 
-sc4ve:MoveToPointWithColorCommandInstance a sc4ve:MoveToPointWithColor ;
-    sc4ve:hasParameterBinding sc4ve:binding_sel , sc4ve:binding_pointA , sc4ve:binding_pointB , sc4ve:binding_color .
+###  https://sc4ve.lisn.upsaclay.fr/ontology#param_pointA
+sc4ve:param_pointA rdf:type owl:NamedIndividual ,
+                            sc4ve:PointParameter .
 
-#sc4ve:ColorizeCommandShape
-#    a sh:NodeShape ;
-#    sh:targetClass sc4ve:ColorizeCommand ;
-#    sh:property [
-#        sh:path sc4ve:hasParameterBinding ;
-#        sh:message "Une ColorizeCommand doit avoir exactement 1 paramètre de couleur requis." ;
-#        sh:qualifiedValueShape [
-#            sh:class sc4ve:ParameterBinding ;
-#            sh:property [
-#                sh:path sc4ve:boundParameter ;
-#                sh:hasValue sc4ve:ColorParameter ;
-#            ] ;
-#            sh:property [
-#                sh:path sc4ve:isRequired ;
-#                sh:hasValue true ;
-#            ] ;
-#        ] ;
-#        sh:qualifiedMinCount 1 ;
-#        sh:qualifiedMaxCount 1 ;
-#    ] ;
-#    sh:property [
-#        sh:path sc4ve:hasParameterBinding ;
-#        sh:message "Une ColorizeCommand peut avoir au plus un paramètre de sélection optionnel." ;
-#        sh:qualifiedValueShape [
-#            sh:class sc4ve:ParameterBinding ;
-#            sh:property [
-#                sh:path sc4ve:boundParameter ;
-#                sh:hasValue sc4ve:SelectionParameter ;
-#            ] ;
-#            sh:property [
-#                sh:path sc4ve:isRequired ;
-#                sh:hasValue false ;
-#            ] ;
-#        ] ;
-#        sh:qualifiedMinCount 0 ;
-#        sh:qualifiedMaxCount 1 ;
-#    ] ;
-#    sh:closed true ;
-#    sh:ignoredProperties ( rdf:type ) .
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#param_pointB
+sc4ve:param_pointB rdf:type owl:NamedIndividual ,
+                            sc4ve:PointParameter .
+
+
+###  Generated by the OWL API (version 4.5.26.2023-07-17T20:34:13Z) https://github.com/owlcs/owlapi
