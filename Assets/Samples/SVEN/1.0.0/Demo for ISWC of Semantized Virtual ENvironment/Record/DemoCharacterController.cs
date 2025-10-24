@@ -2,10 +2,10 @@
 // Author: Nicolas SAINT-LÉGER
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-using System.Collections.Generic;
-using DG.Tweening;
+using PrimeTween;
 using Sven.Content;
 using Sven.Context;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 

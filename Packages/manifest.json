@@ -54,10 +54,16 @@
       "name": "package.openupm.com",
       "url": "https://package.openupm.com",
       "scopes": [
-        "com.gamesoft.dotween",
         "com.dbrizov.naughtyattributes"
       ],
       "overrideBuiltIns": false
+    },
+    {
+      "name": "npm",
+      "url": "https://registry.npmjs.org/",
+      "scopes": [
+        "com.kyrylokuzyk"
+      ]
     }
   ]
 }
