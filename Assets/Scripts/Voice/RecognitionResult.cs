@@ -1,6 +1,6 @@
 using Sven.Command;
 
-namespace Sven.Multimodality.Voice
+namespace Sc4ve.Voice
 {
     public class RecognitionResult
     {

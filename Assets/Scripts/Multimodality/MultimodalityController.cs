@@ -1,8 +1,8 @@
 using Newtonsoft.Json;
+using Sc4ve.Voice;
 using Sven.Command;
 using Sven.Content;
 using Sven.GraphManagement;
-using Sven.Multimodality.Voice;
 using Sven.OwlTime;
 using System;
 using System.Collections;
@@ -222,7 +222,7 @@ namespace Sven.Multimodality
 
         private void Example1Word()
         {
-            Command.Sentence sentence = new("colorie les pommes en rouge", new List<Word>
+            Sentence sentence = new("colorie les pommes en rouge", new List<Word>
                 {
                     new("colorie", DateTime.Now.AddSeconds(-5), DateTime.Now.AddSeconds(-4)),
                     new("les", DateTime.Now.AddSeconds(-4), DateTime.Now.AddSeconds(-3)),
@@ -236,7 +236,7 @@ namespace Sven.Multimodality
 
         private void Example2Word()
         {
-            Command.Sentence sentence = new("colorie ce que je vois en vert", new List<Word>
+            Sentence sentence = new("colorie ce que je vois en vert", new List<Word>
                 {
                     new("colorie", DateTime.Now.AddSeconds(-7), DateTime.Now.AddSeconds(-6)),
                     new("ce", DateTime.Now.AddSeconds(-6), DateTime.Now.AddSeconds(-5)),
@@ -252,7 +252,7 @@ namespace Sven.Multimodality
 
         private void Example3Word()
         {
-            Command.Sentence sentence = new("colorie les citrouilles bleu en orange", new List<Word>
+            Sentence sentence = new("colorie les citrouilles bleu en orange", new List<Word>
                 {
                     new("colorie", DateTime.Now.AddSeconds(-6), DateTime.Now.AddSeconds(-5)),
                     new("les", DateTime.Now.AddSeconds(-5), DateTime.Now.AddSeconds(-4)),

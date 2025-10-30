@@ -10,7 +10,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Vosk;
 
-namespace Sven.Multimodality.Voice
+namespace Sc4ve.Voice
 {
     public class VoskSpeechToText : MonoBehaviour
     {

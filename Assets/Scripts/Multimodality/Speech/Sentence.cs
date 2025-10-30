@@ -1,11 +1,15 @@
+using Sven.GraphManagement;
+using Sven.OwlTime;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using VDS.RDF;
+using VDS.RDF.Parsing;
 
-namespace Sven.Command
+namespace Sc4ve.Voice
 {
     [Serializable]
-    public class Sentence
+    public class Sentence : Sven.Context.Event
     {
         public const string ConfidenceKey = "confidence";
         public const string TextKey = "text";
@@ -24,7 +28,7 @@ namespace Sven.Command
         public DateTime StartedAt => _words.Count > 0 ? _words[0].StartedAt : DateTime.MinValue;
         public DateTime EndedAt => _words.Count > 0 ? _words[^1].EndedAt : DateTime.MinValue;
 
-        public Sentence(string text)
+        public Sentence(string text) : base(null)
         {
             _text = text;
             // split text and make a delay of 1 seconds between each word
@@ -38,14 +42,14 @@ namespace Sven.Command
             }
             _words.Sort((x, y) => x.StartedAt.CompareTo(y.StartedAt));
         }
-        public Sentence(string text, List<Word> words)
+        public Sentence(string text, List<Word> words) : base(null)
         {
             _text = text;
             _words = words ?? new List<Word>();
             _words.Sort((x, y) => x.StartedAt.CompareTo(y.StartedAt));
         }
 
-        public Sentence(JSONObject json)
+        public Sentence(JSONObject json) : base(null)
         {
             if (json.HasKey(ConfidenceKey)) _confidence = json[ConfidenceKey].AsFloat;
             if (json.HasKey(TextKey)) _text = json[TextKey].Value.Trim();
@@ -81,11 +85,29 @@ namespace Sven.Command
             }
         }
 
-        public Sentence() { }
+        public Sentence() : base(null) { }
 
         public override string ToString()
         {
             return $"{_text} ({_confidence}) [{string.Join(", ", _words)}]";
+        }
+
+        public new IUriNode Semanticize()
+        {
+            IUriNode eventNode = UriNode;
+            GraphManager.Assert(new Triple(eventNode, GraphManager.CreateUriNode("rdf:type"), GraphManager.CreateUriNode($"sc4ve:{GetType().Name}")));
+            GraphManager.Assert(new Triple(eventNode, GraphManager.CreateUriNode("sven:hasTemporalExtent"), this.Interval.Semanticize()));
+            if (_user != null) GraphManager.Assert(new Triple(GraphManager.CreateUriNode(":" + _user.UUID), GraphManager.CreateUriNode("sven:perform"), eventNode));
+            GraphManager.Assert(new Triple(eventNode, GraphManager.CreateUriNode("sc4ve:confidence"), GraphManager.CreateLiteralNode(Confidence.ToString(), UriFactory.Create(XmlSpecsHelper.XmlSchemaDataTypeFloat))));
+            GraphManager.Assert(new Triple(eventNode, GraphManager.CreateUriNode("sc4ve:text"), GraphManager.CreateLiteralNode(Text, UriFactory.Create(XmlSpecsHelper.XmlSchemaDataTypeString))));
+            foreach (var word in Words)
+            {
+                word.Start(new Instant(word.StartedAt));
+                word.End(new Instant(word.EndedAt));
+                IUriNode wordNode = word.Semanticize();
+                GraphManager.Assert(new Triple(eventNode, GraphManager.CreateUriNode("sc4ve:hasWord"), wordNode));
+            }
+            return eventNode;
         }
     }
 }

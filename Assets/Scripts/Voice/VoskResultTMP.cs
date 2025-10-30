@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 
 
-namespace Sven.Multimodality.Voice
+namespace Sc4ve.Voice
 {
     public class VoskResultTMP : MonoBehaviour
     {

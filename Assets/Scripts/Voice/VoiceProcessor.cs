@@ -1,13 +1,11 @@
+using NaughtyAttributes;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using NAudio.Wave;
-using NaughtyAttributes;
 using UnityEngine;
 
-namespace Sven.Multimodality.Voice
+namespace Sc4ve.Voice
 {
     public enum RecordingMode
     {
@@ -74,13 +72,13 @@ namespace Sven.Multimodality.Voice
         }
 
 #if UNITY_EDITOR
-    void Update()
-    {
-        if (CurrentDeviceIndex != MicrophoneIndex)
+        void Update()
         {
-            ChangeDevice(MicrophoneIndex);
+            if (CurrentDeviceIndex != MicrophoneIndex)
+            {
+                ChangeDevice(MicrophoneIndex);
+            }
         }
-    }
 #endif
 
         /// <summary>
@@ -533,19 +531,19 @@ namespace Sven.Multimodality.Voice
         }
 
 #if UNITY_EDITOR
-    /// <summary>
-    /// Load a WAV file from disk
-    /// </summary>
-    [Button("Load Audio File"), ShowIf("IsAudioFileMode")]
-    public void LoadAudioFile()
-    {
-        string path = UnityEditor.EditorUtility.OpenFilePanel("Load Audio File", "", "wav");
-        if (path.Length != 0)
+        /// <summary>
+        /// Load a WAV file from disk
+        /// </summary>
+        [Button("Load Audio File"), ShowIf("IsAudioFileMode")]
+        public void LoadAudioFile()
         {
-            _audioClip = LoadWavFile(path);
+            string path = UnityEditor.EditorUtility.OpenFilePanel("Load Audio File", "", "wav");
+            if (path.Length != 0)
+            {
+                _audioClip = LoadWavFile(path);
+            }
+            StartRecording();
         }
-        StartRecording();
-    }
 #endif
     }
 }

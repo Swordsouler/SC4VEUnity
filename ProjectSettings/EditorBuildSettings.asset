@@ -11,7 +11,7 @@ EditorBuildSettings:
     guid: c562bb9fb503eba4eb8face7055663e8
   - enabled: 1
     path: Assets/Samples/SVEN/1.0.0/Demo for ISWC of Semantized Virtual ENvironment/Record/Demo
-      Record.unity
+      Record S4M.unity
     guid: ba1af09eaafc97641bcae44ae0eb831d
   - enabled: 1
     path: Assets/Samples/SVEN/1.0.0/Demo for ISWC of Semantized Virtual ENvironment/Menu/Demo
