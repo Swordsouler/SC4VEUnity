@@ -8,6 +8,7 @@
 @prefix sven: <https://sven.lisn.upsaclay.fr/ontology#> .
 @prefix sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix time: <http://www.w3.org/2006/time#> .
 @base <https://sc4ve.lisn.upsaclay.fr/ontology#> .
 
 <https://sc4ve.lisn.upsaclay.fr/ontology> rdf:type owl:Ontology ;

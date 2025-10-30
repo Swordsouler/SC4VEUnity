@@ -1,0 +1,164 @@
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix geof: <http://www.opengis.net/def/function/geosparql/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sven: <https://sven.lisn.upsaclay.fr/ontology#> .
+@prefix ve: <https://sven.lisn.upsaclay.fr/ve/> .
+@prefix time: <http://www.w3.org/2006/time#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@base <https://sven.lisn.upsaclay.fr/ontology> .
+
+<https://sven.lisn.upsaclay.fr/ontology> rdf:type owl:Ontology ;
+                                         dcterms:license <https://opensource.org/licenses/MIT> .
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://purl.org/dc/terms/license
+dcterms:license rdf:type owl:AnnotationProperty .
+
+#################################################################
+#    Classes
+#################################################################
+
+###  https://sven.lisn.upsaclay.fr/ontology#Apple
+sven:Apple rdf:type owl:Class ;
+           rdfs:subClassOf sven:Fruit ;
+           owl:equivalentClass [
+               rdf:type owl:Class ;
+               owl:intersectionOf (
+                   sven:Node
+                   [ rdf:type owl:Restriction ;
+                     owl:onProperty sven:component ;
+                     owl:someValuesFrom sven:AppleComponent
+                   ]
+               )
+           ] ;
+            rdfs:comment "An apple is a fruit."@en ,
+                          "Une pomme est un fruit."@fr ;
+            rdfs:label "Apple"@en ,
+                        "Pomme"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#AppleComponent
+sven:AppleComponent rdf:type owl:Class ;
+                    rdfs:subClassOf sven:Component ;
+                    rdfs:comment "An apple component."@en ,
+                                 "Un composant de pomme."@fr ;
+                    rdfs:label "Apple component"@en ,
+                                  "Composant de pomme"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#Banana
+sven:Banana rdf:type owl:Class ;
+            rdfs:subClassOf sven:Fruit ;
+            owl:equivalentClass [
+                rdf:type owl:Class ;
+                owl:intersectionOf (
+                    sven:Node
+                    [ rdf:type owl:Restriction ;
+                      owl:onProperty sven:component ;
+                      owl:someValuesFrom sven:BananaComponent
+                    ]
+                )
+            ] ;
+            rdfs:comment "A banana is a fruit."@en ,
+                         "Une banane est un fruit."@fr ;
+            rdfs:label "Banana"@en ,
+                        "Banane"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#BananaComponent
+sven:BananaComponent rdf:type owl:Class ;
+                     rdfs:subClassOf sven:Component ;
+                     rdfs:comment "A banana component."@en ,
+                                    "Un composant de banane."@fr ;
+                      rdfs:label "Banana component"@en ,
+                                    "Composant de banane"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#Carrot
+sven:Carrot rdf:type owl:Class ;
+            rdfs:subClassOf sven:Vegetable ;
+            owl:equivalentClass [
+                rdf:type owl:Class ;
+                owl:intersectionOf (
+                    sven:Node
+                    [ rdf:type owl:Restriction ;
+                      owl:onProperty sven:component ;
+                      owl:someValuesFrom sven:CarrotComponent
+                    ]
+                )
+            ] ;
+            rdfs:comment "A carrot is a vegetable."@en ,
+                         "Une carotte est un légume."@fr ;
+            rdfs:label "Carrot"@en ,
+                        "Carotte"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#CarrotComponent
+sven:CarrotComponent rdf:type owl:Class ;
+                     rdfs:subClassOf sven:Component ;
+                      rdfs:comment "A carrot component."@en ,
+                                    "Un composant de carotte."@fr ;
+                      rdfs:label "Carrot component"@en ,
+                                    "Composant de carotte"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#Food
+sven:Food rdf:type owl:Class ;
+          rdfs:subClassOf sven:VirtualObject .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#Fruit
+sven:Fruit rdf:type owl:Class ;
+           rdfs:subClassOf sven:Food .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#Pumpkin
+sven:Pumpkin rdf:type owl:Class ;
+             rdfs:subClassOf sven:Vegetable ;
+             owl:equivalentClass [
+                 rdf:type owl:Class ;
+                 owl:intersectionOf (
+                     sven:Node
+                     [ rdf:type owl:Restriction ;
+                       owl:onProperty sven:component ;
+                       owl:someValuesFrom sven:PumpkinComponent
+                     ]
+                 )
+             ] ;
+             rdfs:comment "A pumpkin is a vegetable."@en ,
+                           "Une citrouille est un légume."@fr ;
+             rdfs:label "Pumpkin"@en ,
+                          "Citrouille"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#PumpkinComponent
+sven:PumpkinComponent rdf:type owl:Class ;
+                      rdfs:subClassOf sven:Component ;
+                      rdfs:comment "A pumpkin component."@en ,
+                                   "Un composant de citrouille."@fr ;
+                      rdfs:label "Pumpkin component"@en ,
+                                    "Composant de citrouille"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#Spray
+sven:Spray rdf:type owl:Class ;
+           rdfs:subClassOf sven:Component ;
+           rdfs:comment "A spray component for the ISWC demo."@en ,
+                        "Un composant de pulvérisation pour la demo d'ISWC."@fr ;
+           rdfs:label "Pulvérisation"@fr ,
+                      "Spray"@en .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#Vegetable
+sven:Vegetable rdf:type owl:Class ;
+               rdfs:subClassOf sven:Food .
+
+
+###  Generated by the OWL API (version 4.5.26.2023-07-17T20:34:13Z) https://github.com/owlcs/owlapi
