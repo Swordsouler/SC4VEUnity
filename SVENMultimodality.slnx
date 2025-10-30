@@ -1,0 +1,9 @@
+﻿<Solution>
+  <Project Path="VX.AI.Runtime.BigtreeAlgorithm.csproj" />
+  <Project Path="VX.NLP.Runtime.VoxellNLP.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="VX.Util.Runtime.csproj" />
+  <Project Path="Bunny83.simpleJson.csproj" />
+  <Project Path="VX.Util.Editor.csproj" />
+  <Project Path="VX.NLP.Runtime.csproj" />
+</Solution>
