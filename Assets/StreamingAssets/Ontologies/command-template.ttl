@@ -12,7 +12,10 @@
 
 <https://sc4ve.lisn.upsaclay.fr/ontology> rdf:type owl:Ontology ;
                                            dcterms:license <https://opensource.org/licenses/MIT> ;
-                                           rdfs:comment "Ontologie SC4VE (Semantic Command for Virtual Environment) : modélisation simplifiée des Commandes avec paramètres requis et optionnels, sans notion de binding ni d'index." .
+                                           rdfs:comment "Ontologie SC4VE (Semantic Command for Virtual Environment) : modélisation simplifiée des Commandes avec paramètres requis et optionnels, sans notion de binding ni d'index."@fr ,
+                                                        "SC4VE (Semantic Command for Virtual Environment) ontology: simplified modeling of Commands with required and optional parameters, without binding or index notion."@en ;
+                                           rdfs:label "Ontologie SC4VE"@fr ,
+                                                      "SC4VE Ontology"@en .
 
 #################################################################
 #    Annotation properties
@@ -26,20 +29,14 @@ dcterms:license rdf:type owl:AnnotationProperty .
 #    Object Properties
 #################################################################
 
-###  https://sc4ve.lisn.upsaclay.fr/ontology#hasOptionalParameter
-sc4ve:hasOptionalParameter rdf:type owl:ObjectProperty ;
-                           rdfs:subPropertyOf sc4ve:hasParameter .
-
-
 ###  https://sc4ve.lisn.upsaclay.fr/ontology#hasParameter
 sc4ve:hasParameter rdf:type owl:ObjectProperty ;
                    rdfs:domain sc4ve:Command ;
-                   rdfs:range sc4ve:Parameter .
-
-
-###  https://sc4ve.lisn.upsaclay.fr/ontology#hasRequiredParameter
-sc4ve:hasRequiredParameter rdf:type owl:ObjectProperty ;
-                           rdfs:subPropertyOf sc4ve:hasParameter .
+                   rdfs:range sc4ve:Parameter ;
+                   rdfs:comment "Relates a Command to one of its Parameters."@en ,
+                                "Relie une Commande à l'un de ses Paramètres."@fr ;
+                   rdfs:label "a pour paramètre"@fr ,
+                              "has parameter"@en .
 
 
 #################################################################
@@ -48,7 +45,12 @@ sc4ve:hasRequiredParameter rdf:type owl:ObjectProperty ;
 
 ###  https://sc4ve.lisn.upsaclay.fr/ontology#ColorParameter
 sc4ve:ColorParameter rdf:type owl:Class ;
-                     rdfs:subClassOf sc4ve:Parameter , sven:Color .
+                     rdfs:subClassOf sc4ve:Parameter ,
+                                     sven:Color ;
+                     rdfs:comment "A parameter representing a color."@en ,
+                                  "Un paramètre représentant une couleur."@fr ;
+                     rdfs:label "Color Parameter"@en ,
+                                "Paramètre de Couleur"@fr .
 
 
 ###  https://sc4ve.lisn.upsaclay.fr/ontology#ColorizeCommand
@@ -61,74 +63,206 @@ sc4ve:ColorizeCommand rdf:type owl:Class ;
                                       ] ,
                                       [ rdf:type owl:Restriction ;
                                         owl:onProperty sc4ve:hasParameter ;
-                                        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                                         owl:onClass sc4ve:SelectionParameter
-                                      ] .
+                                      ] ;
+                      rdfs:comment "A command to colorize selected objects with a specified color."@en ,
+                                   "Une commande pour colorer des objets sélectionnés avec une couleur spécifiée."@fr ;
+                      rdfs:label "Colorize Command"@en ,
+                                 "Commande de Coloration"@fr .
 
 
 ###  https://sc4ve.lisn.upsaclay.fr/ontology#Command
-sc4ve:Command rdf:type owl:Class .
+sc4ve:Command rdf:type owl:Class ;
+              rdfs:comment "An abstract class representing a command that can be executed in the virtual environment."@en ,
+                           "Une classe abstraite représentant une commande pouvant être exécutée dans l'environnement virtuel."@fr ;
+              rdfs:label "Command"@en ,
+                         "Commande"@fr .
 
 
-###  https://sc4ve.lisn.upsaclay.fr/ontology#MoveToPointWithColor
-sc4ve:MoveToPointWithColor rdf:type owl:Class ;
-                           rdfs:subClassOf sc4ve:Command ,
-                                           [ rdf:type owl:Restriction ;
-                                             owl:onProperty sc4ve:hasParameter ;
-                                             owl:qualifiedCardinality "2"^^xsd:nonNegativeInteger ;
-                                             owl:onClass sc4ve:PointParameter
-                                           ] ,
-                                           [ rdf:type owl:Restriction ;
-                                             owl:onProperty sc4ve:hasParameter ;
-                                             owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                                             owl:onClass sc4ve:ColorParameter
-                                           ] ,
-                                           [ rdf:type owl:Restriction ;
-                                             owl:onProperty sc4ve:hasParameter ;
-                                             owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                                             owl:onClass sc4ve:SelectionParameter
-                                           ] .
+###  https://sc4ve.lisn.upsaclay.fr/ontology#GrabCommand
+sc4ve:GrabCommand rdf:type owl:Class ;
+                  rdfs:subClassOf sc4ve:Command ,
+                                  [ rdf:type owl:Restriction ;
+                                    owl:onProperty sc4ve:hasParameter ;
+                                    owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                    owl:onClass sc4ve:SelectionParameter
+                                  ] ;
+                  rdfs:comment "A command to grab selected objects."@en ,
+                               "Une commande pour saisir des objets sélectionnés."@fr ;
+                  rdfs:label "Commande de Saisie"@fr ,
+                             "Grab Command"@en .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#HideCommand
+sc4ve:HideCommand rdf:type owl:Class ;
+                  rdfs:subClassOf sc4ve:Command ,
+                                  [ rdf:type owl:Restriction ;
+                                    owl:onProperty sc4ve:hasParameter ;
+                                    owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                    owl:onClass sc4ve:SelectionParameter
+                                  ] ;
+                  rdfs:comment "A command to hide selected objects."@en ,
+                               "Une commande pour masquer des objets sélectionnés."@fr ;
+                  rdfs:label "Commande de Masquage"@fr ,
+                             "Hide Command"@en .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#MeasureCommand
+sc4ve:MeasureCommand rdf:type owl:Class ;
+                     rdfs:subClassOf sc4ve:Command ,
+                                     [ rdf:type owl:Restriction ;
+                                       owl:onProperty sc4ve:hasParameter ;
+                                       owl:qualifiedCardinality "2"^^xsd:nonNegativeInteger ;
+                                       owl:onClass sc4ve:PointParameter
+                                     ] ;
+                     rdfs:comment "A command to measure the distance between two points."@en ,
+                                  "Une commande pour mesurer la distance entre deux points."@fr ;
+                     rdfs:label "Commande de Mesure"@fr ,
+                                "Measure Command"@en .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#MoveCommand
+sc4ve:MoveCommand rdf:type owl:Class ;
+                  rdfs:subClassOf sc4ve:Command ,
+                                  [ rdf:type owl:Restriction ;
+                                    owl:onProperty sc4ve:hasParameter ;
+                                    owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                    owl:onClass sc4ve:PointParameter
+                                  ] ,
+                                  [ rdf:type owl:Restriction ;
+                                    owl:onProperty sc4ve:hasParameter ;
+                                    owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                    owl:onClass sc4ve:SelectionParameter
+                                  ] ;
+                  rdfs:comment "A command to move selected objects to a specified point."@en ,
+                               "Une commande pour déplacer des objets sélectionnés vers un point spécifié."@fr ;
+                  rdfs:label "Commande de Déplacement"@fr ,
+                             "Move Command"@en .
 
 
 ###  https://sc4ve.lisn.upsaclay.fr/ontology#Parameter
-sc4ve:Parameter rdf:type owl:Class .
+sc4ve:Parameter rdf:type owl:Class ;
+                rdfs:comment "An abstract class representing a parameter for a command."@en ,
+                             "Une classe abstraite représentant un paramètre pour une commande."@fr ;
+                rdfs:label "Parameter"@en ,
+                           "Paramètre"@fr .
 
 
 ###  https://sc4ve.lisn.upsaclay.fr/ontology#PointParameter
 sc4ve:PointParameter rdf:type owl:Class ;
-                     rdfs:subClassOf sc4ve:Parameter , sven:Vector2 .
+                     rdfs:subClassOf sc4ve:Parameter ,
+                                     sven:Vector2 ;
+                     rdfs:comment "A parameter representing a point in 2D space."@en ,
+                                  "Un paramètre représentant un point dans l'espace 2D."@fr ;
+                     rdfs:label "Paramètre de Point"@fr ,
+                                "Point Parameter"@en .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#ReleaseCommand
+sc4ve:ReleaseCommand rdf:type owl:Class ;
+                     rdfs:subClassOf sc4ve:Command ,
+                                     [ rdf:type owl:Restriction ;
+                                       owl:onProperty sc4ve:hasParameter ;
+                                       owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                       owl:onClass sc4ve:SelectionParameter
+                                     ] ;
+                     rdfs:comment "A command to release grabbed objects."@en ,
+                                  "Une commande pour relâcher des objets saisis."@fr ;
+                     rdfs:label "Commande de Relâchement"@fr ,
+                                "Release Command"@en .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#ScaleDownCommand
+sc4ve:ScaleDownCommand rdf:type owl:Class ;
+                       rdfs:subClassOf sc4ve:Command ,
+                                       [ rdf:type owl:Restriction ;
+                                         owl:onProperty sc4ve:hasParameter ;
+                                         owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                         owl:onClass sc4ve:SelectionParameter
+                                       ] ;
+                       rdfs:comment "A command to scale down selected objects."@en ,
+                                    "Une commande pour réduire la taille des objets sélectionnés."@fr ;
+                       rdfs:label "Commande de Réduction de taille"@fr ,
+                                  "Scale Down Command"@en .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#ScaleUpCommand
+sc4ve:ScaleUpCommand rdf:type owl:Class ;
+                     rdfs:subClassOf sc4ve:Command ,
+                                     [ rdf:type owl:Restriction ;
+                                       owl:onProperty sc4ve:hasParameter ;
+                                       owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                       owl:onClass sc4ve:SelectionParameter
+                                     ] ;
+                     rdfs:comment "A command to scale up selected objects."@en ,
+                                  "Une commande pour agrandir la taille des objets sélectionnés."@fr ;
+                     rdfs:label "Commande d'Agrandissement de taille"@fr ,
+                                "Scale Up Command"@en .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#SelectCommand
+sc4ve:SelectCommand rdf:type owl:Class ;
+                    rdfs:subClassOf sc4ve:Command ,
+                                    [ rdf:type owl:Restriction ;
+                                      owl:onProperty sc4ve:hasParameter ;
+                                      owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                      owl:onClass sc4ve:SelectionParameter
+                                    ] ;
+                    rdfs:comment "A command to select objects."@en ,
+                                 "Une commande pour sélectionner des objets."@fr ;
+                    rdfs:label "Commande de Sélection"@fr ,
+                               "Select Command"@en .
 
 
 ###  https://sc4ve.lisn.upsaclay.fr/ontology#SelectionParameter
 sc4ve:SelectionParameter rdf:type owl:Class ;
-                         rdfs:subClassOf sc4ve:Parameter , sven:Primitive .
+                         rdfs:subClassOf sc4ve:Parameter ,
+                                         sven:Primitive ;
+                         rdfs:comment "A parameter representing a selection of objects."@en ,
+                                      "Un paramètre représentant une sélection d'objets."@fr ;
+                         rdfs:label "Paramètre de Sélection"@fr ,
+                                    "Selection Parameter"@en .
 
 
-#################################################################
-#    Individuals
-#################################################################
-
-###  https://sc4ve.lisn.upsaclay.fr/ontology#MoveToPointWithColorCommandInstance
-sc4ve:MoveToPointWithColorCommandInstance rdf:type owl:NamedIndividual ,
-                                                   sc4ve:MoveToPointWithColor ;
-                                          sc4ve:hasParameter sc4ve:param_color ,
-                                                             sc4ve:param_pointA ,
-                                                             sc4ve:param_pointB .
-
-
-###  https://sc4ve.lisn.upsaclay.fr/ontology#param_color
-sc4ve:param_color rdf:type owl:NamedIndividual ,
-                           sc4ve:ColorParameter .
+###  https://sc4ve.lisn.upsaclay.fr/ontology#ShowCommand
+sc4ve:ShowCommand rdf:type owl:Class ;
+                  rdfs:subClassOf sc4ve:Command ,
+                                  [ rdf:type owl:Restriction ;
+                                    owl:onProperty sc4ve:hasParameter ;
+                                    owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                    owl:onClass sc4ve:SelectionParameter
+                                  ] ;
+                  rdfs:comment "A command to show selected objects."@en ,
+                               "Une commande pour afficher des objets sélectionnés."@fr ;
+                  rdfs:label "Commande d'Affichage"@fr ,
+                             "Show Command"@en .
 
 
-###  https://sc4ve.lisn.upsaclay.fr/ontology#param_pointA
-sc4ve:param_pointA rdf:type owl:NamedIndividual ,
-                            sc4ve:PointParameter .
+###  https://sc4ve.lisn.upsaclay.fr/ontology#UnselectCommand
+sc4ve:UnselectCommand rdf:type owl:Class ;
+                      rdfs:subClassOf sc4ve:Command ,
+                                      [ rdf:type owl:Restriction ;
+                                        owl:onProperty sc4ve:hasParameter ;
+                                        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                        owl:onClass sc4ve:SelectionParameter
+                                      ] ;
+                      rdfs:comment "A command to unselect objects."@en ,
+                                   "Une commande pour désélectionner des objets."@fr ;
+                      rdfs:label "Commande de Désélection"@fr ,
+                                 "Unselect Command"@en .
 
 
-###  https://sc4ve.lisn.upsaclay.fr/ontology#param_pointB
-sc4ve:param_pointB rdf:type owl:NamedIndividual ,
-                            sc4ve:PointParameter .
+###  https://sven.lisn.upsaclay.fr/ontology#Color
+sven:Color rdf:type owl:Class .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#Primitive
+sven:Primitive rdf:type owl:Class .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#Vector2
+sven:Vector2 rdf:type owl:Class .
 
 
 ###  Generated by the OWL API (version 4.5.26.2023-07-17T20:34:13Z) https://github.com/owlcs/owlapi
