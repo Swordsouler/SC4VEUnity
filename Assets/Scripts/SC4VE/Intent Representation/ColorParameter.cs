@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System;
 using UnityEngine;
 
 namespace Sc4ve.Multimodality
@@ -11,6 +12,14 @@ namespace Sc4ve.Multimodality
         {
             get => _value;
             set => _value = value;
+        }
+
+        [SerializeField] private DateTime? _timestamp;
+        [JsonProperty("timestamp")]
+        public DateTime? Timestamp
+        {
+            get => _timestamp;
+            set => _timestamp = value;
         }
     }
 }

@@ -8,13 +8,13 @@ namespace Sc4ve.Multimodality
 {
     public class SelectionParameter : Parameter
     {
-        [SerializeField] private List<FilterElement> _filter;
-        [JsonProperty("filter")]
+        [SerializeField] private List<FilterElement> _filters;
+        [JsonProperty("filters")]
         [JsonConverter(typeof(FilterElementListConverter))]
-        public List<FilterElement> Filter
+        public List<FilterElement> Filters
         {
-            get => _filter;
-            set => _filter = value;
+            get => _filters;
+            set => _filters = value;
         }
 
         [SerializeField] private string _limit;
@@ -37,7 +37,7 @@ namespace Sc4ve.Multimodality
     public class Order
     {
         [SerializeField] private List<Criteria> _criterias;
-        [JsonProperty("criteria")]
+        [JsonProperty("criterias")]
         public List<Criteria> Criterias
         {
             get => _criterias;
