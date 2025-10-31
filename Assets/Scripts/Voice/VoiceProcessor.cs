@@ -74,7 +74,7 @@ namespace Sc4ve.Voice
 #if UNITY_EDITOR
         void Update()
         {
-            if (CurrentDeviceIndex != MicrophoneIndex)
+            if (Devices.Count > 0 && CurrentDeviceIndex != MicrophoneIndex)
             {
                 ChangeDevice(MicrophoneIndex);
             }
