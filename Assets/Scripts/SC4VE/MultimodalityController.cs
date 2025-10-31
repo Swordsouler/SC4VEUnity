@@ -1,9 +1,14 @@
 using NaughtyAttributes;
 using Newtonsoft.Json;
 using Sc4ve.Voice;
+using Sven.GraphManagement;
 using Sven.OwlTime;
+using Sven.Utils;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
+using VDS.RDF;
+using VDS.RDF.Parsing;
 
 namespace Sc4ve.Multimodality
 {
@@ -52,10 +57,26 @@ namespace Sc4ve.Multimodality
             return DeserializeCommand(jsonTest);
         }
 
-        public void PrintTest()
+        public async void PrintTest()
         {
             Debug.Log(JsonConvert.SerializeObject(CommandTest1()));
             Debug.Log(JsonConvert.SerializeObject(CommandTest2()));
+            // debug turtle content of the graph
+            Debug.Log(GraphManager.DecodeGraph(await CommandToGraphOutputCommandAsync(CommandTest2())));
+        }
+
+        public async Task<Graph> CommandToGraphOutputCommandAsync(List<Command> commands)
+        {
+            Graph graph = new Graph();
+            // import all ontologies in StreamingAssets/Ontologies
+            Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
+            foreach (KeyValuePair<string, string> ontology in ontologies)
+            {
+                TurtleParser turtleParser = new();
+                turtleParser.Load(graph, ontology.Value);
+            }
+
+            return graph;
         }
     }
 }
