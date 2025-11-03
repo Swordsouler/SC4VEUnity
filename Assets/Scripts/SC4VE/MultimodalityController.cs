@@ -14,8 +14,30 @@ namespace Sc4ve.Multimodality
 {
     public class MultimodalityController : MonoBehaviour
     {
+        // faire comme le user data de spam
+
         [BoxGroup("References"), SerializeField] private VoskSpeechToText _voskSpeechToText;
 
+        [BoxGroup("Settings"), SerializeField] private static Language _loadedLanguage = Language.French;
+        public static Language LoadedLanguage
+        {
+            get => _loadedLanguage;
+            set => _loadedLanguage = value;
+        }
+        public static string LoadedLocale => GetLocale(_loadedLanguage);
+        public static string GetLocale(Language language)
+        {
+            return language switch
+            {
+                Language.French => "fr",
+                Language.English => "en",
+                Language.German => "de",
+                Language.Italian => "it",
+                Language.Russian => "ru",
+                Language.Spanish => "es",
+                _ => "en",
+            };
+        }
         private void Awake()
         {
             if (_voskSpeechToText != null) _voskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
@@ -67,14 +89,17 @@ namespace Sc4ve.Multimodality
 
         public async Task<Graph> CommandToGraphOutputCommandAsync(List<Command> commands)
         {
-            Graph graph = new Graph();
-            // import all ontologies in StreamingAssets/Ontologies
+            Graph graph = new();
+            // import all ontologies in StreamingAssets/Ontologies (pour être optimal, il ne faudrait charger que l'ontologie des commandes)
             Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
             foreach (KeyValuePair<string, string> ontology in ontologies)
             {
                 TurtleParser turtleParser = new();
                 turtleParser.Load(graph, ontology.Value);
             }
+
+            foreach (Command command in commands)
+                await command.Semanticize(graph);
 
             return graph;
         }

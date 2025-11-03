@@ -73,9 +73,23 @@ sc4ve:text rdf:type owl:DatatypeProperty ;
                       "texte"@fr .
 
 
+###  https://sc4ve.lisn.upsaclay.fr/ontology#tolerance
+sc4ve:tolerance rdf:type owl:DatatypeProperty ;
+                rdfs:domain sven:Color ;
+                rdfs:range xsd:float ;
+                rdfs:comment "Relates a Color to its tolerance value."@en ,
+                             "Relie une Couleur à sa valeur de tolérance."@fr ;
+                rdfs:label "a pour tolérance"@fr ,
+                           "has tolerance"@en .
+
+
 #################################################################
 #    Classes
 #################################################################
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#Color
+sc4ve:Color rdf:type owl:Class .
+
 
 ###  https://sc4ve.lisn.upsaclay.fr/ontology#ColorParameter
 sc4ve:ColorParameter rdf:type owl:Class ;

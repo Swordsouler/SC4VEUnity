@@ -12,6 +12,16 @@ using Vosk;
 
 namespace Sc4ve.Voice
 {
+    public enum Language
+    {
+        French,
+        English,
+        German,
+        Italian,
+        Russian,
+        Spanish
+    }
+
     public class VoskSpeechToText : MonoBehaviour
     {
         [Tooltip("Location of the model, relative to the Streaming Assets folder.")]
