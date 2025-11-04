@@ -1,5 +1,6 @@
 {
     "files": [
+        "color.ttl",
         "sc4ve.ttl",
         "sven-fruits.ttl",
         "sven.ttl"

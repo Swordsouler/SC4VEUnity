@@ -1,0 +1,140 @@
+@prefix : <https://sc4ve.lisn.upsaclay.fr/color#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ve: <https://sven.lisn.upsaclay.fr/ve/> .
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix geof: <http://www.opengis.net/def/function/geosparql/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sven: <https://sven.lisn.upsaclay.fr/ontology#> .
+@prefix time: <http://www.w3.org/2006/time#> .
+@prefix sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@base <https://sc4ve.lisn.upsaclay.fr/color> .
+
+<https://sc4ve.lisn.upsaclay.fr/color> rdf:type owl:Ontology ;
+                                        dcterms:license <https://opensource.org/licenses/MIT> ;
+                                        rdfs:comment "Cette ontologie définit les couleurs utilisées dans le projet SC4VE."@fr ,
+                                                     "This ontology defines colors used in the SC4VE project."@en ;
+                                        rdfs:label "Color ontology for SC4VE"@en ,
+                                                   "Ontologie des couleurs pour SC4VE"@fr .
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://purl.org/dc/terms/license
+dcterms:license rdf:type owl:AnnotationProperty .
+
+
+#################################################################
+#    Data properties
+#################################################################
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#tolerance
+sc4ve:tolerance rdf:type owl:DatatypeProperty ;
+                rdfs:domain sven:Color ;
+                rdfs:range xsd:float ;
+                rdfs:comment "Relates a Color to its tolerance value."@en ,
+                             "Relie une Couleur à sa valeur de tolérance."@fr ;
+                rdfs:label "a pour tolérance"@fr ,
+                           "has tolerance"@en .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#b
+sven:b rdf:type owl:DatatypeProperty .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#g
+sven:g rdf:type owl:DatatypeProperty .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#propertyData
+sven:propertyData rdf:type owl:DatatypeProperty .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#r
+sven:r rdf:type owl:DatatypeProperty .
+
+
+#################################################################
+#    Classes
+#################################################################
+
+###  https://sven.lisn.upsaclay.fr/ontology#Color
+sven:Color rdf:type owl:Class .
+
+
+#################################################################
+#    Individuals
+#################################################################
+
+###  https://sc4ve.lisn.upsaclay.fr/color#blue
+:blue rdf:type owl:NamedIndividual ,
+               sven:Color ;
+      sc4ve:tolerance "0.2"^^xsd:float ;
+      sven:b "0.8"^^xsd:float ;
+      sven:g "0.2"^^xsd:float ;
+      sven:r "0.2"^^xsd:float ;
+      rdfs:label "Bleu"@fr ,
+                 "Blue"@en .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/color#cyan
+:cyan rdf:type owl:NamedIndividual ,
+               sven:Color ;
+      sc4ve:tolerance "0.2"^^xsd:float ;
+      sven:b "0.8"^^xsd:float ;
+      sven:g "0.8"^^xsd:float ;
+      sven:r "0.2"^^xsd:float ;
+      rdfs:label "Cyan"@en ,
+                 "Cyan"@fr .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/color#green
+:green rdf:type owl:NamedIndividual ,
+                sven:Color ;
+       sc4ve:tolerance "0.2"^^xsd:float ;
+       sven:b "0.2"^^xsd:float ;
+       sven:g "0.8"^^xsd:float ;
+       sven:r "0.2"^^xsd:float ;
+       rdfs:label "Green"@en ,
+                  "Vert"@fr .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/color#pink
+:pink rdf:type owl:NamedIndividual ,
+               sven:Color ;
+      sc4ve:tolerance "0.2"^^xsd:float ;
+      sven:b "0.8"^^xsd:float ;
+      sven:g "0.2"^^xsd:float ;
+      sven:r "0.8"^^xsd:float ;
+      rdfs:label "Pink"@en ,
+                 "Rose"@fr .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/color#red
+:red rdf:type owl:NamedIndividual ,
+              sven:Color ;
+     sc4ve:tolerance "0.2"^^xsd:float ;
+     sven:b "0.2"^^xsd:float ;
+     sven:g "0.2"^^xsd:float ;
+     sven:r "0.8"^^xsd:float ;
+     rdfs:label "Red"@en ,
+                "Rouge"@fr .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/color#yellow
+:yellow rdf:type owl:NamedIndividual ,
+                 sven:Color ;
+        sc4ve:tolerance "0.2"^^xsd:float ;
+        sven:b "0.2"^^xsd:float ;
+        sven:g "0.8"^^xsd:float ;
+        sven:r "0.8"^^xsd:float ;
+        rdfs:label "Jaune"@fr ,
+                   "Yellow"@en .
+
+
+###  Generated by the OWL API (version 4.5.26.2023-07-17T20:34:13Z) https://github.com/owlcs/owlapi

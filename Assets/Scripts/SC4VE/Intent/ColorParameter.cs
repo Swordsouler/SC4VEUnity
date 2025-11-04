@@ -3,9 +3,11 @@ using System;
 using System.Threading.Tasks;
 using UnityEngine;
 using VDS.RDF;
+using VDS.RDF.Query;
 
 namespace Sc4ve.Multimodality.Parameter
 {
+    [Serializable]
     public class Color
     {
         [SerializeField] private float _red;
@@ -66,20 +68,35 @@ namespace Sc4ve.Multimodality.Parameter
             string query = $@"
 PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
 PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 SELECT ?r ?g ?b ?t
 WHERE {{
     ?color a sven:Color ;
-           sven:label ""{Value}""@{locale} ;
+           rdfs:label ""{Value}""@{locale} ;
            sven:r ?r ;
            sven:g ?g ;
            sven:b ?b ;
            sc4ve:tolerance ?t .
 }}";
-            return null;
+            Debug.Log(query);
             // execute query and parse result
-            //SparqlResultSet results = await queryGraph.ExecuteQuery(query) as SparqlResultSet;
-
+            // extract color components from first result
+            if (queryGraph.ExecuteQuery(query) is SparqlResultSet results && results.Count > 0)
+            {
+                SparqlResult result = (SparqlResult)results.Results[0];
+                return new Color
+                {
+                    Red = float.Parse(result["r"].ToString()),
+                    Green = float.Parse(result["g"].ToString()),
+                    Blue = float.Parse(result["b"].ToString()),
+                    Tolerance = float.Parse(result["t"].ToString())
+                };
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public override async Task<IUriNode> Semanticize(Graph graph)
@@ -89,6 +106,7 @@ WHERE {{
             Color color = await QueryColor(graph);
             if (color != null)
             {
+                Debug.Log(JsonConvert.SerializeObject(color));
                 IUriNode r = graph.CreateUriNode("sven:r");
                 IUriNode g = graph.CreateUriNode("sven:g");
                 IUriNode b = graph.CreateUriNode("sven:b");

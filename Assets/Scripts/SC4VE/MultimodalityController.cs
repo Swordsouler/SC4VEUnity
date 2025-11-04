@@ -70,13 +70,13 @@ namespace Sc4ve.Multimodality
 
         private List<Command> CommandTest1()
         {
-            string jsonTest = "[\r\n  {\r\n    \"type\": \"ColorizeCommand\",\r\n    \"parameters\": [\r\n      {\r\n        \"type\": \"ColorParameter\",\r\n        \"value\": \"rouge\"\r\n      }\r\n    ]\r\n  }\r\n]";
+            string jsonTest = "[\r\n  {\r\n    \"type\": \"ColorizeCommand\",\r\n    \"parameters\": [\r\n      {\r\n        \"type\": \"ColorParameter\",\r\n        \"value\": \"Rouge\"\r\n      }\r\n    ]\r\n  }\r\n]";
             return DeserializeCommand(jsonTest);
         }
 
         private List<Command> CommandTest2()
         {
-            string jsonTest = "[\r\n  {\r\n    \"type\": \"ColorizeCommand\",\r\n    \"parameters\": [\r\n      {\r\n        \"type\": \"ColorParameter\",\r\n        \"value\": \"rouge\"\r\n      },\r\n      {\r\n        \"type\": \"SelectionParameter\",\r\n        \"filters\": [\r\n          {\r\n            \"operator\": \"=\",\r\n            \"type\": \"Annotation\",\r\n            \"value\": \"citrouille\",\r\n            \"timestamp\": \"2025-10-06T10:50:45.1472611+02:00\"\r\n          },\r\n          \"AND\",\r\n          {\r\n            \"operator\": \"=\",\r\n            \"type\": \"PointOfView\",\r\n            \"timestamp\": \"2025-10-06T10:50:46.4247752+02:00\"\r\n          }\r\n        ],\r\n        \"limit\": \"5\",\r\n        \"order\": {\r\n          \"criterias\": [\r\n            {\r\n              \"type\": \"size\",\r\n              \"desc\": true\r\n            },\r\n            {\r\n              \"type\": \"name\",\r\n              \"desc\": false\r\n            }\r\n          ]\r\n        }\r\n      }\r\n    ]\r\n  }\r\n]";
+            string jsonTest = "[\r\n  {\r\n    \"type\": \"ColorizeCommand\",\r\n    \"parameters\": [\r\n      {\r\n        \"type\": \"ColorParameter\",\r\n        \"value\": \"Rouge\"\r\n      },\r\n      {\r\n        \"type\": \"SelectionParameter\",\r\n        \"filters\": [\r\n          {\r\n            \"operator\": \"=\",\r\n            \"type\": \"Annotation\",\r\n            \"value\": \"citrouille\",\r\n            \"timestamp\": \"2025-10-06T10:50:45.1472611+02:00\"\r\n          },\r\n          \"AND\",\r\n          {\r\n            \"operator\": \"=\",\r\n            \"type\": \"PointOfView\",\r\n            \"timestamp\": \"2025-10-06T10:50:46.4247752+02:00\"\r\n          }\r\n        ],\r\n        \"limit\": \"5\",\r\n        \"order\": {\r\n          \"criterias\": [\r\n            {\r\n              \"type\": \"size\",\r\n              \"desc\": true\r\n            },\r\n            {\r\n              \"type\": \"name\",\r\n              \"desc\": false\r\n            }\r\n          ]\r\n        }\r\n      }\r\n    ]\r\n  }\r\n]";
             return DeserializeCommand(jsonTest);
         }
 

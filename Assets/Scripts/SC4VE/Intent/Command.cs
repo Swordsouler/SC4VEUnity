@@ -49,6 +49,7 @@ namespace Sc4ve.Multimodality.Parameter
             if (Parameters != null)
             {
                 IUriNode hasParameter = graph.CreateUriNode($"sc4ve:hasParameter");
+                Debug.Log($"Adding {Parameters.Count} parameters to command {Id}");
                 foreach (Parameter parameter in Parameters)
                 {
                     IUriNode parameterNode = await parameter.Semanticize(graph);
