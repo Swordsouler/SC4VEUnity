@@ -5,6 +5,7 @@ using Sc4ve.Voice;
 using Sven.GraphManagement;
 using Sven.OwlTime;
 using Sven.Utils;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -100,7 +101,8 @@ namespace Sc4ve.Multimodality
                 TurtleParser turtleParser = new();
                 turtleParser.Load(graph, ontology.Value);
             }
-
+            graph.BaseUri = new Uri(SvenSettings.BaseUri);
+            graph.NamespaceMap.AddNamespace("", UriFactory.Create(SvenSettings.BaseUri));
             foreach (Command command in commands)
                 await command.Semanticize(graph);
 

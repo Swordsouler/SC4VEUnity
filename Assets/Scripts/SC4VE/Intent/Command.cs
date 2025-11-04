@@ -40,7 +40,7 @@ namespace Sc4ve.Multimodality.Parameter
         public async Task<IUriNode> Semanticize(Graph graph)
         {
             // Create a URI node for the command
-            IUriNode commandNode = graph.CreateUriNode($"ve:{Id}");
+            IUriNode commandNode = graph.CreateUriNode($":{Id}");
             IUriNode rdfType = graph.CreateUriNode("rdf:type");
             IUriNode commandType = graph.CreateUriNode($"sc4ve:{Type}");
             // Add the type triple
