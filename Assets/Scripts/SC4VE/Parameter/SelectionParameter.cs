@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Sc4ve.Multimodality
+namespace Sc4ve.Multimodality.Parameter
 {
     public class SelectionParameter : Parameter
     {

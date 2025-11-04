@@ -1,5 +1,6 @@
 using NaughtyAttributes;
 using Newtonsoft.Json;
+using Sc4ve.Multimodality.Parameter;
 using Sc4ve.Voice;
 using Sven.GraphManagement;
 using Sven.OwlTime;

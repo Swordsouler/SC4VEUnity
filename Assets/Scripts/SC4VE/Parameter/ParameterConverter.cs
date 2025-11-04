@@ -3,7 +3,7 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using System;
 
-namespace Sc4ve.Multimodality
+namespace Sc4ve.Multimodality.Parameter
 {
     internal class ParameterConverter : JsonConverter
     {

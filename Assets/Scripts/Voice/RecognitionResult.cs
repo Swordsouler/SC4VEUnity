@@ -1,5 +1,3 @@
-using Sven.Command;
-
 namespace Sc4ve.Voice
 {
     public class RecognitionResult

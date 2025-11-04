@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using VDS.RDF;
 
-namespace Sc4ve.Multimodality
+namespace Sc4ve.Multimodality.Parameter
 {
     [JsonConverter(typeof(ParameterConverter))]
     [Serializable]
