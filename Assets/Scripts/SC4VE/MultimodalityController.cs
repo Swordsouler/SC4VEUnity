@@ -85,7 +85,9 @@ namespace Sc4ve.Multimodality
             Debug.Log(JsonConvert.SerializeObject(CommandTest1()));
             Debug.Log(JsonConvert.SerializeObject(CommandTest2()));
             // debug turtle content of the graph
-            Debug.Log(GraphManager.DecodeGraph(await CommandToGraphOutputCommandAsync(CommandTest2())));
+            Graph graph = await CommandToGraphOutputCommandAsync(CommandTest2());
+            Debug.Log(GraphManager.DecodeGraph(graph));
+            GraphManager.Assert(graph.Triples);
         }
 
         public async Task<Graph> CommandToGraphOutputCommandAsync(List<Command> commands)

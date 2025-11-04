@@ -1,6 +1,3 @@
-@prefix : <https://sc4ve.lisn.upsaclay.fr/color#> .
-@prefix sh: <http://www.w3.org/ns/shacl#> .
-@prefix ve: <https://sven.lisn.upsaclay.fr/ve/> .
 @prefix geo: <http://www.opengis.net/ont/geosparql#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -11,7 +8,10 @@
 @prefix sven: <https://sven.lisn.upsaclay.fr/ontology#> .
 @prefix time: <http://www.w3.org/2006/time#> .
 @prefix sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#> .
+@prefix ve: <https://sven.lisn.upsaclay.fr/ve/> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix color: <https://sc4ve.lisn.upsaclay.fr/color#> .
 @base <https://sc4ve.lisn.upsaclay.fr/color> .
 
 <https://sc4ve.lisn.upsaclay.fr/color> rdf:type owl:Ontology ;
@@ -72,7 +72,7 @@ sven:Color rdf:type owl:Class .
 #################################################################
 
 ###  https://sc4ve.lisn.upsaclay.fr/color#blue
-:blue rdf:type owl:NamedIndividual ,
+color:blue rdf:type owl:NamedIndividual ,
                sven:Color ;
       sc4ve:tolerance "0.2"^^xsd:float ;
       sven:b "0.8"^^xsd:float ;
@@ -83,7 +83,7 @@ sven:Color rdf:type owl:Class .
 
 
 ###  https://sc4ve.lisn.upsaclay.fr/color#cyan
-:cyan rdf:type owl:NamedIndividual ,
+color:cyan rdf:type owl:NamedIndividual ,
                sven:Color ;
       sc4ve:tolerance "0.2"^^xsd:float ;
       sven:b "0.8"^^xsd:float ;
@@ -94,7 +94,7 @@ sven:Color rdf:type owl:Class .
 
 
 ###  https://sc4ve.lisn.upsaclay.fr/color#green
-:green rdf:type owl:NamedIndividual ,
+color:green rdf:type owl:NamedIndividual ,
                 sven:Color ;
        sc4ve:tolerance "0.2"^^xsd:float ;
        sven:b "0.2"^^xsd:float ;
@@ -105,7 +105,7 @@ sven:Color rdf:type owl:Class .
 
 
 ###  https://sc4ve.lisn.upsaclay.fr/color#pink
-:pink rdf:type owl:NamedIndividual ,
+color:pink rdf:type owl:NamedIndividual ,
                sven:Color ;
       sc4ve:tolerance "0.2"^^xsd:float ;
       sven:b "0.8"^^xsd:float ;
@@ -116,7 +116,7 @@ sven:Color rdf:type owl:Class .
 
 
 ###  https://sc4ve.lisn.upsaclay.fr/color#red
-:red rdf:type owl:NamedIndividual ,
+color:red rdf:type owl:NamedIndividual ,
               sven:Color ;
      sc4ve:tolerance "0.2"^^xsd:float ;
      sven:b "0.2"^^xsd:float ;
@@ -127,7 +127,7 @@ sven:Color rdf:type owl:Class .
 
 
 ###  https://sc4ve.lisn.upsaclay.fr/color#yellow
-:yellow rdf:type owl:NamedIndividual ,
+color:yellow rdf:type owl:NamedIndividual ,
                  sven:Color ;
         sc4ve:tolerance "0.2"^^xsd:float ;
         sven:b "0.2"^^xsd:float ;

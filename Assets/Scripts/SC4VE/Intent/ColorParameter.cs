@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using System;
+using System.Globalization;
 using System.Threading.Tasks;
 using UnityEngine;
 using VDS.RDF;
@@ -85,12 +86,37 @@ WHERE {{
             if (queryGraph.ExecuteQuery(query) is SparqlResultSet results && results.Count > 0)
             {
                 SparqlResult result = (SparqlResult)results.Results[0];
+
+                // Use ILiteralNode.Value and invariant culture parsing to avoid formatting issues
+                ILiteralNode rNode = result["r"] as ILiteralNode;
+                ILiteralNode gNode = result["g"] as ILiteralNode;
+                ILiteralNode bNode = result["b"] as ILiteralNode;
+                ILiteralNode tNode = result["t"] as ILiteralNode;
+
+                if (rNode == null || gNode == null || bNode == null || tNode == null)
+                {
+                    Debug.LogWarning("QueryColor: one or more color components are not literal nodes.");
+                    return null;
+                }
+
+                // Parse strictly with invariant culture so decimal separator is '.'
+                bool okR = float.TryParse(rNode.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out float rVal);
+                bool okG = float.TryParse(gNode.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out float gVal);
+                bool okB = float.TryParse(bNode.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out float bVal);
+                bool okT = float.TryParse(tNode.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out float tVal);
+
+                if (!okR || !okG || !okB || !okT)
+                {
+                    Debug.LogWarning($"QueryColor: failed to parse color components. r='{rNode.Value}', g='{gNode.Value}', b='{bNode.Value}', t='{tNode.Value}'");
+                    return null;
+                }
+
                 return new Color
                 {
-                    Red = float.Parse(result["r"].ToString()),
-                    Green = float.Parse(result["g"].ToString()),
-                    Blue = float.Parse(result["b"].ToString()),
-                    Tolerance = float.Parse(result["t"].ToString())
+                    Red = rVal,
+                    Green = gVal,
+                    Blue = bVal,
+                    Tolerance = tVal
                 };
             }
             else
@@ -106,16 +132,15 @@ WHERE {{
             Color color = await QueryColor(graph);
             if (color != null)
             {
-                Debug.Log(JsonConvert.SerializeObject(color));
                 IUriNode r = graph.CreateUriNode("sven:r");
                 IUriNode g = graph.CreateUriNode("sven:g");
                 IUriNode b = graph.CreateUriNode("sven:b");
                 IUriNode tolerance = graph.CreateUriNode("sc4ve:tolerance");
-                // insert triples for color components (0 to 1)
-                graph.Assert(new Triple(parameterNode, r, graph.CreateLiteralNode(color.Red.ToString(), graph.CreateUriNode("xsd:float").Uri)));
-                graph.Assert(new Triple(parameterNode, g, graph.CreateLiteralNode(color.Green.ToString(), graph.CreateUriNode("xsd:float").Uri)));
-                graph.Assert(new Triple(parameterNode, b, graph.CreateLiteralNode(color.Blue.ToString(), graph.CreateUriNode("xsd:float").Uri)));
-                graph.Assert(new Triple(parameterNode, tolerance, graph.CreateLiteralNode(color.Tolerance.ToString(), graph.CreateUriNode("xsd:float").Uri)));
+                // insert triples for color components (0 to 1) — use InvariantCulture so ToString uses '.'
+                graph.Assert(new Triple(parameterNode, r, graph.CreateLiteralNode(color.Red.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
+                graph.Assert(new Triple(parameterNode, g, graph.CreateLiteralNode(color.Green.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
+                graph.Assert(new Triple(parameterNode, b, graph.CreateLiteralNode(color.Blue.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
+                graph.Assert(new Triple(parameterNode, tolerance, graph.CreateLiteralNode(color.Tolerance.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
             }
             return parameterNode;
         }
