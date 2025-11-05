@@ -1,8 +1,11 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Sven.Content;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
+using VDS.RDF;
 
 namespace Sc4ve.Multimodality.Parameter
 {
@@ -31,6 +34,44 @@ namespace Sc4ve.Multimodality.Parameter
         {
             get => _order;
             set => _order = value;
+        }
+
+        public async Task<List<SemantizationCore>> QueryObjects(Graph queryGraph)
+        {
+            string locale = MultimodalityController.LoadedLocale;
+            // execute sparql query to get color from value
+            string query = "";/*$@"
+PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
+PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?r ?g ?b ?t
+WHERE {{
+    ?color a sven:Color ;
+           rdfs:label ""{Value}""@{locale} ;
+           sven:r ?r ;
+           sven:g ?g ;
+           sven:b ?b ;
+           sc4ve:tolerance ?t .
+}}";*/
+            return null;
+        }
+
+        public override async Task<IUriNode> Semanticize(Graph graph)
+        {
+            IUriNode parameterNode = await base.Semanticize(graph);
+
+            List<SemantizationCore> objects = await QueryObjects(graph);
+            if (objects != null && objects.Count > 0)
+            {
+                foreach (SemantizationCore obj in objects)
+                {
+                    IUriNode hasObject = graph.CreateUriNode("sven:value");
+                    IUriNode objNode = graph.CreateUriNode($":{obj.GetUUID()}");
+                    graph.Assert(new Triple(parameterNode, hasObject, objNode));
+                }
+            }
+            return parameterNode;
         }
     }
 

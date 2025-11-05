@@ -80,7 +80,6 @@ WHERE {{
            sven:b ?b ;
            sc4ve:tolerance ?t .
 }}";
-            Debug.Log(query);
             // execute query and parse result
             // extract color components from first result
             if (queryGraph.ExecuteQuery(query) is SparqlResultSet results && results.Count > 0)
@@ -88,12 +87,11 @@ WHERE {{
                 SparqlResult result = (SparqlResult)results.Results[0];
 
                 // Use ILiteralNode.Value and invariant culture parsing to avoid formatting issues
-                ILiteralNode rNode = result["r"] as ILiteralNode;
-                ILiteralNode gNode = result["g"] as ILiteralNode;
-                ILiteralNode bNode = result["b"] as ILiteralNode;
-                ILiteralNode tNode = result["t"] as ILiteralNode;
 
-                if (rNode == null || gNode == null || bNode == null || tNode == null)
+                if (result["r"] is not ILiteralNode rNode ||
+                    result["g"] is not ILiteralNode gNode ||
+                    result["b"] is not ILiteralNode bNode ||
+                    result["t"] is not ILiteralNode tNode)
                 {
                     Debug.LogWarning("QueryColor: one or more color components are not literal nodes.");
                     return null;
