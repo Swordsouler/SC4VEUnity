@@ -21,13 +21,16 @@ namespace Sc4ve.Multimodality.Parameter
             set => _filters = value;
         }
 
-        [SerializeField] private string _limit;
+        [SerializeField] private int _limit;
         [JsonProperty("limit")]
-        public string Limit
+        public int Limit
         {
             get => _limit;
             set => _limit = value;
         }
+
+        [JsonIgnore]
+        public string LimitSparql => Limit > 0 ? $"LIMIT {Limit}" : "LIMIT 10000";
 
         [SerializeField] private Order _order;
         [JsonProperty("order")]
@@ -37,24 +40,25 @@ namespace Sc4ve.Multimodality.Parameter
             set => _order = value;
         }
 
+        [JsonIgnore] public string OrderSparqlTail => Order != null ? Order.SparqlTail : string.Empty;
+
+        [JsonIgnore] public string OrderSparqlBody => Order != null ? Order.SparqlBody : string.Empty;
+
         public async Task<List<string>> QueryObjects(Graph queryGraph)
         {
             string locale = MultimodalityController.LoadedLocale;
             // execute sparql query to get color from value
-            string query = "";/*$@"
-PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
+            string query = $@"
 PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
+PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-SELECT ?r ?g ?b ?t
+SELECT DISTINCT ?object
 WHERE {{
-    ?color a sven:Color ;
-           rdfs:label ""{Value}""@{locale} ;
-           sven:r ?r ;
-           sven:g ?g ;
-           sven:b ?b ;
-           sc4ve:tolerance ?t .
-}}";*/
+    {OrderSparqlBody}
+}} {OrderSparqlTail} {LimitSparql}";
             SparqlResultSet results = null;
             List<string> objectsUri = new();
             foreach (SparqlResult result in results.Cast<SparqlResult>())
@@ -92,6 +96,32 @@ WHERE {{
             get => _criterias;
             set => _criterias = value;
         }
+
+        [JsonIgnore]
+        public string SparqlBody
+        {
+            get
+            {
+                if (Criterias != null && Criterias.Count > 0)
+                {
+                    return string.Join("\n", Criterias.Select(c => c.SparqlBody));
+                }
+                return string.Empty;
+            }
+        }
+
+        [JsonIgnore]
+        public string SparqlTail
+        {
+            get
+            {
+                if (Criterias != null && Criterias.Count > 0)
+                {
+                    return "ORDER BY " + string.Join(" ", Criterias.Select(c => $"{c.SparqlTail}(?{c.Type})"));
+                }
+                return string.Empty;
+            }
+        }
     }
 
     public class Criteria
@@ -103,6 +133,8 @@ WHERE {{
             get => _type;
             set => _type = value;
         }
+        [JsonIgnore] public bool IsName => Type == "name";
+        [JsonIgnore] public bool IsSize => Type == "size";
 
         [SerializeField] private bool _desc;
         [JsonProperty("desc")]
@@ -110,6 +142,35 @@ WHERE {{
         {
             get => _desc;
             set => _desc = value;
+        }
+
+        [JsonIgnore]
+        public string SparqlTail => Desc ? "DESC" : "ASC";
+
+        [JsonIgnore]
+        public string SparqlBody
+        {
+            get
+            {
+                switch (Type)
+                {
+                    case "name":
+                        return @"
+    ?object rdfs:label ?name .
+";
+                    case "size":
+                        return @"
+    ?object sven:component/sven:scale ?scale .
+    ?scale sven:x ?x ;
+           sven:y ?y ;
+           sven:z ?z .
+    BIND(?x + ?y + ?z AS ?size)
+";
+                    default:
+                        return string.Empty;
+
+                }
+            }
         }
     }
 
