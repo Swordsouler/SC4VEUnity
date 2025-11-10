@@ -132,8 +132,8 @@ WHERE {{
             get => _type;
             set => _type = value;
         }
-        [JsonIgnore] public bool IsName => Type == "name";
-        [JsonIgnore] public bool IsSize => Type == "size";
+        [JsonIgnore] public bool IsName => Type.ToLower() == "name";
+        [JsonIgnore] public bool IsSize => Type.ToLower() == "size";
 
         [SerializeField] private bool _desc;
         [JsonProperty("desc")]
@@ -175,14 +175,6 @@ WHERE {{
 
     public class Condition
     {
-        [SerializeField] private string _operator;
-        [JsonProperty("operator")]
-        public string Operator
-        {
-            get => _operator;
-            set => _operator = value;
-        }
-
         [SerializeField] private string _type;
         [JsonProperty("type")]
         public string Type
@@ -190,6 +182,9 @@ WHERE {{
             get => _type;
             set => _type = value;
         }
+        [JsonIgnore] public bool IsAnnotation => Type.ToLower() == "annotation";
+        [JsonIgnore] public bool IsColor => Type.ToLower() == "color";
+        [JsonIgnore] public bool IsEvent => Type.ToLower() == "event";
 
         [SerializeField] private string _value;
         [JsonProperty("value")]
@@ -217,6 +212,10 @@ WHERE {{
             get => _isOperator;
             set => _isOperator = value;
         }
+
+        [JsonIgnore] public bool IsOr => IsOperator && Operator.ToLower() == "or";
+        [JsonIgnore] public bool IsAnd => IsOperator && Operator.ToLower() == "and";
+
         [SerializeField] private string _operator;
         [JsonProperty("operator")]
         public string Operator
@@ -224,6 +223,7 @@ WHERE {{
             get => _operator;
             set => _operator = value;
         }
+
         [SerializeField] private Condition _condition;
         [JsonProperty("condition")]
         public Condition Condition
