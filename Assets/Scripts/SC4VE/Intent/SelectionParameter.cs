@@ -41,7 +41,6 @@ namespace Sc4ve.Multimodality.Parameter
         }
 
         [JsonIgnore] public string OrderSparqlTail => Order != null ? Order.SparqlTail : string.Empty;
-
         [JsonIgnore] public string OrderSparqlBody => Order != null ? Order.SparqlBody : string.Empty;
 
         public async Task<List<string>> QueryObjects(Graph queryGraph)
@@ -57,7 +56,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 SELECT DISTINCT ?object
 WHERE {{
-    {OrderSparqlBody}
+{OrderSparqlBody}
 }} {OrderSparqlTail} {LimitSparql}";
             SparqlResultSet results = null;
             List<string> objectsUri = new();
