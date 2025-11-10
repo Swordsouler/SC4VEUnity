@@ -49,8 +49,8 @@ sven:AppleComponent rdf:type owl:Class ;
                     rdfs:subClassOf sven:Component ;
                     rdfs:comment "An apple component."@en ,
                                  "Un composant de pomme."@fr ;
-                    rdfs:label "Apple component"@en ,
-                                  "Composant de pomme"@fr .
+                    rdfs:label "Apple"@en ,
+                                  "Pomme"@fr .
 
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Banana
@@ -77,8 +77,8 @@ sven:BananaComponent rdf:type owl:Class ;
                      rdfs:subClassOf sven:Component ;
                      rdfs:comment "A banana component."@en ,
                                     "Un composant de banane."@fr ;
-                      rdfs:label "Banana component"@en ,
-                                    "Composant de banane"@fr .
+                      rdfs:label "Banana"@en ,
+                                    "Banane"@fr .
 
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Carrot
@@ -105,8 +105,8 @@ sven:CarrotComponent rdf:type owl:Class ;
                      rdfs:subClassOf sven:Component ;
                       rdfs:comment "A carrot component."@en ,
                                     "Un composant de carotte."@fr ;
-                      rdfs:label "Carrot component"@en ,
-                                    "Composant de carotte"@fr .
+                      rdfs:label "Carrot"@en ,
+                                    "Carotte"@fr .
 
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Food
@@ -143,8 +143,8 @@ sven:PumpkinComponent rdf:type owl:Class ;
                       rdfs:subClassOf sven:Component ;
                       rdfs:comment "A pumpkin component."@en ,
                                    "Un composant de citrouille."@fr ;
-                      rdfs:label "Pumpkin component"@en ,
-                                    "Composant de citrouille"@fr .
+                      rdfs:label "Pumpkin"@en ,
+                                    "Citrouille"@fr .
 
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Spray

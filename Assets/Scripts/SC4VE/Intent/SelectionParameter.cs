@@ -1,11 +1,12 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Sven.Content;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using VDS.RDF;
+using VDS.RDF.Query;
 
 namespace Sc4ve.Multimodality.Parameter
 {
@@ -36,7 +37,7 @@ namespace Sc4ve.Multimodality.Parameter
             set => _order = value;
         }
 
-        public async Task<List<SemantizationCore>> QueryObjects(Graph queryGraph)
+        public async Task<List<string>> QueryObjects(Graph queryGraph)
         {
             string locale = MultimodalityController.LoadedLocale;
             // execute sparql query to get color from value
@@ -54,22 +55,29 @@ WHERE {{
            sven:b ?b ;
            sc4ve:tolerance ?t .
 }}";*/
-            return null;
+            SparqlResultSet results = null;
+            List<string> objectsUri = new();
+            foreach (SparqlResult result in results.Cast<SparqlResult>())
+            {
+                if (result["object"] != null)
+                {
+                    string objUri = result["object"].ToString();
+                    objectsUri.Add(objUri);
+                }
+            }
+            return objectsUri;
         }
 
         public override async Task<IUriNode> Semanticize(Graph graph)
         {
             IUriNode parameterNode = await base.Semanticize(graph);
 
-            List<SemantizationCore> objects = await QueryObjects(graph);
-            if (objects != null && objects.Count > 0)
+            List<string> objectsUri = await QueryObjects(graph);
+            foreach (string objectUri in objectsUri)
             {
-                foreach (SemantizationCore obj in objects)
-                {
-                    IUriNode hasObject = graph.CreateUriNode("sven:value");
-                    IUriNode objNode = graph.CreateUriNode($":{obj.GetUUID()}");
-                    graph.Assert(new Triple(parameterNode, hasObject, objNode));
-                }
+                IUriNode hasObject = graph.CreateUriNode("sven:value");
+                IUriNode objectNode = graph.CreateUriNode($"<{objectUri}>");
+                graph.Assert(new Triple(parameterNode, hasObject, objectNode));
             }
             return parameterNode;
         }
