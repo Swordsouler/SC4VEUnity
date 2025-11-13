@@ -90,7 +90,6 @@ WHERE {{
             List<string> objectsUri = new();
             foreach (SparqlResult result in results.Cast<SparqlResult>())
             {
-                Debug.Log(result.ToString());
                 if (result["object"] != null)
                 {
                     string objUri = result["object"].ToString();

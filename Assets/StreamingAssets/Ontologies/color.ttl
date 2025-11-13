@@ -78,6 +78,7 @@ color:blue rdf:type owl:NamedIndividual ,
       sven:b "0.8"^^xsd:float ;
       sven:g "0.2"^^xsd:float ;
       sven:r "0.2"^^xsd:float ;
+      sven:a "1"^^xsd:float ;
       rdfs:label "Bleu"@fr ,
                  "Blue"@en .
 
@@ -89,6 +90,7 @@ color:cyan rdf:type owl:NamedIndividual ,
       sven:b "0.8"^^xsd:float ;
       sven:g "0.8"^^xsd:float ;
       sven:r "0.2"^^xsd:float ;
+      sven:a "1"^^xsd:float ;
       rdfs:label "Cyan"@en ,
                  "Cyan"@fr .
 
@@ -100,6 +102,7 @@ color:green rdf:type owl:NamedIndividual ,
        sven:b "0.2"^^xsd:float ;
        sven:g "0.8"^^xsd:float ;
        sven:r "0.2"^^xsd:float ;
+       sven:a "1"^^xsd:float ;
        rdfs:label "Green"@en ,
                   "Vert"@fr .
 
@@ -111,6 +114,7 @@ color:pink rdf:type owl:NamedIndividual ,
       sven:b "0.8"^^xsd:float ;
       sven:g "0.2"^^xsd:float ;
       sven:r "0.8"^^xsd:float ;
+      sven:a "1"^^xsd:float ;
       rdfs:label "Pink"@en ,
                  "Rose"@fr .
 
@@ -122,6 +126,7 @@ color:red rdf:type owl:NamedIndividual ,
      sven:b "0.2"^^xsd:float ;
      sven:g "0.2"^^xsd:float ;
      sven:r "0.8"^^xsd:float ;
+     sven:a "1"^^xsd:float ;
      rdfs:label "Red"@en ,
                 "Rouge"@fr .
 
@@ -133,6 +138,7 @@ color:yellow rdf:type owl:NamedIndividual ,
         sven:b "0.2"^^xsd:float ;
         sven:g "0.8"^^xsd:float ;
         sven:r "0.8"^^xsd:float ;
+        sven:a "1"^^xsd:float ;
         rdfs:label "Jaune"@fr ,
                    "Yellow"@en .
 

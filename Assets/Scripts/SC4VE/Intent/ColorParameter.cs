@@ -29,6 +29,12 @@ namespace Sc4ve.Multimodality.Parameter
             get => _blue;
             set => _blue = value;
         }
+        [SerializeField] private float _alpha;
+        public float Alpha
+        {
+            get => _alpha;
+            set => _alpha = value;
+        }
         [SerializeField] private float _tolerance;
         public float Tolerance
         {
@@ -71,13 +77,14 @@ PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
 PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-SELECT ?r ?g ?b ?t
+SELECT ?r ?g ?b ?a ?t
 WHERE {{
     ?color a sven:Color ;
            rdfs:label ""{Value}""@{locale} ;
            sven:r ?r ;
            sven:g ?g ;
            sven:b ?b ;
+           sven:a ?a ;
            sc4ve:tolerance ?t .
 }}";
             // execute query and parse result
@@ -91,6 +98,7 @@ WHERE {{
                 if (result["r"] is not ILiteralNode rNode ||
                     result["g"] is not ILiteralNode gNode ||
                     result["b"] is not ILiteralNode bNode ||
+                    result["a"] is not ILiteralNode aNode ||
                     result["t"] is not ILiteralNode tNode)
                 {
                     Debug.LogWarning("QueryColor: one or more color components are not literal nodes.");
@@ -101,9 +109,10 @@ WHERE {{
                 bool okR = float.TryParse(rNode.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out float rVal);
                 bool okG = float.TryParse(gNode.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out float gVal);
                 bool okB = float.TryParse(bNode.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out float bVal);
+                bool okA = float.TryParse(aNode.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out float aVal);
                 bool okT = float.TryParse(tNode.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out float tVal);
 
-                if (!okR || !okG || !okB || !okT)
+                if (!okR || !okG || !okB || !okA || !okT)
                 {
                     Debug.LogWarning($"QueryColor: failed to parse color components. r='{rNode.Value}', g='{gNode.Value}', b='{bNode.Value}', t='{tNode.Value}'");
                     return null;
@@ -114,6 +123,7 @@ WHERE {{
                     Red = rVal,
                     Green = gVal,
                     Blue = bVal,
+                    Alpha = aVal,
                     Tolerance = tVal
                 };
             }
@@ -133,11 +143,13 @@ WHERE {{
                 IUriNode r = graph.CreateUriNode("sven:r");
                 IUriNode g = graph.CreateUriNode("sven:g");
                 IUriNode b = graph.CreateUriNode("sven:b");
+                IUriNode a = graph.CreateUriNode("sven:a");
                 IUriNode tolerance = graph.CreateUriNode("sc4ve:tolerance");
                 // insert triples for color components (0 to 1) — use InvariantCulture so ToString uses '.'
                 graph.Assert(new Triple(parameterNode, r, graph.CreateLiteralNode(color.Red.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
                 graph.Assert(new Triple(parameterNode, g, graph.CreateLiteralNode(color.Green.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
                 graph.Assert(new Triple(parameterNode, b, graph.CreateLiteralNode(color.Blue.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
+                graph.Assert(new Triple(parameterNode, a, graph.CreateLiteralNode(color.Alpha.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
                 graph.Assert(new Triple(parameterNode, tolerance, graph.CreateLiteralNode(color.Tolerance.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
             }
             return parameterNode;

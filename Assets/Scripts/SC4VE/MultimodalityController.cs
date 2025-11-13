@@ -134,6 +134,8 @@ namespace Sc4ve.Multimodality
             Graph graph = await CommandToGraphOutputCommandAsync(CommandTest2());
             Debug.Log(GraphManager.DecodeGraph(graph));
             GraphManager.Assert(graph.Triples);
+            await ResolveCommands();
+            Debug.Log("Command ha been resolved");
         }
 
         public async Task<Graph> CommandToGraphOutputCommandAsync(List<Command> commands)
@@ -152,6 +154,77 @@ namespace Sc4ve.Multimodality
                 await command.Semanticize(graph);
 
             return graph;
+        }
+
+        public async Task ResolveCommands()
+        {
+            string sparqlUpdate = @"PREFIX : <https://sven.lisn.upsaclay.fr/ve/Buffer/>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
+PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
+
+INSERT {
+    ?newInstant a time:Instant ;
+    			time:inXSDDateTime ?newInstantTime .
+    ?newColorInterval a time:Interval ;
+    				  time:before ?currentColorInterval ;
+    				  time:hasBeginning ?newInstant .
+    ?newColor a sven:Color ;
+    		  sven:exactType sven:Color ;
+        	  sven:hasTemporalExtent ?newColorInterval ;
+    		  sven:r ?r ;
+    		  sven:g ?g ;
+    		  sven:b ?b ;
+    		  sven:a ?a .
+    ?currentColorInterval time:before ?newColorInterval ;
+    					  time:hasEnd ?newInstant ;
+    					  time:hasDuration ?currentColorDuration .
+    ?render sven:color ?newColor .
+}
+WHERE {
+    ?command a sc4ve:ColorizeCommand .
+    
+    # selection parameter
+    ?command sc4ve:hasParameter ?selectionParameter .
+    ?selectionParameter a sc4ve:SelectionParameter ;
+    					sven:value ?object .
+    ?object sven:component ?render .
+    ?render a sven:3DRender ;
+    		sven:color ?currentColor .
+    ?currentColor sven:hasTemporalExtent ?currentColorInterval .
+    ?currentColorInterval time:hasBeginning ?currentColorStartInstant .
+    ?currentColorStartInstant time:inXSDDateTime ?currentColorStartTime .
+    
+    # color parameter
+    ?command sc4ve:hasParameter ?colorParameter .
+	?colorParameter a sc4ve:ColorParameter ;
+    				sven:r ?r ;
+    				sven:g ?g ;
+    				sven:b ?b ;
+    				sven:a ?a .
+    
+    BIND(URI(CONCAT(STR(:), STRUUID())) AS ?newInstant)
+    BIND(URI(CONCAT(STR(:), STRUUID())) AS ?newColorInterval)
+    BIND(URI(CONCAT(STR(:), STRUUID())) AS ?newColor)
+    BIND(?newInstantTime - ?currentColorStartTime AS ?currentColorDuration)
+    
+    {
+        SELECT DISTINCT ?currentColorInterval ?newInstantTime
+        WHERE {
+    		BIND(NOW() AS ?newInstantTime)
+            ?currentColorInterval a time:Interval ;
+            time:hasBeginning/time:inXSDDateTime ?startTime .
+            OPTIONAL {
+                ?currentColorInterval time:hasEnd/time:inXSDDateTime ?_endTime .
+            }
+            BIND(IF(BOUND(?_endTime), ?_endTime, NOW()) AS ?endTime)
+            FILTER(?startTime <= ?newInstantTime && ?newInstantTime <= ?endTime)
+        } ORDER BY ?startTime ?endTime limit 10000
+    }
+}";
+            await GraphManager.UpdateMemoryAsync(sparqlUpdate);
+            await GraphManager.ForceFlushToEndpointAsync();
+            await GraphManager.SynchronizeAsync();
         }
     }
 }
