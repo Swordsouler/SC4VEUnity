@@ -108,7 +108,7 @@ WHERE {{
             foreach (string objectUri in objectsUri)
             {
                 IUriNode hasObject = graph.CreateUriNode("sven:value");
-                IUriNode objectNode = graph.CreateUriNode($"<{objectUri}>");
+                IUriNode objectNode = graph.CreateUriNode(UriFactory.Create(objectUri));
                 graph.Assert(new Triple(parameterNode, hasObject, objectNode));
             }
             return parameterNode;
