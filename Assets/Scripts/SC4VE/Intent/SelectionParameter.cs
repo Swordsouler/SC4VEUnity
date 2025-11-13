@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using VDS.RDF;
@@ -21,6 +22,33 @@ namespace Sc4ve.Multimodality.Parameter
             set => _filters = value;
         }
 
+        [JsonIgnore]
+        public string FiltersSparql
+        {
+            get
+            {
+                if (Filters == null || Filters.Count == 0)
+                    return string.Empty;
+
+                List<string> parts = Filters.Select((f, i) => f.Sparql(i)).ToList();
+                StringBuilder sb = new();
+
+                foreach (string p in parts)
+                {
+                    if (!string.IsNullOrEmpty(p))
+                        sb.AppendLine(p.TrimEnd());
+                }
+
+                // add "}" at the end for each IsAnd
+                int opens = Filters.Count(f => f.IsAnd);
+                // \n must be a join
+                for (int i = 0; i < opens; i++)
+                    sb.AppendLine("    }");
+
+                return sb.ToString();
+            }
+        }
+
         [SerializeField] private int _limit;
         [JsonProperty("limit")]
         public int Limit
@@ -29,8 +57,7 @@ namespace Sc4ve.Multimodality.Parameter
             set => _limit = value;
         }
 
-        [JsonIgnore]
-        public string LimitSparql => Limit > 0 ? $"LIMIT {Limit}" : "LIMIT 10000";
+        [JsonIgnore] public string LimitSparql => Limit > 0 ? $"LIMIT {Limit}" : "LIMIT 10000";
 
         [SerializeField] private Order _order;
         [JsonProperty("order")]
@@ -45,10 +72,8 @@ namespace Sc4ve.Multimodality.Parameter
 
         public async Task<List<string>> QueryObjects(Graph queryGraph)
         {
-            string locale = MultimodalityController.LoadedLocale;
             // execute sparql query to get color from value
-            string query = $@"
-PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
+            string query = $@"PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
 PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
@@ -56,9 +81,11 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 SELECT DISTINCT ?object
 WHERE {{
+{FiltersSparql}
 {OrderSparqlBody}
 }} {OrderSparqlTail} {LimitSparql}";
-            SparqlResultSet results = null;
+            Debug.Log(query);
+            SparqlResultSet results = queryGraph.ExecuteQuery(query) as SparqlResultSet;
             List<string> objectsUri = new();
             foreach (SparqlResult result in results.Cast<SparqlResult>())
             {
@@ -151,24 +178,16 @@ WHERE {{
         {
             get
             {
-                switch (Type)
+                return Type switch
                 {
-                    case "name":
-                        return @"
-    ?object rdfs:label ?name .
-";
-                    case "size":
-                        return @"
-    ?object sven:component/sven:scale ?scale .
+                    "name" => @"    ?object rdfs:label ?name .",
+                    "size" => @"    ?object sven:component/sven:scale ?scale .
     ?scale sven:x ?x ;
            sven:y ?y ;
            sven:z ?z .
-    BIND(?x + ?y + ?z AS ?size)
-";
-                    default:
-                        return string.Empty;
-
-                }
+    BIND(?x + ?y + ?z AS ?size)",
+                    _ => string.Empty,
+                };
             }
         }
     }
@@ -201,6 +220,92 @@ WHERE {{
             get => _timestamp;
             set => _timestamp = value;
         }
+
+        public string Sparql(int index)
+        {
+            string locale = MultimodalityController.LoadedLocale;
+            string intervalQuery = @$"{{
+                SELECT DISTINCT ?interval{index}
+                WHERE {{
+                    VALUES ?instantTime {{ ""{Timestamp:yyyy-MM-ddTHH:mm:ss.fffzzz}""^^xsd:dateTime }}
+                    ?interval{index} a time:Interval ;
+                            time:hasBeginning/time:inXSDDateTime ?startTime .
+                    OPTIONAL {{
+                        ?interval{index} time:hasEnd/time:inXSDDateTime ?_endTime .
+                    }}
+                    BIND(IF(BOUND(?_endTime), ?_endTime, NOW()) AS ?endTime)
+                    FILTER(?startTime <= ?instantTime && ?instantTime < ?endTime)
+                }} ORDER BY ?startTime ?endTime limit 10000
+            }}";
+            if (IsAnnotation)
+            {
+                return @$"{{
+        SELECT DISTINCT ?object
+        WHERE
+        {{
+            {intervalQuery}
+            ?object sven:component ?component .
+            ?component a ?componentType ;
+                        sven:hasTemporalExtent ?interval{index} .
+            ?componentType rdfs:label ""{Value}""@{locale}
+        }} LIMIT 10000
+    }}";
+            }
+            else if (IsColor)
+            {
+                return @$"{{
+        SELECT DISTINCT ?object
+        WHERE
+        {{
+            {{
+                {intervalQuery}
+                ?object sven:component ?component .
+                ?component sven:color ?property .
+                ?property a sven:Color ;
+                            sven:hasTemporalExtent ?interval{index} ;
+                            sven:r ?r{index} ;
+                            sven:g ?g{index} ;
+                            sven:b ?b{index} ;
+                            sven:a ?a{index} .
+            }}
+            {{
+                ?color a sven:Color ;
+                        rdfs:label ""Rouge""@fr ;
+                        sven:r ?tr{index} ;
+                        sven:g ?tg{index} ;
+                        sven:b ?tb{index} ;
+                        sc4ve:tolerance ?t{index} .
+                BIND(?tr{index} - ?t{index} AS ?minR{index})
+                BIND(?tr{index} + ?t{index} AS ?maxR{index})
+                BIND(?tg{index} - ?t{index} AS ?minG{index})
+                BIND(?tg{index} + ?t{index} AS ?maxG{index})
+                BIND(?tb{index} - ?t{index} AS ?minB{index})
+                BIND(?tb{index} + ?t{index} AS ?maxB{index})
+                FILTER(?minR{index} <= ?r{index} && ?r{index} <= ?maxR{index} && ?minG{index} <= ?g{index} && ?g{index} <= ?maxG{index} && ?minB{index} <= ?b{index} && ?b{index} <= ?maxB{index})
+            }}
+        }} LIMIT 10000
+    }}";
+            }
+            else if (IsEvent)
+            {
+                return @$"{{
+        SELECT DISTINCT ?object
+        WHERE
+        {{
+            {intervalQuery}
+            ?event a sven:CollisionEvent ;
+            	    sven:hasTemporalExtent ?interval{index} ;
+            	    sven:sender ?sender ;
+                    sven:receiver ?object .
+            ?sender sven:component ?component .
+            ?component a ?componentType .
+            ?componentType rdfs:label ""{Value}""@{locale}
+        }} LIMIT 10000
+    }}";
+            }
+            Debug.LogWarning($"Condition.Sparql: Unknown condition type '{Type}'");
+            return "";
+        }
     }
 
     public class FilterElement
@@ -230,6 +335,22 @@ WHERE {{
         {
             get => _condition;
             set => _condition = value;
+        }
+
+        public string Sparql(int index)
+        {
+            if (IsAnd)
+            {
+                return "    {";
+            }
+            else if (IsOr)
+            {
+                return "    UNION";
+            }
+            else
+            {
+                return $"    {Condition.Sparql(index)}";
+            }
         }
     }
 

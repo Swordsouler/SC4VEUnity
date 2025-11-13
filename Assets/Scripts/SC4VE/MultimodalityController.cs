@@ -1,4 +1,4 @@
-using NaughtyAttributes;
+﻿using NaughtyAttributes;
 using Newtonsoft.Json;
 using Sc4ve.Multimodality.Parameter;
 using Sc4ve.Voice;
@@ -77,7 +77,52 @@ namespace Sc4ve.Multimodality
 
         private List<Command> CommandTest2()
         {
-            string jsonTest = "[\r\n  {\r\n    \"type\": \"ColorizeCommand\",\r\n    \"parameters\": [\r\n      {\r\n        \"type\": \"ColorParameter\",\r\n        \"value\": \"Rouge\"\r\n      },\r\n      {\r\n        \"type\": \"SelectionParameter\",\r\n        \"filters\": [\r\n          {\r\n            \"operator\": \"=\",\r\n            \"type\": \"Annotation\",\r\n            \"value\": \"citrouille\",\r\n            \"timestamp\": \"2025-10-06T10:50:45.1472611+02:00\"\r\n          },\r\n          \"AND\",\r\n          {\r\n            \"operator\": \"=\",\r\n            \"type\": \"PointOfView\",\r\n            \"timestamp\": \"2025-10-06T10:50:46.4247752+02:00\"\r\n          }\r\n        ],\r\n        \"limit\": \"5\",\r\n        \"order\": {\r\n          \"criterias\": [\r\n            {\r\n              \"type\": \"size\",\r\n              \"desc\": true\r\n            },\r\n            {\r\n              \"type\": \"name\",\r\n              \"desc\": false\r\n            }\r\n          ]\r\n        }\r\n      }\r\n    ]\r\n  }\r\n]";
+            string jsonTest = $@"[
+  {{
+    ""type"": ""ColorizeCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""ColorParameter"",
+        ""value"": ""Rouge""
+      }},
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+   {{
+            ""type"": ""Annotation"",
+            ""value"": ""Citrouille"",
+            ""timestamp"": ""{DateTime.Now:yyyy-MM-ddTHH:mm:ss.fffzzz}""
+         }},
+   ""OR"",
+   {{
+            ""type"": ""Annotation"",
+            ""value"": ""Pomme"",
+            ""timestamp"": ""{DateTime.Now:yyyy-MM-ddTHH:mm:ss.fffzzz}""
+          }},
+          ""AND"",
+          {{
+    ""type"": ""Event"",
+    ""value"": ""Caméra"",
+            ""timestamp"": ""{DateTime.Now:yyyy-MM-ddTHH:mm:ss.fffzzz}""
+          }}
+        ],
+        ""limit"": ""5"",
+        ""order"": {{
+          ""criterias"": [
+            {{
+              ""type"": ""size"",
+              ""desc"": true
+            }},
+            {{
+              ""type"": ""name"",
+              ""desc"": false
+            }}
+          ]
+        }}
+      }}
+    ]
+  }}
+]";
             return DeserializeCommand(jsonTest);
         }
 
@@ -94,7 +139,7 @@ namespace Sc4ve.Multimodality
         public async Task<Graph> CommandToGraphOutputCommandAsync(List<Command> commands)
         {
             Graph graph = new();
-            // import all ontologies in StreamingAssets/Ontologies (pour �tre optimal, il ne faudrait charger que l'ontologie des commandes)
+            // import all ontologies in StreamingAssets/Ontologies (pour être optimal, il ne faudrait charger que l'ontologie des commandes)
             Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
             foreach (KeyValuePair<string, string> ontology in ontologies)
             {
