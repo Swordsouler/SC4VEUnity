@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Sven.GraphManagement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -70,7 +71,7 @@ namespace Sc4ve.Multimodality.Parameter
         [JsonIgnore] public string OrderSparqlTail => Order != null ? Order.SparqlTail : string.Empty;
         [JsonIgnore] public string OrderSparqlBody => Order != null ? Order.SparqlBody : string.Empty;
 
-        public async Task<List<string>> QueryObjects(Graph queryGraph)
+        public async Task<List<string>> QueryObjects()
         {
             // execute sparql query to get color from value
             string query = $@"PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
@@ -85,10 +86,11 @@ WHERE {{
 {OrderSparqlBody}
 }} {OrderSparqlTail} {LimitSparql}";
             Debug.Log(query);
-            SparqlResultSet results = queryGraph.ExecuteQuery(query) as SparqlResultSet;
+            SparqlResultSet results = GraphManager.Instance.ExecuteQuery(query) as SparqlResultSet;
             List<string> objectsUri = new();
             foreach (SparqlResult result in results.Cast<SparqlResult>())
             {
+                Debug.Log(result.ToString());
                 if (result["object"] != null)
                 {
                     string objUri = result["object"].ToString();
@@ -102,7 +104,7 @@ WHERE {{
         {
             IUriNode parameterNode = await base.Semanticize(graph);
 
-            List<string> objectsUri = await QueryObjects(graph);
+            List<string> objectsUri = await QueryObjects();
             foreach (string objectUri in objectsUri)
             {
                 IUriNode hasObject = graph.CreateUriNode("sven:value");
