@@ -21,7 +21,7 @@ namespace Sc4ve.Multimodality.Intent
             Parameter target = typeStr switch
             {
                 "ColorParameter" => new ColorParameter(),
-                "PositionParameter" => new PositionParameter(),
+                "PointParameter" => new PointParameter(),
                 "SelectionParameter" => new SelectionParameter(),
                 _ => new Parameter()
             };

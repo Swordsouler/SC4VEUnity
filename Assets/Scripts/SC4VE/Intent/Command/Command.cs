@@ -62,9 +62,9 @@ namespace Sc4ve.Multimodality.Intent
 
         public abstract void Execute();
 
-        protected T GetParameter<T>() where T : Parameter
+        protected T GetParameter<T>(int element = 1) where T : Parameter
         {
-            return Parameters?.OfType<T>().FirstOrDefault();
+            return Parameters?.OfType<T>().Skip(element - 1).FirstOrDefault();
         }
     }
 }
