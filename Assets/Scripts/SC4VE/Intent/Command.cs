@@ -8,7 +8,7 @@ using VDS.RDF;
 namespace Sc4ve.Multimodality.Parameter
 {
     [Serializable]
-    public class Command
+    public abstract class Command
     {
         [SerializeField] private string _id = string.Empty;
         public string Id
@@ -57,5 +57,7 @@ namespace Sc4ve.Multimodality.Parameter
             }
             return commandNode;
         }
+
+        public abstract void Execute();
     }
 }

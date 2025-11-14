@@ -68,6 +68,14 @@ namespace Sc4ve.Multimodality.Parameter
             set => _order = value;
         }
 
+        [SerializeField] private List<string> _objectsUri;
+        [JsonIgnore]
+        public List<string> ObjectsUri
+        {
+            get => _objectsUri;
+            set => _objectsUri = value;
+        }
+
         [JsonIgnore] public string OrderSparqlTail => Order != null ? Order.SparqlTail : string.Empty;
         [JsonIgnore] public string OrderSparqlBody => Order != null ? Order.SparqlBody : string.Empty;
 
@@ -103,8 +111,8 @@ WHERE {{
         {
             IUriNode parameterNode = await base.Semanticize(graph);
 
-            List<string> objectsUri = await QueryObjects();
-            foreach (string objectUri in objectsUri)
+            ObjectsUri ??= await QueryObjects();
+            foreach (string objectUri in ObjectsUri)
             {
                 IUriNode hasObject = graph.CreateUriNode("sven:value");
                 IUriNode objectNode = graph.CreateUriNode(UriFactory.Create(objectUri));

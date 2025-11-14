@@ -68,6 +68,14 @@ namespace Sc4ve.Multimodality.Parameter
             set => _timestamp = value;
         }
 
+        [SerializeField] private Color _color;
+        [JsonIgnore]
+        public Color Color
+        {
+            get => _color;
+            set => _color = value;
+        }
+
         public async Task<Color> QueryColor(Graph queryGraph)
         {
             string locale = MultimodalityController.LoadedLocale;
@@ -137,8 +145,8 @@ WHERE {{
         {
             IUriNode parameterNode = await base.Semanticize(graph);
 
-            Color color = await QueryColor(graph);
-            if (color != null)
+            Color ??= await QueryColor(graph);
+            if (Color != null)
             {
                 IUriNode r = graph.CreateUriNode("sven:r");
                 IUriNode g = graph.CreateUriNode("sven:g");
@@ -146,11 +154,11 @@ WHERE {{
                 IUriNode a = graph.CreateUriNode("sven:a");
                 IUriNode tolerance = graph.CreateUriNode("sc4ve:tolerance");
                 // insert triples for color components (0 to 1) — use InvariantCulture so ToString uses '.'
-                graph.Assert(new Triple(parameterNode, r, graph.CreateLiteralNode(color.Red.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
-                graph.Assert(new Triple(parameterNode, g, graph.CreateLiteralNode(color.Green.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
-                graph.Assert(new Triple(parameterNode, b, graph.CreateLiteralNode(color.Blue.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
-                graph.Assert(new Triple(parameterNode, a, graph.CreateLiteralNode(color.Alpha.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
-                graph.Assert(new Triple(parameterNode, tolerance, graph.CreateLiteralNode(color.Tolerance.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
+                graph.Assert(new Triple(parameterNode, r, graph.CreateLiteralNode(Color.Red.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
+                graph.Assert(new Triple(parameterNode, g, graph.CreateLiteralNode(Color.Green.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
+                graph.Assert(new Triple(parameterNode, b, graph.CreateLiteralNode(Color.Blue.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
+                graph.Assert(new Triple(parameterNode, a, graph.CreateLiteralNode(Color.Alpha.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
+                graph.Assert(new Triple(parameterNode, tolerance, graph.CreateLiteralNode(Color.Tolerance.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
             }
             return parameterNode;
         }

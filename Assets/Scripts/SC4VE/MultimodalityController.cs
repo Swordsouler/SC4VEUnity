@@ -131,14 +131,12 @@ namespace Sc4ve.Multimodality
             Debug.Log(JsonConvert.SerializeObject(CommandTest1()));
             Debug.Log(JsonConvert.SerializeObject(CommandTest2()));
             // debug turtle content of the graph
-            Graph graph = await CommandToGraphOutputCommandAsync(CommandTest2());
-            Debug.Log(GraphManager.DecodeGraph(graph));
-            GraphManager.Assert(graph.Triples);
-            await ResolveCommands();
-            Debug.Log("Command ha been resolved");
+            List<Command> commands = await CommandToGraphOutputCommandAsync(CommandTest2());
+            await ResolveCommands(commands);
+            Debug.Log("Command has been resolved");
         }
 
-        public async Task<Graph> CommandToGraphOutputCommandAsync(List<Command> commands)
+        public async Task<List<Command>> CommandToGraphOutputCommandAsync(List<Command> commands)
         {
             Graph graph = new();
             // import all ontologies in StreamingAssets/Ontologies (pour être optimal, il ne faudrait charger que l'ontologie des commandes)
@@ -153,11 +151,19 @@ namespace Sc4ve.Multimodality
             foreach (Command command in commands)
                 await command.Semanticize(graph);
 
-            return graph;
+            GraphManager.Assert(graph.Triples);
+
+            return commands;
         }
 
-        public async Task ResolveCommands()
+        public async Task ResolveCommands(List<Command> commands)
         {
+            foreach (Command command in commands)
+            {
+                command.Execute();
+            }
+
+            /*
             string sparqlUpdate = @"PREFIX : <https://sven.lisn.upsaclay.fr/ve/Buffer/>
 PREFIX time: <http://www.w3.org/2006/time#>
 PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
@@ -224,7 +230,7 @@ WHERE {
 }";
             await GraphManager.UpdateMemoryAsync(sparqlUpdate);
             await GraphManager.ForceFlushToEndpointAsync();
-            await GraphManager.SynchronizeAsync();
+            await GraphManager.SynchronizeAsync();*/
         }
     }
 }
