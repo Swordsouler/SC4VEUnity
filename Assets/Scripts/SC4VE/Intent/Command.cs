@@ -1,12 +1,14 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using VDS.RDF;
 
 namespace Sc4ve.Multimodality.Parameter
 {
+    [JsonConverter(typeof(CommandConverter))]
     [Serializable]
     public abstract class Command
     {
@@ -59,5 +61,10 @@ namespace Sc4ve.Multimodality.Parameter
         }
 
         public abstract void Execute();
+
+        protected T GetParameter<T>() where T : Parameter
+        {
+            return Parameters?.OfType<T>().FirstOrDefault();
+        }
     }
 }

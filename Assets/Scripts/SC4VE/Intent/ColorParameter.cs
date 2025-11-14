@@ -41,6 +41,7 @@ namespace Sc4ve.Multimodality.Parameter
             get => _tolerance;
             set => _tolerance = value;
         }
+        public UnityEngine.Color Value => new(MaxRed, MaxGreen, MaxBlue, Alpha);
 
         public float MinRed => Mathf.Clamp(Red - Tolerance, 0f, 1f);
         public float MaxRed => Mathf.Clamp(Red + Tolerance, 0f, 1f);

@@ -1,3 +1,4 @@
+using Sven.Content;
 using System;
 using UnityEngine;
 
@@ -6,44 +7,17 @@ namespace Sc4ve.Multimodality.Parameter
     [Serializable]
     public class ColorizeCommand : Command
     {
-        public SelectionParameter SelectionParameter
-        {
-            get
-            {
-                if (Parameters != null)
-                {
-                    foreach (Parameter parameter in Parameters)
-                    {
-                        if (parameter is SelectionParameter selectionParameter)
-                        {
-                            return selectionParameter;
-                        }
-                    }
-                }
-                return null;
-            }
-        }
-        public ColorParameter ColorParameter
-        {
-            get
-            {
-                if (Parameters != null)
-                {
-                    foreach (Parameter parameter in Parameters)
-                    {
-                        if (parameter is ColorParameter colorParameter)
-                        {
-                            return colorParameter;
-                        }
-                    }
-                }
-                return null;
-            }
-        }
+        public SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
+        public ColorParameter ColorParameter => GetParameter<ColorParameter>();
 
         public override void Execute()
         {
-            Debug.Log("Executing ColorizeCommand");
+            foreach (SemantizationCore semantizationCore in SelectionParameter.Objects)
+            {
+                if (!semantizationCore.TryGetComponent(out Renderer renderer)) continue;
+                renderer.material.color = ColorParameter.Color.Value;
+                Debug.Log($"Colorizing object {semantizationCore.GetUUID()} with color {ColorParameter.Color.Value}");
+            }
         }
     }
 }

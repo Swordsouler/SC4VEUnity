@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Sven.Content;
 using Sven.GraphManagement;
 using System;
 using System.Collections.Generic;
@@ -75,6 +76,14 @@ namespace Sc4ve.Multimodality.Parameter
             get => _objectsUri;
             set => _objectsUri = value;
         }
+        public List<string> ObjectsId => ObjectsUri?.Select(uri => uri.Split('/').Last()).ToList();
+        public List<SemantizationCore> Objects => ObjectsId?.Select(id =>
+        {
+            SemantizationExtensions.TryGetComponentByUUID(id, out Component obj);
+            if (obj is SemantizationCore sc)
+                return sc;
+            return null;
+        }).Where(obj => obj != null).ToList();
 
         [JsonIgnore] public string OrderSparqlTail => Order != null ? Order.SparqlTail : string.Empty;
         [JsonIgnore] public string OrderSparqlBody => Order != null ? Order.SparqlBody : string.Empty;
