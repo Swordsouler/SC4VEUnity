@@ -4,7 +4,7 @@ using Newtonsoft.Json.Serialization;
 using System;
 using UnityEngine;
 
-namespace Sc4ve.Multimodality.Parameter
+namespace Sc4ve.Multimodality.Intent
 {
     internal class CommandConverter : JsonConverter
     {

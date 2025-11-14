@@ -2,7 +2,7 @@ using Sven.Content;
 using System;
 using UnityEngine;
 
-namespace Sc4ve.Multimodality.Parameter
+namespace Sc4ve.Multimodality.Intent
 {
     [Serializable]
     public class ColorizeCommand : Command

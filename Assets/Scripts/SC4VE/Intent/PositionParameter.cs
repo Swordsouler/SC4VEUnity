@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 using System;
 using UnityEngine;
 
-namespace Sc4ve.Multimodality.Parameter
+namespace Sc4ve.Multimodality.Intent
 {
     public class PositionParameter : Parameter
     {

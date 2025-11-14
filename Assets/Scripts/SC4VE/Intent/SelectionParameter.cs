@@ -11,7 +11,7 @@ using UnityEngine;
 using VDS.RDF;
 using VDS.RDF.Query;
 
-namespace Sc4ve.Multimodality.Parameter
+namespace Sc4ve.Multimodality.Intent
 {
     public class SelectionParameter : Parameter
     {

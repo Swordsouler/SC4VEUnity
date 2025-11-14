@@ -1,6 +1,6 @@
 ﻿using NaughtyAttributes;
 using Newtonsoft.Json;
-using Sc4ve.Multimodality.Parameter;
+using Sc4ve.Multimodality.Intent;
 using Sc4ve.Voice;
 using Sven.GraphManagement;
 using Sven.OwlTime;
@@ -57,8 +57,6 @@ namespace Sc4ve.Multimodality
                 phrase.Start(new Instant(phrase.StartedAt));
                 phrase.End(new Instant(phrase.EndedAt));
                 phrase.Semanticize();
-                /*_commandChain = new CommandChain(_commandExecutionMode, result.Phrases[i], Settings);
-                _commandChain.Execute();*/
             }
         }
 
