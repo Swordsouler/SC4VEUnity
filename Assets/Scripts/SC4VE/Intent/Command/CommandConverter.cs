@@ -22,7 +22,16 @@ namespace Sc4ve.Multimodality.Intent
             Command target = typeStr switch
             {
                 "ColorizeCommand" => new ColorizeCommand(),
-                // Ajoutez d'autres mappings ici (ex: "MoveCommand" => new MoveCommand(), ...)
+                "GrabCommand" => new GrabCommand(),
+                "HideCommand" => new HideCommand(),
+                "MeasureCommand" => new MeasureCommand(),
+                "MoveCommand" => new MoveCommand(),
+                "ReleaseCommand" => new ReleaseCommand(),
+                "ScaleDownCommand" => new ScaleDownCommand(),
+                "ScaleUpCommand" => new ScaleUpCommand(),
+                "SelectCommand" => new SelectCommand(),
+                "ShowCommand" => new ShowCommand(),
+                "UnselectCommand" => new UnselectCommand(),
                 _ => new UnknownCommand { Type = typeStr ?? "Unknown" }
             };
 

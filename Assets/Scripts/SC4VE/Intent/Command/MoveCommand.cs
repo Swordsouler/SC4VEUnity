@@ -14,7 +14,9 @@ namespace Sc4ve.Multimodality.Intent
         {
             foreach (SemantizationCore semantizationCore in SelectionParameter.Objects)
             {
-                semantizationCore.transform.position = PointParameter.Point;
+                Debug.Log($"Preparing to move object {semantizationCore.GetUUID()}");
+                if (PointParameter == null || PointParameter.Point == null) continue;
+                semantizationCore.transform.position = (Vector3)PointParameter.Point;
                 Debug.Log($"Moving object {semantizationCore.GetUUID()} to position {PointParameter.Point}");
             }
         }

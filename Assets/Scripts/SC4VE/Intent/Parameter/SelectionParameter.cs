@@ -102,7 +102,6 @@ WHERE {{
 {FiltersSparql}
 {OrderSparqlBody}
 }} {OrderSparqlTail} {LimitSparql}";
-            Debug.Log(query);
             SparqlResultSet results = GraphManager.Instance.ExecuteQuery(query) as SparqlResultSet;
             List<string> objectsUri = new();
             foreach (SparqlResult result in results.Cast<SparqlResult>())

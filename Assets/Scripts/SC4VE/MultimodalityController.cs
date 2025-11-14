@@ -69,7 +69,29 @@ namespace Sc4ve.Multimodality
 
         private List<Command> CommandTest1()
         {
-            string jsonTest = "[\r\n  {\r\n    \"type\": \"ColorizeCommand\",\r\n    \"parameters\": [\r\n      {\r\n        \"type\": \"ColorParameter\",\r\n        \"value\": \"Rouge\"\r\n      }\r\n    ]\r\n  }\r\n]";
+            string jsonTest = $@"[
+  {{
+    ""type"": ""MoveCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""PointParameter"",
+        ""value"": ""Pointer"",
+   ""timestamp"": ""{DateTime.Now:yyyy-MM-ddTHH:mm:ss.fffzzz}""
+      }},
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{
+            ""type"": ""Event"",
+            ""value"": ""Pointeur"",
+            ""timestamp"": ""{DateTime.Now:yyyy-MM-ddTHH:mm:ss.fffzzz}""
+          }}
+        ],
+        ""limit"": ""1""
+      }}
+    ]
+  }}
+]";
             return DeserializeCommand(jsonTest);
         }
 
@@ -129,7 +151,7 @@ namespace Sc4ve.Multimodality
             Debug.Log(JsonConvert.SerializeObject(CommandTest1()));
             Debug.Log(JsonConvert.SerializeObject(CommandTest2()));
             // debug turtle content of the graph
-            List<Command> commands = await CommandToGraphOutputCommandAsync(CommandTest2());
+            List<Command> commands = await CommandToGraphOutputCommandAsync(CommandTest1());
             await ResolveCommands(commands);
             Debug.Log("Command has been resolved");
         }
