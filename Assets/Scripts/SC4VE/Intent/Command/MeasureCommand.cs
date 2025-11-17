@@ -6,8 +6,8 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable]
     public class MeasureCommand : Command
     {
-        public PointParameter PointParameter1 => GetParameter<PointParameter>(1);
-        public PointParameter PointParameter2 => GetParameter<PointParameter>(2);
+        private PointParameter PointParameter1 => GetParameter<PointParameter>(1);
+        private PointParameter PointParameter2 => GetParameter<PointParameter>(2);
 
         public override void Execute()
         {

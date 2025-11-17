@@ -77,6 +77,7 @@ namespace Sc4ve.Multimodality.Intent
             set => _objectsUri = value;
         }
         public List<string> ObjectsId => ObjectsUri?.Select(uri => uri.Split('/').Last()).ToList();
+        [JsonIgnore]
         public List<SemantizationCore> Objects => ObjectsId?.Select(id =>
         {
             SemantizationExtensions.TryGetComponentByUUID(id, out Component obj);
@@ -327,7 +328,7 @@ WHERE {{
 
     public class FilterElement
     {
-        [SerializeField] private bool _isOperator;
+        [SerializeField] private bool _isOperator = false;
         [JsonProperty("isOperator")]
         public bool IsOperator
         {
@@ -338,7 +339,7 @@ WHERE {{
         [JsonIgnore] public bool IsOr => IsOperator && Operator.ToLower() == "or";
         [JsonIgnore] public bool IsAnd => IsOperator && Operator.ToLower() == "and";
 
-        [SerializeField] private string _operator;
+        [SerializeField] private string _operator = string.Empty;
         [JsonProperty("operator")]
         public string Operator
         {

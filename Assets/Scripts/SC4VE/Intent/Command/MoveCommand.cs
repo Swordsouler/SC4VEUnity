@@ -7,8 +7,8 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable]
     public class MoveCommand : Command
     {
-        public SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-        public PointParameter PointParameter => GetParameter<PointParameter>();
+        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
+        private PointParameter PointParameter => GetParameter<PointParameter>();
 
         public override void Execute()
         {

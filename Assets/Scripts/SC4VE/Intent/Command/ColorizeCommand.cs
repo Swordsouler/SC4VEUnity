@@ -7,8 +7,8 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable]
     public class ColorizeCommand : Command
     {
-        public SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-        public ColorParameter ColorParameter => GetParameter<ColorParameter>();
+        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
+        private ColorParameter ColorParameter => GetParameter<ColorParameter>();
 
         public override void Execute()
         {

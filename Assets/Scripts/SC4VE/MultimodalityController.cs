@@ -176,6 +176,68 @@ namespace Sc4ve.Multimodality
             return commands;
         }
 
+        private void Update()
+        {
+            HandlePointerDown();
+            HandlePointerUp();
+        }
+
+        private Parameter thisParameter = null;
+        private Parameter thereParameter = null;
+        private bool _isResolvingCommand = false;
+
+        public void HandlePointerDown()
+        {
+            if (Input.GetMouseButtonDown(0))
+            {
+                thisParameter = new SelectionParameter
+                {
+                    Filters = new List<FilterElement>
+                    {
+                        new() {
+                            Condition = new Condition
+                            {
+                                Type = "Event",
+                                Value = "Pointeur",
+                                Timestamp = DateTime.Now,
+                            },
+                        }
+                    },
+                    Limit = 1,
+                };
+            }
+        }
+
+        public async void HandlePointerUp()
+        {
+            if (Input.GetMouseButtonUp(0))
+            {
+                thereParameter = new PointParameter
+                {
+                    Value = "Pointer",
+                    Timestamp = DateTime.Now,
+                };
+                Command moveCommand;
+                moveCommand = new MoveCommand
+                {
+                    Parameters = new List<Parameter>
+                    {
+                        thisParameter,
+                        thereParameter,
+                    }
+                };
+                List<Command> commands = new() { moveCommand };
+                thisParameter = null;
+                thereParameter = null;
+                if (_isResolvingCommand) return;
+                _isResolvingCommand = true;
+                await CommandToGraphOutputCommandAsync(commands);
+                await ResolveCommands(commands);
+                Debug.Log(JsonConvert.SerializeObject(commands));
+                _isResolvingCommand = false;
+            }
+        }
+
         public async Task ResolveCommands(List<Command> commands)
         {
             foreach (Command command in commands)

@@ -7,7 +7,7 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable]
     public class ScaleUpCommand : Command
     {
-        public SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
+        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
 
         public override void Execute()
         {
