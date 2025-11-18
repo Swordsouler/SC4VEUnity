@@ -89,7 +89,7 @@ namespace Sc4ve.Multimodality.Intent
         [JsonIgnore] public string OrderSparqlTail => Order != null ? Order.SparqlTail : string.Empty;
         [JsonIgnore] public string OrderSparqlBody => Order != null ? Order.SparqlBody : string.Empty;
 
-        public async Task<List<string>> QueryObjects()
+        public async Task<List<string>> QueryObjects(Graph queryGraph)
         {
             // execute sparql query to get color from value
             string query = $@"PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
@@ -103,7 +103,7 @@ WHERE {{
 {FiltersSparql}
 {OrderSparqlBody}
 }} {OrderSparqlTail} {LimitSparql}";
-            SparqlResultSet results = GraphManager.Instance.ExecuteQuery(query) as SparqlResultSet;
+            SparqlResultSet results = queryGraph.ExecuteQuery(query) as SparqlResultSet;
             List<string> objectsUri = new();
             foreach (SparqlResult result in results.Cast<SparqlResult>())
             {
@@ -120,7 +120,9 @@ WHERE {{
         {
             IUriNode parameterNode = await base.Semanticize(graph);
 
-            ObjectsUri ??= await QueryObjects();
+            Graph sceneGraphCopy = GraphManager.InstanceCopy();
+
+            ObjectsUri ??= await QueryObjects(sceneGraphCopy);
             foreach (string objectUri in ObjectsUri)
             {
                 IUriNode hasObject = graph.CreateUriNode("sven:value");

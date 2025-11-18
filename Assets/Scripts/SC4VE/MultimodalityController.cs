@@ -152,28 +152,30 @@ namespace Sc4ve.Multimodality
             Debug.Log(JsonConvert.SerializeObject(CommandTest2()));
             // debug turtle content of the graph
             List<Command> commands = await CommandToGraphOutputCommandAsync(CommandTest1());
-            await ResolveCommands(commands);
+            ResolveCommands(commands);
             Debug.Log("Command has been resolved");
         }
 
         public async Task<List<Command>> CommandToGraphOutputCommandAsync(List<Command> commands)
         {
-            Graph graph = new();
-            // import all ontologies in StreamingAssets/Ontologies (pour être optimal, il ne faudrait charger que l'ontologie des commandes)
-            Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
-            foreach (KeyValuePair<string, string> ontology in ontologies)
+            return await Task.Run(async () =>
             {
-                TurtleParser turtleParser = new();
-                turtleParser.Load(graph, ontology.Value);
-            }
-            graph.BaseUri = new Uri(SvenSettings.BaseUri);
-            graph.NamespaceMap.AddNamespace("", UriFactory.Create(SvenSettings.BaseUri));
-            foreach (Command command in commands)
-                await command.Semanticize(graph);
+                Graph graph = new();
+                // import all ontologies in StreamingAssets/Ontologies (pour être optimal, il ne faudrait charger que l'ontologie des commandes)
+                Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
+                foreach (KeyValuePair<string, string> ontology in ontologies)
+                {
+                    TurtleParser turtleParser = new();
+                    turtleParser.Load(graph, ontology.Value);
+                }
+                graph.BaseUri = new Uri(SvenSettings.BaseUri);
+                graph.NamespaceMap.AddNamespace("", UriFactory.Create(SvenSettings.BaseUri));
+                foreach (Command command in commands)
+                    await command.Semanticize(graph);
 
-            GraphManager.Assert(graph.Triples);
-
-            return commands;
+                GraphManager.Assert(graph.Triples);
+                return commands;
+            });
         }
 
         private void Update()
@@ -232,13 +234,13 @@ namespace Sc4ve.Multimodality
                 if (_isResolvingCommand) return;
                 _isResolvingCommand = true;
                 await CommandToGraphOutputCommandAsync(commands);
-                await ResolveCommands(commands);
+                ResolveCommands(commands);
                 Debug.Log(JsonConvert.SerializeObject(commands));
                 _isResolvingCommand = false;
             }
         }
 
-        public async Task ResolveCommands(List<Command> commands)
+        public void ResolveCommands(List<Command> commands)
         {
             foreach (Command command in commands)
             {

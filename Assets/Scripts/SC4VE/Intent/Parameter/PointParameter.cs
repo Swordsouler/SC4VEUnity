@@ -35,7 +35,7 @@ namespace Sc4ve.Multimodality.Intent
             set => _point = value;
         }
 
-        public async Task<Vector3?> QueryPoint()
+        public async Task<Vector3?> QueryPoint(Graph queryGraph)
         {
             string intervalQuery = @$"{{
         SELECT DISTINCT ?interval
@@ -70,7 +70,7 @@ WHERE {{
 }} LIMIT 1";
             // execute query and parse result
             // extract color components from first result
-            if (GraphManager.Instance.ExecuteQuery(query) is SparqlResultSet results && results.Count > 0)
+            if (queryGraph.ExecuteQuery(query) is SparqlResultSet results && results.Count > 0)
             {
                 SparqlResult result = (SparqlResult)results.Results[0];
 
@@ -107,7 +107,9 @@ WHERE {{
         {
             IUriNode parameterNode = await base.Semanticize(graph);
 
-            Point ??= await QueryPoint();
+            Graph sceneGraphCopy = GraphManager.InstanceCopy();
+
+            Point ??= await QueryPoint(sceneGraphCopy);
             if (Point != null)
             {
                 IUriNode x = graph.CreateUriNode("sven:x");
