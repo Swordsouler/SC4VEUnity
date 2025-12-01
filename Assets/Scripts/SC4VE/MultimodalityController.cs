@@ -17,9 +17,11 @@ namespace Sc4ve.Multimodality
     public class MultimodalityController : MonoBehaviour
     {
         [BoxGroup("References"), SerializeField] private VoskSpeechToText _voskSpeechToText;
+        [BoxGroup("References"), SerializeField] private Language _language = Language.English;
 
         private void Awake()
         {
+            UserData.Language = _language;
             if (_voskSpeechToText != null) _voskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
         }
 
@@ -126,12 +128,13 @@ namespace Sc4ve.Multimodality
 
         public async void PrintTest()
         {
-            Debug.Log(JsonConvert.SerializeObject(CommandTest1()));
+            /*Debug.Log(JsonConvert.SerializeObject(CommandTest1()));
             Debug.Log(JsonConvert.SerializeObject(CommandTest2()));
             // debug turtle content of the graph
             List<Command> commands = await CommandToGraphOutputCommandAsync(CommandTest1());
             ResolveCommands(commands);
-            Debug.Log("Command has been resolved");
+            Debug.Log("Command has been resolved");*/
+            Debug.Log(JsonConvert.SerializeObject(new Sentence("Colorie en rouge les cinq plus grosses citrouilles ou pomme que je vois")));
         }
 
         public async Task<List<Command>> CommandToGraphOutputCommandAsync(List<Command> commands)
