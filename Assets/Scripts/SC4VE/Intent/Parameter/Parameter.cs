@@ -29,14 +29,14 @@ namespace Sc4ve.Multimodality.Intent
             set => _type = value;
         }
 
-        public virtual async Task<IUriNode> Semanticize(Graph graph)
+        public virtual Task<IUriNode> Semanticize(Graph graph)
         {
             IUriNode parameterNode = graph.CreateUriNode($":{Id}");
             IUriNode rdfType = graph.CreateUriNode("rdf:type");
             IUriNode parameterType = graph.CreateUriNode($"sc4ve:{Type}");
             // Add the type triple
             graph.Assert(new Triple(parameterNode, rdfType, parameterType));
-            return parameterNode;
+            return Task.FromResult(parameterNode);
         }
     }
 }

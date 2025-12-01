@@ -35,7 +35,7 @@ namespace Sc4ve.Multimodality.Intent
             set => _point = value;
         }
 
-        public async Task<Vector3?> QueryPoint(Graph queryGraph)
+        public Task<Vector3?> QueryPoint(Graph queryGraph)
         {
             string intervalQuery = @$"{{
         SELECT DISTINCT ?interval
@@ -81,7 +81,7 @@ WHERE {{
                     result["z"] is not ILiteralNode zNode)
                 {
                     Debug.LogWarning("QueryPoint: missing x, y, or z component in query result.");
-                    return null;
+                    return Task.FromResult<Vector3?>(null);
                 }
 
                 // Parse strictly with invariant culture so decimal separator is '.'
@@ -92,14 +92,14 @@ WHERE {{
                 if (!okX || !okY || !okZ)
                 {
                     Debug.LogWarning("QueryPoint: failed to parse x, y, or z component from query result.");
-                    return null;
+                    return Task.FromResult<Vector3?>(null);
                 }
 
-                return new Vector3(xVal, yVal, zVal);
+                return Task.FromResult<Vector3?>(new Vector3(xVal, yVal, zVal));
             }
             else
             {
-                return null;
+                return Task.FromResult<Vector3?>(null);
             }
         }
 

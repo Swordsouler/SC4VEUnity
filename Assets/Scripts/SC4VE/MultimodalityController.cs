@@ -16,26 +16,8 @@ namespace Sc4ve.Multimodality
 {
     public class MultimodalityController : MonoBehaviour
     {
-        // faire comme le user data de spam
-
         [BoxGroup("References"), SerializeField] private VoskSpeechToText _voskSpeechToText;
 
-        [BoxGroup("Settings"), SerializeField] private static Language _loadedLanguage = Language.French;
-        public static Language LoadedLanguage
-        {
-            get => _loadedLanguage;
-            set => _loadedLanguage = value;
-        }
-        public static string LoadedLocale => GetLocale(_loadedLanguage);
-        public static string GetLocale(Language language)
-        {
-            return language switch
-            {
-                Language.French => "fr",
-                Language.English => "en",
-                _ => "en",
-            };
-        }
         private void Awake()
         {
             if (_voskSpeechToText != null) _voskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;

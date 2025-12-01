@@ -77,9 +77,9 @@ namespace Sc4ve.Multimodality.Intent
             set => _color = value;
         }
 
-        public async Task<Color> QueryColor(Graph queryGraph)
+        public Task<Color> QueryColor(Graph queryGraph)
         {
-            string locale = MultimodalityController.LoadedLocale;
+            string locale = UserData.Locale;
             // execute sparql query to get color from value
             string query = $@"
 PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
@@ -111,7 +111,7 @@ WHERE {{
                     result["t"] is not ILiteralNode tNode)
                 {
                     Debug.LogWarning("QueryColor: one or more color components are not literal nodes.");
-                    return null;
+                    return Task.FromResult<Color>(null);
                 }
 
                 // Parse strictly with invariant culture so decimal separator is '.'
@@ -124,21 +124,21 @@ WHERE {{
                 if (!okR || !okG || !okB || !okA || !okT)
                 {
                     Debug.LogWarning($"QueryColor: failed to parse color components. r='{rNode.Value}', g='{gNode.Value}', b='{bNode.Value}', t='{tNode.Value}'");
-                    return null;
+                    return Task.FromResult<Color>(null);
                 }
 
-                return new Color
+                return Task.FromResult(new Color
                 {
                     Red = rVal,
                     Green = gVal,
                     Blue = bVal,
                     Alpha = aVal,
                     Tolerance = tVal
-                };
+                });
             }
             else
             {
-                return null;
+                return Task.FromResult<Color>(null);
             }
         }
 

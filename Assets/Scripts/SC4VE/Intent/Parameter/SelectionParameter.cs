@@ -89,7 +89,7 @@ namespace Sc4ve.Multimodality.Intent
         [JsonIgnore] public string OrderSparqlTail => Order != null ? Order.SparqlTail : string.Empty;
         [JsonIgnore] public string OrderSparqlBody => Order != null ? Order.SparqlBody : string.Empty;
 
-        public async Task<List<string>> QueryObjects(Graph queryGraph)
+        public Task<List<string>> QueryObjects(Graph queryGraph)
         {
             // execute sparql query to get color from value
             string query = $@"PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
@@ -113,7 +113,7 @@ WHERE {{
                     objectsUri.Add(objUri);
                 }
             }
-            return objectsUri;
+            return Task.FromResult(objectsUri);
         }
 
         public override async Task<IUriNode> Semanticize(Graph graph)
@@ -243,7 +243,7 @@ WHERE {{
 
         public string Sparql(int index)
         {
-            string locale = MultimodalityController.LoadedLocale;
+            string locale = UserData.Locale;
             string intervalQuery = @$"{{
                 SELECT DISTINCT ?interval{index}
                 WHERE {{
