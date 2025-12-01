@@ -33,10 +33,6 @@ namespace Sc4ve.Multimodality
             {
                 Language.French => "fr",
                 Language.English => "en",
-                Language.German => "de",
-                Language.Italian => "it",
-                Language.Russian => "ru",
-                Language.Spanish => "es",
                 _ => "en",
             };
         }

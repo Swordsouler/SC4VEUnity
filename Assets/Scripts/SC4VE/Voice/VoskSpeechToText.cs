@@ -1,4 +1,5 @@
 using Ionic.Zip;
+using NaughtyAttributes;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -16,31 +17,58 @@ namespace Sc4ve.Voice
     {
         French,
         English,
-        German,
-        Italian,
-        Russian,
-        Spanish
     }
 
     public class VoskSpeechToText : MonoBehaviour
     {
-        [Tooltip("Location of the model, relative to the Streaming Assets folder.")]
-        public string ModelPath = "vosk-model-small-ru-0.22.zip";
+        [BoxGroup("References"), SerializeField, Tooltip("Location of the model, relative to the Streaming Assets folder.")]
+        private string _modelPath = "vosk-model-small-en-0.22.zip";
+        public string ModelPath
+        {
+            get => _modelPath;
+            set => _modelPath = value;
+        }
 
-        [Tooltip("The source of the microphone input.")]
+        [BoxGroup("References"), SerializeField, Tooltip("The source of the microphone input.")]
+        private VoiceProcessor _voiceProcessor;
+        public VoiceProcessor VoiceProcessor
+        {
+            get => _voiceProcessor;
+            set => _voiceProcessor = value;
+        }
 
-        public VoiceProcessor VoiceProcessor;
-        [Tooltip("The Max number of alternatives that will be processed.")]
-        public int MaxAlternatives = 1;
+        [BoxGroup("References"), SerializeField, Tooltip("The Max number of alternatives that will be processed.")]
+        private int _maxAlternatives = 1;
+        public int MaxAlternatives
+        {
+            get => _maxAlternatives;
+            set => _maxAlternatives = value;
+        }
 
-        [Tooltip("How long should we record before restarting?")]
-        public float MaxRecordLength = 5;
+        [BoxGroup("References"), SerializeField, Tooltip("How long should we record before restarting?")]
+        private float _maxRecordLength = 5;
+        public float MaxRecordLength
+        {
+            get => _maxRecordLength;
+            set => _maxRecordLength = value;
+        }
 
-        [Tooltip("Should the recognizer start when the application is launched?")]
-        public bool AutoStart = true;
+        [BoxGroup("References"), SerializeField, Tooltip("Should the recognizer start when the application is launched?")]
+        private bool _autoStart = true;
+        public bool AutoStart
+        {
+            get => _autoStart;
+            set => _autoStart = value;
+        }
 
-        [Tooltip("The phrases that will be detected. If left empty, all words will be detected.")]
-        public List<string> KeyPhrases = new List<string>();
+
+        [BoxGroup("References"), SerializeField, Tooltip("The phrases that will be detected. If left empty, all words will be detected.")]
+        private List<string> _keyPhrases = new();
+        public List<string> KeyPhrases
+        {
+            get => _keyPhrases;
+            set => _keyPhrases = value;
+        }
 
         //Cached version of the Vosk Model.
         private Model _model;
@@ -82,15 +110,15 @@ namespace Sc4ve.Voice
         private bool _running;
 
         //Thread safe queue of microphone data.
-        private readonly ConcurrentQueue<short[]> _threadedBufferQueue = new ConcurrentQueue<short[]>();
+        private readonly ConcurrentQueue<short[]> _threadedBufferQueue = new();
 
         //Thread safe queue of resuts
-        private readonly ConcurrentQueue<string> _threadedResultQueue = new ConcurrentQueue<string>();
+        private readonly ConcurrentQueue<string> _threadedResultQueue = new();
 
 
 
-        static readonly ProfilerMarker voskRecognizerCreateMarker = new ProfilerMarker("VoskRecognizer.Create");
-        static readonly ProfilerMarker voskRecognizerReadMarker = new ProfilerMarker("VoskRecognizer.AcceptWaveform");
+        private static readonly ProfilerMarker voskRecognizerCreateMarker = new("VoskRecognizer.Create");
+        private static readonly ProfilerMarker voskRecognizerReadMarker = new("VoskRecognizer.AcceptWaveform");
 
         //If Auto start is enabled, starts vosk speech to text.
         void Start()
