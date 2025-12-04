@@ -1676,6 +1676,70 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7483341640500924427, guid: 738b5a9777fd2fb4fb52c057138df7fc, type: 3}
   m_PrefabInstance: {fileID: 597476030}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &717523663
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 717523664}
+  - component: {fileID: 717523666}
+  - component: {fileID: 717523665}
+  m_Layer: 6
+  m_Name: Grasp Area
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &717523664
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 717523663}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1484409719}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &717523665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 717523663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a78211476281d04c9197c7d4ddaf2fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: com.nsaintl.sven::Sven.Context.GraspArea
+  _debug: 1
+  <GraspDistance>k__BackingField: 2
+--- !u!114 &717523666
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 717523663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e518ae278ae889448712861370435c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  componentsToSemanticize:
+  - <Component>k__BackingField: {fileID: 717523664}
+    <ProcessingMode>k__BackingField: 0
+  - <Component>k__BackingField: {fileID: 717523665}
+    <ProcessingMode>k__BackingField: 0
 --- !u!1001 &859333352
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2720,7 +2784,7 @@ MonoBehaviour:
   pointOfView: {fileID: 1484409714}
   pointers:
   - {fileID: 11070135}
-  graspArea: {fileID: 0}
+  graspArea: {fileID: 717523665}
   lockMouse: 1
   mouseSensitivity: 5
   moveSpeed: 5
@@ -3521,6 +3585,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 11070134}
+  - {fileID: 717523664}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1505394491 stripped
