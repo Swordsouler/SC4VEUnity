@@ -1,6 +1,5 @@
 fileFormatVersion: 2
-<<<<<<<< HEAD:Assets/Resources/Meshes/Apple.fbx.meta
-guid: b0a9744a3a917f9499f4db4494901e15
+guid: cb3a1e0504411904daad28a973c8bea1
 AssetOrigin:
   serializedVersion: 1
   productId: 284706
@@ -8,22 +7,12 @@ AssetOrigin:
   packageVersion: 1.0
   assetPath: Assets/ThreeBox/Match3D Object Pack - Fruits and Vegetables/Resources/Models/Fruits/Apple.fbx
   uploadId: 666935
-========
-guid: 3a3c9c2dcac747343ac7e6a0b74afd10
-AssetOrigin:
-  serializedVersion: 1
-  productId: 235573
-  packageName: Halloween Pack | Cemetery Snap
-  packageVersion: 1.0
-  assetPath: Assets/Halloween Pack-Cemetery Snap/FBX/Broom.fbx
-  uploadId: 533907
->>>>>>>> 57f9aece390296cb6c80fcf0e31753c710d29c11:Assets/Samples/SVEN/1.0.0/Demo for ISWC of Semantized Virtual ENvironment/Record/Resources/Meshes/Broom.fbx.meta
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
   externalObjects: {}
   materials:
-    materialImportMode: 0
+    materialImportMode: 2
     materialName: 0
     materialSearch: 1
     materialLocation: 1
@@ -57,14 +46,14 @@ ModelImporter:
     useSRGBMaterialColor: 1
     sortHierarchyByName: 1
     importPhysicalCameras: 1
-    importVisibility: 0
-    importBlendShapes: 0
-    importCameras: 0
-    importLights: 0
+    importVisibility: 1
+    importBlendShapes: 1
+    importCameras: 1
+    importLights: 1
     nodeNameCollisionStrategy: 1
     fileIdsGeneration: 2
     swapUVChannels: 0
-    generateSecondaryUV: 1
+    generateSecondaryUV: 0
     useFileUnits: 1
     keepQuads: 0
     weldVertices: 1
@@ -94,7 +83,7 @@ ModelImporter:
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
   referencedClips: []
-  importAnimation: 0
+  importAnimation: 1
   humanDescription:
     serializedVersion: 3
     human: []
@@ -113,7 +102,7 @@ ModelImporter:
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   autoGenerateAvatarMappingIfUnspecified: 1
-  animationType: 0
+  animationType: 2
   humanoidOversampling: 1
   avatarSetup: 0
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
