@@ -332,11 +332,64 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8892169125588959543, guid: 3e07eccb5e6f459d886de95044adb1d9, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: -3504405067615342225, guid: 59c0e79c20684784489821aadf126262, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6895887226161143353, guid: 3e07eccb5e6f459d886de95044adb1d9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 208985966}
   m_SourcePrefab: {fileID: 100100000, guid: 3e07eccb5e6f459d886de95044adb1d9, type: 3}
+--- !u!4 &208985961 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5341854975434961899, guid: 3e07eccb5e6f459d886de95044adb1d9, type: 3}
+  m_PrefabInstance: {fileID: 208985960}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &208985962 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6895887226161143353, guid: 3e07eccb5e6f459d886de95044adb1d9, type: 3}
+  m_PrefabInstance: {fileID: 208985960}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &208985963 stripped
+BoxCollider:
+  m_CorrespondingSourceObject: {fileID: 8918898903692577210, guid: 3e07eccb5e6f459d886de95044adb1d9, type: 3}
+  m_PrefabInstance: {fileID: 208985960}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &208985964 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 2824863224212843076, guid: 3e07eccb5e6f459d886de95044adb1d9, type: 3}
+  m_PrefabInstance: {fileID: 208985960}
+  m_PrefabAsset: {fileID: 0}
+--- !u!33 &208985965 stripped
+MeshFilter:
+  m_CorrespondingSourceObject: {fileID: 8892169125588959543, guid: 3e07eccb5e6f459d886de95044adb1d9, type: 3}
+  m_PrefabInstance: {fileID: 208985960}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &208985966
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 208985962}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e518ae278ae889448712861370435c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: com.nsaintl.sven::Sven.Content.SemantizationCore
+  componentsToSemanticize:
+  - <Component>k__BackingField: {fileID: 208985963}
+    <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 208985964}
+    <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 208985965}
+    <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 208985961}
+    <ProcessingMode>k__BackingField: 1
 --- !u!1 &235184210
 GameObject:
   m_ObjectHideFlags: 0
@@ -349,6 +402,7 @@ GameObject:
   - component: {fileID: 235184213}
   - component: {fileID: 235184212}
   - component: {fileID: 235184211}
+  - component: {fileID: 235184215}
   m_Layer: 0
   m_Name: Grab Interactable Table
   m_TagString: Untagged
@@ -432,7 +486,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 235184210}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: -3504405067615342225, guid: 59c0e79c20684784489821aadf126262, type: 3}
 --- !u!4 &235184214
 Transform:
   m_ObjectHideFlags: 0
@@ -448,6 +502,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 439588100}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &235184215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 235184210}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e518ae278ae889448712861370435c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: com.nsaintl.sven::Sven.Content.SemantizationCore
+  componentsToSemanticize:
+  - <Component>k__BackingField: {fileID: 235184211}
+    <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 235184212}
+    <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 235184213}
+    <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 235184214}
+    <ProcessingMode>k__BackingField: 1
 --- !u!1 &326293317
 GameObject:
   m_ObjectHideFlags: 0
@@ -2352,6 +2427,7 @@ GameObject:
   - component: {fileID: 1579013956}
   - component: {fileID: 1579013955}
   - component: {fileID: 1579013954}
+  - component: {fileID: 1579013957}
   m_Layer: 0
   m_Name: Gaze Interactable Table
   m_TagString: Untagged
@@ -2450,7 +2526,28 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1579013952}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: -3504405067615342225, guid: 59c0e79c20684784489821aadf126262, type: 3}
+--- !u!114 &1579013957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1579013952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e518ae278ae889448712861370435c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: com.nsaintl.sven::Sven.Content.SemantizationCore
+  componentsToSemanticize:
+  - <Component>k__BackingField: {fileID: 1579013954}
+    <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 1579013955}
+    <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 1579013956}
+    <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 1579013953}
+    <ProcessingMode>k__BackingField: 1
 --- !u!1 &1589715509
 GameObject:
   m_ObjectHideFlags: 0
@@ -2863,6 +2960,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1815318737}
   - component: {fileID: 1815318736}
+  - component: {fileID: 1815318738}
   m_Layer: 0
   m_Name: Directional Light
   m_TagString: Untagged
@@ -2950,6 +3048,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 439588100}
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+--- !u!114 &1815318738
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1815318735}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &1917198433
 GameObject:
   m_ObjectHideFlags: 0
@@ -4820,6 +4947,7 @@ GameObject:
   - component: {fileID: 4581292472285887093}
   - component: {fileID: 4581292472285887092}
   - component: {fileID: 4581292472285887095}
+  - component: {fileID: 4581292472285887096}
   m_Layer: 0
   m_Name: Poke Interactions Table
   m_TagString: Untagged
@@ -4882,7 +5010,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4581292472285887089}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: -3504405067615342225, guid: 59c0e79c20684784489821aadf126262, type: 3}
 --- !u!4 &4581292472285887094
 Transform:
   m_ObjectHideFlags: 0
@@ -4919,6 +5047,27 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &4581292472285887096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4581292472285887089}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e518ae278ae889448712861370435c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: com.nsaintl.sven::Sven.Content.SemantizationCore
+  componentsToSemanticize:
+  - <Component>k__BackingField: {fileID: 4581292472285887095}
+    <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 4581292472285887092}
+    <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 4581292472285887093}
+    <ProcessingMode>k__BackingField: 1
+  - <Component>k__BackingField: {fileID: 4581292472285887094}
+    <ProcessingMode>k__BackingField: 1
 --- !u!114 &4934032446432824226
 MonoBehaviour:
   m_ObjectHideFlags: 0

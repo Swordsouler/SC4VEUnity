@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 42553c149189b6e4da2765ce5484d9be
+guid: 8fb0d6d8c7702de4f9c3c19adf9fb278
 AssetOrigin:
   serializedVersion: 1
   productId: 284706
@@ -8,7 +8,7 @@ AssetOrigin:
   assetPath: Assets/ThreeBox/Match3D Object Pack - Fruits and Vegetables/Resources/Models/Vegetables/Carrot.fbx
   uploadId: 666935
 ModelImporter:
-  serializedVersion: 22200
+  serializedVersion: 24200
   internalIDToNameTable: []
   externalObjects: {}
   materials:
@@ -63,6 +63,9 @@ ModelImporter:
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
     optimizeBones: 1
+    generateMeshLods: 0
+    meshLodGenerationFlags: 0
+    maximumMeshLod: -1
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
