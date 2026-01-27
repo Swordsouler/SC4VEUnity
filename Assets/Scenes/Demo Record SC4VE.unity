@@ -3766,6 +3766,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Sc4ve.Multimodality.MultimodalityController
   _voskSpeechToText: {fileID: 1806090970}
   _language: 0
+  _openAiApiKey: ***CLE-RETIREE***
 --- !u!1 &1665784244 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2165139561939491485, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}
@@ -3830,7 +3831,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1806090968
 MonoBehaviour:
   m_ObjectHideFlags: 0
