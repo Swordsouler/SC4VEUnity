@@ -1,9 +1,14 @@
 using Newtonsoft.Json;
+using Sc4ve.Voice;
+using Sven.Utils;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using VDS.RDF;
+using VDS.RDF.Parsing;
 using VDS.RDF.Query;
 
 namespace Sc4ve.Multimodality.Intent
@@ -162,6 +167,50 @@ WHERE {{
                 graph.Assert(new Triple(parameterNode, tolerance, graph.CreateLiteralNode(Color.Tolerance.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
             }
             return parameterNode;
+        }
+
+        private static List<string> _availableColors;
+        private static Language? _cachedLanguage;
+
+        public static async Task<List<string>> GetAvailableColorsAsync()
+        {
+            if (_availableColors == null || _cachedLanguage != UserData.Language)
+            {
+                _availableColors = await GetAllAvailableColors(UserData.Language);
+                _cachedLanguage = UserData.Language;
+            }
+            return _availableColors;
+        }
+
+        public static async Task<List<string>> GetAllAvailableColors(Language language)
+        {
+            // load a graph with colors from resources
+            Graph graph = new();
+            // load ontology like GraphManager
+            Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
+            foreach (KeyValuePair<string, string> ontology in ontologies)
+            {
+                FileLoader.Load(graph, ontology.Value);
+            }
+
+            string locale = UserData.Locale;
+            string query = $@"
+PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?label
+WHERE {{
+    ?color a sven:Color ;
+           rdfs:label ?label .
+    FILTER(langMatches(lang(?label), ""{locale}""))
+}}";
+
+            if (graph.ExecuteQuery(query) is SparqlResultSet results)
+            {
+                return results.Select(result => (result["label"] as ILiteralNode)?.Value).Where(label => label != null).ToList();
+            }
+
+            return new List<string>();
         }
     }
 }
