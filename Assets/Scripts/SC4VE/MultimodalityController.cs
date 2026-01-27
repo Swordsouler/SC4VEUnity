@@ -37,15 +37,48 @@ namespace Sc4ve.Multimodality
                 phrase.Start(new Instant(phrase.StartedAt));
                 phrase.End(new Instant(phrase.EndedAt));
                 phrase.Semanticize();
+
+                // process the phrase into commands
             }
         }
-
         private List<Command> DeserializeCommand(string json)
         {
             // using newtonsoft json
             List<Command> commands = JsonConvert.DeserializeObject<List<Command>>(json);
             return commands;
         }
+
+        public async Task<List<Command>> CommandToGraphOutputCommandAsync(List<Command> commands)
+        {
+            return await Task.Run(async () =>
+            {
+                Graph graph = new();
+                // import all ontologies in StreamingAssets/Ontologies (pour être optimal, il ne faudrait charger que l'ontologie des commandes)
+                Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
+                foreach (KeyValuePair<string, string> ontology in ontologies)
+                {
+                    TurtleParser turtleParser = new();
+                    turtleParser.Load(graph, ontology.Value);
+                }
+                graph.BaseUri = new Uri(SvenSettings.BaseUri);
+                graph.NamespaceMap.AddNamespace("", UriFactory.Create(SvenSettings.BaseUri));
+                foreach (Command command in commands)
+                    await command.Semanticize(graph);
+
+                GraphManager.Assert(graph.Triples);
+                return commands;
+            });
+        }
+
+        public void ResolveCommands(List<Command> commands)
+        {
+            foreach (Command command in commands)
+            {
+                command.Execute();
+            }
+        }
+
+        #region TestCommands
 
         private List<Command> CommandTest1()
         {
@@ -137,28 +170,6 @@ namespace Sc4ve.Multimodality
             Debug.Log(JsonConvert.SerializeObject(new Sentence("Colorie en rouge les cinq plus grosses citrouilles ou pomme que je vois")));
         }
 
-        public async Task<List<Command>> CommandToGraphOutputCommandAsync(List<Command> commands)
-        {
-            return await Task.Run(async () =>
-            {
-                Graph graph = new();
-                // import all ontologies in StreamingAssets/Ontologies (pour être optimal, il ne faudrait charger que l'ontologie des commandes)
-                Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
-                foreach (KeyValuePair<string, string> ontology in ontologies)
-                {
-                    TurtleParser turtleParser = new();
-                    turtleParser.Load(graph, ontology.Value);
-                }
-                graph.BaseUri = new Uri(SvenSettings.BaseUri);
-                graph.NamespaceMap.AddNamespace("", UriFactory.Create(SvenSettings.BaseUri));
-                foreach (Command command in commands)
-                    await command.Semanticize(graph);
-
-                GraphManager.Assert(graph.Triples);
-                return commands;
-            });
-        }
-
         private void Update()
         {
             HandlePointerDown();
@@ -221,81 +232,6 @@ namespace Sc4ve.Multimodality
             }
         }
 
-        public void ResolveCommands(List<Command> commands)
-        {
-            foreach (Command command in commands)
-            {
-                command.Execute();
-            }
-
-            /*
-            string sparqlUpdate = @"PREFIX : <https://sven.lisn.upsaclay.fr/ve/Buffer/>
-PREFIX time: <http://www.w3.org/2006/time#>
-PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
-PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
-
-INSERT {
-    ?newInstant a time:Instant ;
-    			time:inXSDDateTime ?newInstantTime .
-    ?newColorInterval a time:Interval ;
-    				  time:before ?currentColorInterval ;
-    				  time:hasBeginning ?newInstant .
-    ?newColor a sven:Color ;
-    		  sven:exactType sven:Color ;
-        	  sven:hasTemporalExtent ?newColorInterval ;
-    		  sven:r ?r ;
-    		  sven:g ?g ;
-    		  sven:b ?b ;
-    		  sven:a ?a .
-    ?currentColorInterval time:before ?newColorInterval ;
-    					  time:hasEnd ?newInstant ;
-    					  time:hasDuration ?currentColorDuration .
-    ?render sven:color ?newColor .
-}
-WHERE {
-    ?command a sc4ve:ColorizeCommand .
-    
-    # selection parameter
-    ?command sc4ve:hasParameter ?selectionParameter .
-    ?selectionParameter a sc4ve:SelectionParameter ;
-    					sven:value ?object .
-    ?object sven:component ?render .
-    ?render a sven:3DRender ;
-    		sven:color ?currentColor .
-    ?currentColor sven:hasTemporalExtent ?currentColorInterval .
-    ?currentColorInterval time:hasBeginning ?currentColorStartInstant .
-    ?currentColorStartInstant time:inXSDDateTime ?currentColorStartTime .
-    
-    # color parameter
-    ?command sc4ve:hasParameter ?colorParameter .
-	?colorParameter a sc4ve:ColorParameter ;
-    				sven:r ?r ;
-    				sven:g ?g ;
-    				sven:b ?b ;
-    				sven:a ?a .
-    
-    BIND(URI(CONCAT(STR(:), STRUUID())) AS ?newInstant)
-    BIND(URI(CONCAT(STR(:), STRUUID())) AS ?newColorInterval)
-    BIND(URI(CONCAT(STR(:), STRUUID())) AS ?newColor)
-    BIND(?newInstantTime - ?currentColorStartTime AS ?currentColorDuration)
-    
-    {
-        SELECT DISTINCT ?currentColorInterval ?newInstantTime
-        WHERE {
-    		BIND(NOW() AS ?newInstantTime)
-            ?currentColorInterval a time:Interval ;
-            time:hasBeginning/time:inXSDDateTime ?startTime .
-            OPTIONAL {
-                ?currentColorInterval time:hasEnd/time:inXSDDateTime ?_endTime .
-            }
-            BIND(IF(BOUND(?_endTime), ?_endTime, NOW()) AS ?endTime)
-            FILTER(?startTime <= ?newInstantTime && ?newInstantTime <= ?endTime)
-        } ORDER BY ?startTime ?endTime limit 10000
-    }
-}";
-            await GraphManager.UpdateMemoryAsync(sparqlUpdate);
-            await GraphManager.ForceFlushToEndpointAsync();
-            await GraphManager.SynchronizeAsync();*/
-        }
+        #endregion
     }
 }
