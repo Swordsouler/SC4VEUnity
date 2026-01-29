@@ -191,7 +191,7 @@ sven:VegetableComponent rdf:type owl:Class ;
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Vegetable
 sven:Vegetable rdf:type owl:Class ;
-               rdfs:subClassOf sven:Food 
+               rdfs:subClassOf sven:Food ;
                rdfs:comment "A vegetable."@en ,
                              "Un légume."@fr ;
                 rdfs:label "Vegetable"@en ,
