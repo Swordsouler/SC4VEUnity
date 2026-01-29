@@ -46,6 +46,7 @@ namespace Sc4ve.Multimodality.Intent
             get => _tolerance;
             set => _tolerance = value;
         }
+        [JsonIgnore]
         public UnityEngine.Color Value => new(MaxRed, MaxGreen, MaxBlue, Alpha);
 
         public float MinRed => Mathf.Clamp(Red - Tolerance, 0f, 1f);
@@ -188,9 +189,10 @@ WHERE {{
             Graph graph = new();
             // load ontology like GraphManager
             Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
+            TurtleParser turtleParser = new();
             foreach (KeyValuePair<string, string> ontology in ontologies)
             {
-                FileLoader.Load(graph, ontology.Value);
+                turtleParser.Load(graph, ontology.Value);
             }
 
             string locale = UserData.Locale;
