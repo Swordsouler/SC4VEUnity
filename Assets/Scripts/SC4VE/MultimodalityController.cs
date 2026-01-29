@@ -143,10 +143,15 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 
 --- INSTRUCTIONS CRUCIALES ---
 1.  Le 'timestamp' d'un filtre DOIT correspondre au 'EndedAt' du mot pertinent dans l'entrée.
-2.  Pour le paramètre 'limit' dans 'SelectionParameter', si l'intention est de sélectionner 'tous' les éléments, la valeur doit être ""-1"".
-3.  Pour cibler ce que l'utilisateur regarde ou pointe, utilise un filtre 'Event'. Utilise la valeur '{cameraTerm}' pour la vision (ex: 'ce que je vois') et '{pointerTerm}' pour le pointage direct (ex: 'ceci', 'cet objet').
-4.  Les mots déictiques comme 'ce', 'cette', 'ceci', ou 'ça' indiquent une sélection par pointage. Tu DOIS utiliser un filtre 'Event' avec la valeur '{pointerTerm}' et associer son 'timestamp' à la fin du mot déictique ou du nom qui le suit (ex: 'ça' ou 'pomme' dans 'cette pomme').
+2.  Le paramètre 'limit' est crucial : utilise ""-1"" pour les sélections plurielles ou générales (ex: 'les pommes', 'toutes les voitures'). Utilise ""1"" pour les sélections singulières ou spécifiques (ex: 'la pomme', 'cette voiture').
+3.  Pour cibler ce que l'utilisateur regarde ou pointe, utilise un filtre 'Event'. Utilise la valeur '{cameraTerm}' pour la vision (ex: 'ce que je vois') et '{pointerTerm}' pour le pointage direct.
+4.  N'utilise un filtre 'Event' avec la valeur '{pointerTerm}' QUE SI ET SEULEMENT SI un mot déictique (comme 'ce', 'cette', 'ceci', 'ça') est présent pour indiquer un pointage. Ne l'ajoute pas pour une sélection générale comme 'les pommes'.
 5.  Toujours inclure un opérateur logique ('AND' ou 'OR') entre les filtres dans un 'SelectionParameter' quand il y a plusieurs filtres.
+6.  RÈGLE DE LA COULEUR CIBLE : Si une commande change une couleur (ex: '... en bleu'), la couleur mentionnée est la CIBLE. Elle va UNIQUEMENT dans le 'ColorParameter'. N'ajoute JAMAIS cette couleur comme filtre de sélection, sauf si la phrase décrit explicitement un objet déjà coloré (ex: 'la pomme qui est verte').
+
+--- ERREURS FRÉQUENTES À ÉVITER ---
+1.  Pour une phrase comme 'mets les pommes en bleu', NE PAS ajouter de filtre de couleur à la sélection. La couleur 'Bleu' est une CIBLE, pas un descripteur. La sélection doit uniquement contenir un filtre 'Annotation' pour 'Pomme'.
+2.  Pour une phrase comme 'colorie les légumes', NE PAS ajouter de filtre 'Event' pour '{pointerTerm}'. Il n'y a pas de mot déictique ('ce', 'cette', etc.), donc il n'y a pas de pointage.
 
 --- COMMANDES DISPONIBLES ---
 - ColorizeCommand: Applique une couleur. Paramètres: ColorParameter, SelectionParameter.
@@ -163,14 +168,14 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 - 'Event': Pour les événements système. Les valeurs valides sont '{pointerTerm}' et '{cameraTerm}'.
 
 --- VOCABULAIRE D'ANNOTATION CONNU ---
-Lorsque tu utilises un filtre de type 'Annotation', la 'value' devrait idéalement correspondre à l'un des noms d'objets reconnus par le système. Voici une liste de types connus : {annotationTypesString}.
+Lorsque tu utilises un filtre de type 'Annotation', la 'value' DOIT correspondre EXACTEMENT à l'un des termes de la liste {annotationTypesString}, sans le modifier (pas de pluriel, pas de changement de casse).
 
 --- VOCABULAIRE DE COULEUR CONNU ---
 Lorsque tu utilises un 'ColorParameter' ou un filtre de type 'Color', la 'value' DOIT être l'une des suivantes : {availableColorsString}.
 
 --- EXEMPLES ---
 
-## EXEMPLE 1: Masquer un objet spécifique
+## EXEMPLE 1: Masquer un objet spécifique (décrit par sa couleur)
 Entrée utilisateur:
 {{""Text"":""masque la voiture rouge"",""Words"":[{{""Text"":""masque"",""StartedAt"":""2026-01-27T12:30:01.100Z"",""EndedAt"":""2026-01-27T12:30:01.500Z""}},{{""Text"":""la"",""StartedAt"":""2026-01-27T12:30:01.520Z"",""EndedAt"":""2026-01-27T12:30:01.650Z""}},{{""Text"":""voiture"",""StartedAt"":""2026-01-27T12:30:01.670Z"",""EndedAt"":""2026-01-27T12:30:02.100Z""}},{{""Text"":""rouge"",""StartedAt"":""2026-01-27T12:30:02.120Z"",""EndedAt"":""2026-01-27T12:30:02.500Z""}}]}}
 JSON Attendu:
@@ -352,6 +357,29 @@ JSON Attendu:
     ]
   }}
 ]
+
+## EXEMPLE 9: Commande de colorisation simple
+Entrée utilisateur:
+{{""Text"":""mets les pommes en bleu"",""Words"":[{{""Text"":""mets"",""StartedAt"":""2026-01-29T17:42:51.801Z"",""EndedAt"":""2026-01-29T17:42:52.051Z""}},{{""Text"":""les"",""StartedAt"":""2026-01-29T17:42:52.071Z"",""EndedAt"":""2026-01-29T17:42:52.211Z""}},{{""Text"":""pommes"",""StartedAt"":""2026-01-29T17:42:52.231Z"",""EndedAt"":""2026-01-29T17:42:52.601Z""}},{{""Text"":""en"",""StartedAt"":""2026-01-29T17:42:52.621Z"",""EndedAt"":""2026-01-29T17:42:52.751Z""}},{{""Text"":""bleu"",""StartedAt"":""2026-01-29T17:42:52.771Z"",""EndedAt"":""2026-01-29T17:42:53.101Z""}}]}}
+JSON Attendu:
+[
+  {{
+    ""type"": ""ColorizeCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""ColorParameter"",
+        ""value"": ""Bleu""
+      }},
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Annotation"", ""value"": ""Pomme"", ""timestamp"": ""2026-01-29T17:42:52.601Z"" }}
+        ],
+        ""limit"": ""-1""
+      }}
+    ]
+  }}
+]
 --- FIN DES EXEMPLES ---
 ";
             using var httpClient = new HttpClient();
@@ -366,7 +394,7 @@ JSON Attendu:
 
             var requestBody = new
             {
-                model = "gpt-3.5-turbo",
+                model = "gpt-4-turbo",
                 messages = new[]
                 {
                     new { role = "system", content = systemPrompt },
