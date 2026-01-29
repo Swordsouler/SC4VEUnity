@@ -122,6 +122,38 @@ WHERE {{
 
             Graph sceneGraphCopy = GraphManager.InstanceCopy();
 
+            // apply ontology inference (for annotation)
+            await GraphManager.ApplyOntologyAsync(sceneGraphCopy);
+
+            /*Graph ontologyGraph = new();
+            Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
+            TurtleParser turtleParser = new();
+            foreach (KeyValuePair<string, string> ontology in ontologies)
+            {
+                turtleParser.Load(ontologyGraph, ontology.Value);
+            }
+            StaticRdfsReasoner reasoner = new();
+            reasoner.Initialise(ontologyGraph);
+            reasoner.Apply(sceneGraphCopy);
+            // execute this query :
+            string queryTest = $@"
+PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+select * where {{
+    ?object sven:component ?component .
+    ?object rdfs:label ?objectName .
+    ?component a sven:Vegetable . #?componentType .
+    #?componentType rdfs:label ""Légume""@fr .
+}} limit 100";
+            SparqlResultSet results = sceneGraphCopy.ExecuteQuery(queryTest) as SparqlResultSet;
+            foreach (SparqlResult result in results.Cast<SparqlResult>())
+            {
+                // objectName
+                Debug.Log(result["objectName"]);
+            }*/
+
+            /******************************************/
+
             ObjectsUri ??= await QueryObjects(sceneGraphCopy);
             foreach (string objectUri in ObjectsUri)
             {

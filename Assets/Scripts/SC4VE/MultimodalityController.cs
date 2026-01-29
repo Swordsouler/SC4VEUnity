@@ -117,12 +117,16 @@ namespace Sc4ve.Multimodality
             }
 
             // Récupère dynamiquement les types d'annotations sémantiques disponibles
-            List<string> annotationTypes = ISemanticAnnotation.GetAvailableAnnotationTypes().ToList();
+            List<string> annotationTypes = await ISemanticAnnotation.GetAvailableTypesAsync(UserData.Locale);
             string annotationTypesString = string.Join(", ", annotationTypes.Select(t => $"'{t}'"));
 
             // Récupère dynamiquement les couleurs disponibles
             List<string> availableColors = await ColorParameter.GetAvailableColorsAsync();
             string availableColorsString = string.Join(", ", availableColors.Select(c => $"'{c}'"));
+
+            // Définit les termes localisés pour les événements
+            string cameraTerm = (UserData.Language == Language.French) ? "Caméra" : "Camera";
+            string pointerTerm = (UserData.Language == Language.French) ? "Pointeur" : "Pointer";
 
             string systemPrompt = $@"Tu es un système expert qui convertit le langage naturel en un format de commande JSON pour un environnement 3D.
 Ta seule et unique réponse doit être le contenu JSON brut, sans explication ou formatage markdown.
@@ -140,6 +144,9 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 --- INSTRUCTIONS CRUCIALES ---
 1.  Le 'timestamp' d'un filtre DOIT correspondre au 'EndedAt' du mot pertinent dans l'entrée.
 2.  Pour le paramètre 'limit' dans 'SelectionParameter', si l'intention est de sélectionner 'tous' les éléments, la valeur doit être ""-1"".
+3.  Pour cibler ce que l'utilisateur regarde ou pointe, utilise un filtre 'Event'. Utilise la valeur '{cameraTerm}' pour la vision (ex: 'ce que je vois') et '{pointerTerm}' pour le pointage direct (ex: 'ceci', 'cet objet').
+4.  Les mots déictiques comme 'ce', 'cette', 'ceci', ou 'ça' indiquent une sélection par pointage. Tu DOIS utiliser un filtre 'Event' avec la valeur '{pointerTerm}' et associer son 'timestamp' à la fin du mot déictique ou du nom qui le suit (ex: 'ça' ou 'pomme' dans 'cette pomme').
+5.  Toujours inclure un opérateur logique ('AND' ou 'OR') entre les filtres dans un 'SelectionParameter' quand il y a plusieurs filtres.
 
 --- COMMANDES DISPONIBLES ---
 - ColorizeCommand: Applique une couleur. Paramètres: ColorParameter, SelectionParameter.
@@ -151,14 +158,15 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 - MeasureCommand: Mesure une distance. Paramètres: multiples SelectionParameter et/ou PointParameter.
 
 --- TYPES DE FILTRES ---
-- 'Annotation': Pour filtrer par le nom ou le type général d'un objet.
-- 'Event': Pour les événements système (ex: 'Pointeur', 'Caméra').
+- 'Annotation': Pour filtrer par le nom ou le type général d'un objet (ex: 'Voiture', 'Pomme').
+- 'Color': Pour filtrer des objets par leur couleur actuelle (ex: trouver une 'Pomme' qui est 'Verte').
+- 'Event': Pour les événements système. Les valeurs valides sont '{pointerTerm}' et '{cameraTerm}'.
 
 --- VOCABULAIRE D'ANNOTATION CONNU ---
 Lorsque tu utilises un filtre de type 'Annotation', la 'value' devrait idéalement correspondre à l'un des noms d'objets reconnus par le système. Voici une liste de types connus : {annotationTypesString}.
 
 --- VOCABULAIRE DE COULEUR CONNU ---
-Lorsque tu utilises un 'ColorParameter', la 'value' DOIT être l'une des suivantes : {availableColorsString}.
+Lorsque tu utilises un 'ColorParameter' ou un filtre de type 'Color', la 'value' DOIT être l'une des suivantes : {availableColorsString}.
 
 --- EXEMPLES ---
 
@@ -173,7 +181,9 @@ JSON Attendu:
       {{
         ""type"": ""SelectionParameter"",
         ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Voiture"", ""timestamp"": ""2026-01-27T12:30:02.100Z"" }}
+          {{ ""type"": ""Annotation"", ""value"": ""Voiture"", ""timestamp"": ""2026-01-27T12:30:02.100Z"" }},
+          ""AND"",
+          {{ ""type"": ""Color"", ""value"": ""Rouge"", ""timestamp"": ""2026-01-27T12:30:02.500Z"" }}
         ],
         ""limit"": ""1""
       }}
@@ -194,7 +204,7 @@ JSON Attendu:
         ""filters"": [ {{ ""type"": ""Annotation"", ""value"": ""Caisse"", ""timestamp"": ""2026-01-27T12:31:06.100Z"" }} ],
         ""limit"": ""1""
       }},
-      {{ ""type"": ""PointParameter"", ""value"": ""Pointer"", ""timestamp"": ""2026-01-27T12:31:06.400Z"" }}
+      {{ ""type"": ""PointParameter"", ""value"": ""{pointerTerm}"", ""timestamp"": ""2026-01-27T12:31:06.400Z"" }}
     ]
   }}
 ]
@@ -248,9 +258,102 @@ JSON Attendu:
     ]
   }}
 ]
+
+## EXEMPLE 5: Filtre combiné (Annotation ET Couleur)
+Entrée utilisateur:
+{{""Text"":""colorie en rouge cette pomme verte"",""Words"":[{{""Text"":""colorie"",""StartedAt"":""2026-01-27T12:34:01.000Z"",""EndedAt"":""2026-01-27T12:34:01.500Z""}},{{""Text"":""en"",""StartedAt"":""2026-01-27T12:34:01.520Z"",""EndedAt"":""2026-01-27T12:34:01.600Z""}},{{""Text"":""rouge"",""StartedAt"":""2026-01-27T12:34:01.620Z"",""EndedAt"":""2026-01-27T12:34:02.000Z""}},{{""Text"":""cette"",""StartedAt"":""2026-01-27T12:34:02.020Z"",""EndedAt"":""2026-01-27T12:34:02.300Z""}},{{""Text"":""pomme"",""StartedAt"":""2026-01-27T12:34:02.320Z"",""EndedAt"":""2026-01-27T12:34:02.700Z""}},{{""Text"":""verte"",""StartedAt"":""2026-01-27T12:34:02.720Z"",""EndedAt"":""2026-01-27T12:34:03.100Z""}}]}}
+JSON Attendu:
+[
+  {{
+    ""type"": ""ColorizeCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""ColorParameter"",
+        ""value"": ""Rouge""
+      }},
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Annotation"", ""value"": ""Pomme"", ""timestamp"": ""2026-01-27T12:34:02.700Z"" }},
+          ""AND"",
+          {{ ""type"": ""Color"", ""value"": ""Vert"", ""timestamp"": ""2026-01-27T12:34:03.100Z"" }}
+        ],
+        ""limit"": ""1""
+      }}
+    ]
+  }}
+]
+
+## EXEMPLE 6: Sélectionner l'objet pointé
+Entrée utilisateur:
+{{""Text"":""sélectionne ça"",""Words"":[{{""Text"":""sélectionne"",""StartedAt"":""2026-01-27T12:35:01.000Z"",""EndedAt"":""2026-01-27T12:35:01.600Z""}},{{""Text"":""ça"",""StartedAt"":""2026-01-27T12:35:01.620Z"",""EndedAt"":""2026-01-27T12:35:01.900Z""}}]}}
+JSON Attendu:
+[
+  {{
+    ""type"": ""SelectCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Event"", ""value"": ""{pointerTerm}"", ""timestamp"": ""2026-01-27T12:35:01.900Z"" }}
+        ],
+        ""limit"": ""1""
+      }}
+    ]
+  }}
+]
+
+## EXEMPLE 7: Commande avec sélection par pointage ('cette')
+Entrée utilisateur:
+{{""Text"":""mets cette pomme en bleu"",""Words"":[{{""Text"":""mets"",""StartedAt"":""2026-01-29T14:49:19.123Z"",""EndedAt"":""2026-01-29T14:49:19.456Z""}},{{""Text"":""cette"",""StartedAt"":""2026-01-29T14:49:19.476Z"",""EndedAt"":""2026-01-29T14:49:19.789Z""}},{{""Text"":""pomme"",""StartedAt"":""2026-01-29T14:49:19.809Z"",""EndedAt"":""2026-01-29T14:49:20.200Z""}},{{""Text"":""en"",""StartedAt"":""2026-01-29T14:49:20.220Z"",""EndedAt"":""2026-01-29T14:49:20.350Z""}},{{""Text"":""bleu"",""StartedAt"":""2026-01-29T14:49:20.370Z"",""EndedAt"":""2026-01-29T14:49:20.700Z""}}]}}
+JSON Attendu:
+[
+  {{
+    ""type"": ""ColorizeCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""ColorParameter"",
+        ""value"": ""Bleu""
+      }},
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Annotation"", ""value"": ""Pomme"", ""timestamp"": ""2026-01-29T14:49:20.200Z"" }},
+          ""AND"",
+          {{ ""type"": ""Event"", ""value"": ""{pointerTerm}"", ""timestamp"": ""2026-01-29T14:49:20.200Z"" }}
+        ],
+        ""limit"": ""1""
+      }}
+    ]
+  }}
+]
+
+## EXEMPLE 8: Sélection par vision ('que je vois')
+Entrée utilisateur:
+{{""Text"":""colorie en bleu toute la nourriture que je vois"",""Words"":[{{""Text"":""colorie"",""StartedAt"":""2026-01-29T15:01:57.900Z"",""EndedAt"":""2026-01-29T15:01:58.300Z""}},{{""Text"":""en"",""StartedAt"":""2026-01-29T15:01:58.320Z"",""EndedAt"":""2026-01-29T15:01:58.400Z""}},{{""Text"":""bleu"",""StartedAt"":""2026-01-29T15:01:58.420Z"",""EndedAt"":""2026-01-29T15:01:58.700Z""}},{{""Text"":""toute"",""StartedAt"":""2026-01-29T15:01:58.720Z"",""EndedAt"":""2026-01-29T15:01:59.000Z""}},{{""Text"":""la"",""StartedAt"":""2026-01-29T15:01:59.020Z"",""EndedAt"":""2026-01-29T15:01:59.100Z""}},{{""Text"":""nourriture"",""StartedAt"":""2026-01-29T15:01:59.120Z"",""EndedAt"":""2026-01-29T15:01:59.700Z""}},{{""Text"":""que"",""StartedAt"":""2026-01-29T15:01:59.720Z"",""EndedAt"":""2026-01-29T15:01:59.850Z""}},{{""Text"":""je"",""StartedAt"":""2026-01-29T15:01:59.870Z"",""EndedAt"":""2026-01-29T15:02:00.000Z""}},{{""Text"":""vois"",""StartedAt"":""2026-01-29T15:02:00.020Z"",""EndedAt"":""2026-01-29T15:02:00.300Z""}}]}}
+JSON Attendu:
+[
+  {{
+    ""type"": ""ColorizeCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""ColorParameter"",
+        ""value"": ""Bleu""
+      }},
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Annotation"", ""value"": ""Nourriture"", ""timestamp"": ""2026-01-29T15:01:59.700Z"" }},
+          ""AND"",
+          {{ ""type"": ""Event"", ""value"": ""{cameraTerm}"", ""timestamp"": ""2026-01-29T15:02:00.300Z"" }}
+        ],
+        ""limit"": ""-1""
+      }}
+    ]
+  }}
+]
 --- FIN DES EXEMPLES ---
 ";
-
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
 
