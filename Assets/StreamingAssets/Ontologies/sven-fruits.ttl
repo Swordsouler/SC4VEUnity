@@ -46,7 +46,7 @@ sven:Apple rdf:type owl:Class ;
 
 ###  https://sven.lisn.upsaclay.fr/ontology#AppleComponent
 sven:AppleComponent rdf:type owl:Class ;
-                    rdfs:subClassOf sven:FruitComponent ;
+                    rdfs:subClassOf sven:FruitComponent, sven:Component ;
                     rdfs:comment "An apple component."@en ,
                                  "Un composant de pomme."@fr ;
                     rdfs:label "Apple"@en ,
@@ -74,7 +74,7 @@ sven:Banana rdf:type owl:Class ;
 
 ###  https://sven.lisn.upsaclay.fr/ontology#BananaComponent
 sven:BananaComponent rdf:type owl:Class ;
-                     rdfs:subClassOf sven:FruitComponent ;
+                     rdfs:subClassOf sven:FruitComponent, sven:Component ;
                      rdfs:comment "A banana component."@en ,
                                     "Un composant de banane."@fr ;
                       rdfs:label "Banana"@en ,
@@ -102,7 +102,7 @@ sven:Carrot rdf:type owl:Class ;
 
 ###  https://sven.lisn.upsaclay.fr/ontology#CarrotComponent
 sven:CarrotComponent rdf:type owl:Class ;
-                     rdfs:subClassOf sven:VegetableComponent ;
+                     rdfs:subClassOf sven:VegetableComponent, sven:Component ;
                       rdfs:comment "A carrot component."@en ,
                                     "Un composant de carotte."@fr ;
                       rdfs:label "Carrot"@en ,
@@ -128,7 +128,7 @@ sven:Food rdf:type owl:Class ;
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Fruit
 sven:FruitComponent rdf:type owl:Class ;
-           rdfs:subClassOf sven:FoodComponent ;
+           rdfs:subClassOf sven:FoodComponent, sven:Component ;
           rdfs:comment "A fruit component."@en ,
                         "Un composant de fruit."@fr ;
           rdfs:label "Fruit"@en ,
@@ -164,7 +164,7 @@ sven:Pumpkin rdf:type owl:Class ;
 
 ###  https://sven.lisn.upsaclay.fr/ontology#PumpkinComponent
 sven:PumpkinComponent rdf:type owl:Class ;
-                      rdfs:subClassOf sven:VegetableComponent ;
+                      rdfs:subClassOf sven:VegetableComponent, sven:Component ;
                       rdfs:comment "A pumpkin component."@en ,
                                    "Un composant de citrouille."@fr ;
                       rdfs:label "Pumpkin"@en ,
@@ -182,7 +182,7 @@ sven:Spray rdf:type owl:Class ;
 
 ### https://sven.lisn.upsaclay.fr/ontology#VegetableComponent
 sven:VegetableComponent rdf:type owl:Class ;
-                        rdfs:subClassOf sven:FoodComponent ;
+                        rdfs:subClassOf sven:FoodComponent, sven:Component ;
           rdfs:comment "A vegetable component."@en ,
                         "Un composant de légume."@fr ;
           rdfs:label "Vegetable"@en ,
