@@ -186,7 +186,7 @@ sven:VegetableComponent rdf:type owl:Class ;
           rdfs:comment "A vegetable component."@en ,
                         "Un composant de légume."@fr ;
           rdfs:label "Vegetable"@en ,
-                        "Legume"@fr .
+                        "Légume"@fr .
 
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Vegetable
