@@ -4,6 +4,7 @@
 
 using NaughtyAttributes;
 using Sven.GraphManagement;
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -74,6 +75,10 @@ namespace Sven.Demo
             Application.ExternalCall("downloadFile", turtleContent, fileName);
 #else
             Debug.Log("Graph content:\n" + turtleContent);
+            // save the turtleContent to a file
+            string filePath = Application.dataPath + $"/../sven-{GraphManager.GraphName}.ttl";
+            Debug.Log("Saving graph to: " + filePath);
+            System.IO.File.WriteAllText(filePath, turtleContent, Encoding.UTF8);
 #endif
             _isDownloading = false;
             if (downloadingActivityIndicator != null) downloadingActivityIndicator.SetActive(false);
