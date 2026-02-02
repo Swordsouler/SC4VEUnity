@@ -27,12 +27,11 @@ namespace Sc4ve.Multimodality
         [BoxGroup("LLM Settings"), SerializeField, Tooltip("Clé API OpenAI. Ne pas exposer publiquement.")]
         private string _openAiApiKey;
 
-        // --- AMÉLIORATION 1: Instance HttpClient statique et réutilisée ---
         private static readonly HttpClient _httpClient = new();
 
-        // --- AMÉLIORATION 2: Mise en cache des variables du prompt ---
         private string _cachedAnnotationTypesString;
         private string _cachedAvailableColorsString;
+        private string _systemPrompt;
 
         private void Awake()
         {
@@ -40,14 +39,9 @@ namespace Sc4ve.Multimodality
             if (_voskSpeechToText != null) _voskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
         }
 
-        // --- AMÉLIORATION 2: Récupération des vocabulaires au démarrage ---
         private async void Start()
         {
-            List<string> annotationTypes = await ISemanticAnnotation.GetAvailableTypesAsync(UserData.Locale);
-            _cachedAnnotationTypesString = string.Join(", ", annotationTypes.Select(t => $"'{t}'"));
-
-            List<string> availableColors = await ColorParameter.GetAvailableColorsAsync();
-            _cachedAvailableColorsString = string.Join(", ", availableColors.Select(c => $"'{c}'"));
+            await BuildSystemPrompt();
         }
 
         private async void OnTranscriptionResult(string obj)
@@ -61,20 +55,23 @@ namespace Sc4ve.Multimodality
                 phrase.Start(new Instant(phrase.StartedAt));
                 phrase.End(new Instant(phrase.EndedAt));
 
-                // Process the phrase into commands using the LLM
                 try
                 {
                     Debug.Log($"[LLM] Sending sentence for analysis: \"{phrase.Text}\"");
-                    string commandJson = await GetCommandJsonFromTextWithLlmAsync(phrase);
+
+                    // --- NOUVELLE LOGIQUE HYBRIDE ---
+                    string commandJson = await GetValidatedCommandJsonFromLlmAsync(phrase);
 
                     if (string.IsNullOrWhiteSpace(commandJson))
                     {
-                        Debug.LogWarning("[LLM] Received empty or null JSON from LLM.");
+                        Debug.LogWarning("[LLM] Received empty or null JSON from LLM after all attempts.");
                         continue;
                     }
 
-                    Debug.Log($"[LLM] Received JSON: {commandJson}");
+                    Debug.Log($"[LLM] Received FINAL JSON: {commandJson}");
                     List<Command> commands = DeserializeCommand(commandJson);
+                    if (commands == null) continue;
+
                     await CommandToGraphOutputCommandAsync(commands);
                     ResolveCommands(commands);
                     Debug.Log("[LLM] Commands resolved successfully.");
@@ -85,11 +82,120 @@ namespace Sc4ve.Multimodality
                 }
             }
         }
+
+        /// <summary>
+        /// Orchestrateur de l'approche hybride. Tente une requête rapide avec GPT-3.5,
+        /// la valide, et ne passe à GPT-4 qu'en cas d'erreur connue.
+        /// </summary>
+        private async Task<string> GetValidatedCommandJsonFromLlmAsync(Sentence sentence)
+        {
+            // 1. Essai rapide avec GPT-3.5
+            Debug.Log("[LLM] Attempting fast path with gpt-3.5-turbo...");
+            string jsonResponse = await CallLlmApiAsync(sentence, "gpt-3.5-turbo");
+
+            if (string.IsNullOrWhiteSpace(jsonResponse))
+            {
+                Debug.LogError("[LLM] GPT-3.5 returned an empty response.");
+                return null; // Échec précoce
+            }
+
+            // 2. Validation de la réponse
+            List<Command> commands = DeserializeCommand(jsonResponse);
+            if (commands == null) return null;
+
+            bool needsCorrection = false;
+            foreach (var command in commands)
+            {
+                // La condition d'erreur spécifique que nous voulons corriger
+                if (command is ColorizeCommand)
+                {
+                    var selectionParam = command.Parameters.OfType<SelectionParameter>().FirstOrDefault();
+                    if (selectionParam?.Filters.Any(f => f.Condition?.Type == "Color") ?? false)
+                    {
+                        needsCorrection = true;
+                        break;
+                    }
+                }
+            }
+
+            // 3. Si la validation échoue, on corrige avec GPT-4
+            if (needsCorrection)
+            {
+                Debug.LogWarning("[LLM] GPT-3.5 response failed validation. Retrying with gpt-4-turbo for accuracy.");
+                jsonResponse = await CallLlmApiAsync(sentence, "gpt-4-turbo");
+            }
+            else
+            {
+                Debug.Log("[LLM] GPT-3.5 response passed validation. Using fast path result.");
+            }
+
+            return jsonResponse;
+        }
+
+        /// <summary>
+        /// Appelle l'API OpenAI avec le modèle et la phrase spécifiés.
+        /// </summary>
+        private async Task<string> CallLlmApiAsync(Sentence sentence, string model)
+        {
+            if (string.IsNullOrWhiteSpace(_openAiApiKey))
+            {
+                Debug.LogError("[LLM] OpenAI API Key is not set.");
+                return null;
+            }
+            if (string.IsNullOrWhiteSpace(_systemPrompt))
+            {
+                Debug.LogError("[LLM] System prompt not built yet. Rebuilding...");
+                await BuildSystemPrompt();
+            }
+
+            var userInput = new { sentence.Text, sentence.Words };
+            var requestBody = new
+            {
+                model,
+                messages = new[]
+                {
+                    new { role = "system", content = _systemPrompt },
+                    new { role = "user", content = JsonConvert.SerializeObject(userInput) }
+                },
+                temperature = 0.1
+            };
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
+            requestMessage.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.SendAsync(requestMessage);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                string errorBody = await response.Content.ReadAsStringAsync();
+                Debug.LogError($"[LLM] API Error ({model}): {response.StatusCode}\n{errorBody}");
+                return null;
+            }
+
+            string responseBody = await response.Content.ReadAsStringAsync();
+            var openAiResponse = JsonConvert.DeserializeObject<OpenAiResponse>(responseBody);
+
+            if (openAiResponse?.Usage != null)
+            {
+                var usage = openAiResponse.Usage;
+                Debug.Log($"[LLM] Token Usage ({model}): Prompt={usage.PromptTokens}, Completion={usage.CompletionTokens}, Total={usage.TotalTokens}");
+            }
+
+            return openAiResponse?.Choices?[0]?.Message?.Content;
+        }
+
         private List<Command> DeserializeCommand(string json)
         {
-            // using newtonsoft json
-            List<Command> commands = JsonConvert.DeserializeObject<List<Command>>(json);
-            return commands;
+            try
+            {
+                return JsonConvert.DeserializeObject<List<Command>>(json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[LLM] JSON Deserialization failed: {e.Message}\nJSON was: {json}");
+                return null;
+            }
         }
 
         public async Task<List<Command>> CommandToGraphOutputCommandAsync(List<Command> commands)
@@ -97,7 +203,6 @@ namespace Sc4ve.Multimodality
             return await Task.Run(async () =>
             {
                 Graph graph = new();
-                // import all ontologies in StreamingAssets/Ontologies (pour être optimal, il ne faudrait charger que l'ontologie des commandes)
                 Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
                 foreach (KeyValuePair<string, string> ontology in ontologies)
                 {
@@ -123,22 +228,20 @@ namespace Sc4ve.Multimodality
         }
 
         /// <summary>
-        /// Sends text to an LLM to get a command JSON structure.
+        /// Construit et met en cache le prompt système au démarrage.
         /// </summary>
-        private async Task<string> GetCommandJsonFromTextWithLlmAsync(Sentence sentence)
+        private async Task BuildSystemPrompt()
         {
-            if (string.IsNullOrWhiteSpace(_openAiApiKey))
-            {
-                Debug.LogError("[LLM] OpenAI API Key is not set in the inspector.");
-                return null;
-            }
+            List<string> annotationTypes = await ISemanticAnnotation.GetAvailableTypesAsync(UserData.Locale);
+            _cachedAnnotationTypesString = string.Join(", ", annotationTypes.Select(t => $"'{t}'"));
 
-            // Définit les termes localisés pour les événements
+            List<string> availableColors = await ColorParameter.GetAvailableColorsAsync();
+            _cachedAvailableColorsString = string.Join(", ", availableColors.Select(c => $"'{c}'"));
+
             string cameraTerm = (UserData.Language == Language.French) ? "Caméra" : "Camera";
             string pointerTerm = (UserData.Language == Language.French) ? "Pointeur" : "Pointer";
 
-            // --- AMÉLIORATION 2: Utilisation des variables de prompt mises en cache ---
-            string systemPrompt = $@"Tu es un système expert qui convertit le langage naturel en un format de commande JSON pour un environnement 3D.
+            _systemPrompt = $@"Tu es un système expert qui convertit le langage naturel en un format de commande JSON pour un environnement 3D.
 Ta seule et unique réponse doit être le contenu JSON brut, sans explication ou formatage markdown.
 
 --- FORMAT D'ENTRÉE ---
@@ -151,16 +254,8 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
   ]
 }}
 
---- INSTRUCTIONS CRUCIALES ---
-1.  Le 'timestamp' d'un filtre DOIT correspondre au 'EndedAt' du mot pertinent dans l'entrée.
-2.  Le paramètre 'limit' est crucial : utilise ""-1"" pour les sélections plurielles ou générales (ex: 'les pommes', 'toutes les voitures'). Utilise ""1"" pour les sélections singulières ou spécifiques (ex: 'la pomme', 'cette voiture').
-3.  Pour cibler ce que l'utilisateur regarde ou pointe, utilise un filtre 'Event'. Utilise la valeur '{cameraTerm}' pour la vision (ex: 'ce que je vois') et '{pointerTerm}' pour le pointage direct.
-4.  N'utilise un filtre 'Event' avec la valeur '{pointerTerm}' QUE SI ET SEULEMENT SI un mot déictique (comme 'ce', 'cette', 'ceci', 'ça') est présent pour indiquer un pointage. Ne l'ajoute pas pour une sélection générale comme 'les pommes'.
-5.  Toujours inclure un opérateur logique ('AND' ou 'OR') entre les filtres dans un 'SelectionParameter' quand il y a plusieurs filtres.
-6.  RÈGLE DE LA COULEUR CIBLE : Si une commande change une couleur (ex: '... en bleu'), la couleur mentionnée est la CIBLE. Elle va UNIQUEMENT dans le 'ColorParameter'. N'ajoute JAMAIS cette couleur comme filtre de sélection, sauf si la phrase décrit explicitement un objet déjà coloré (ex: 'la pomme qui est verte').
-
 --- ERREURS FRÉQUENTES À ÉVITER ---
-1.  Pour une phrase comme 'mets les pommes en bleu', NE PAS ajouter de filtre de couleur à la sélection. La couleur 'Bleu' est une CIBLE, pas un descripteur. La sélection doit uniquement contenir un filtre 'Annotation' pour 'Pomme'.
+1.  RÈGLE D'OR (NON NÉGOCIABLE) : Si le type de commande est 'ColorizeCommand', le 'SelectionParameter' ne doit JAMAIS contenir un filtre de type 'Color'. La couleur cible va UNIQUEMENT dans le 'ColorParameter'. La seule exception est pour décrire un objet existant, comme 'la pomme QUI EST verte'. Les phrases comme '... en vert', '... en couleur verte' ou '... avec la couleur verte' NE SONT PAS des exceptions et ne doivent pas générer de filtre 'Color'.
 2.  Pour une phrase comme 'colorie les légumes', NE PAS ajouter de filtre 'Event' pour '{pointerTerm}'. Il n'y a pas de mot déictique ('ce', 'cette', etc.), donc il n'y a pas de pointage.
 
 --- COMMANDES DISPONIBLES ---
@@ -208,74 +303,6 @@ JSON Attendu:
   }}
 ]
 
-## EXEMPLE 2: Déplacer un objet
-Entrée utilisateur:
-{{""Text"":""déplace la caisse ici"",""Words"":[{{""Text"":""déplace"",""EndedAt"":""2026-01-27T12:31:05.500Z""}},{{""Text"":""la"",""EndedAt"":""2026-01-27T12:31:05.650Z""}},{{""Text"":""caisse"",""EndedAt"":""2026-01-27T12:31:06.100Z""}},{{""Text"":""ici"",""EndedAt"":""2026-01-27T12:31:06.400Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""MoveCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [ {{ ""type"": ""Annotation"", ""value"": ""Caisse"", ""timestamp"": ""2026-01-27T12:31:06.100Z"" }} ],
-        ""limit"": ""1""
-      }},
-      {{ ""type"": ""PointParameter"", ""value"": ""{pointerTerm}"", ""timestamp"": ""2026-01-27T12:31:06.400Z"" }}
-    ]
-  }}
-]
-
-## EXEMPLE 3: Sélection de 'tous' les objets
-Entrée utilisateur:
-{{""Text"":""cache toutes les sphères"",""Words"":[{{""Text"":""cache"",""EndedAt"":""2026-01-27T12:32:01.400Z""}},{{""Text"":""toutes"",""EndedAt"":""2026-01-27T12:32:01.800Z""}},{{""Text"":""les"",""EndedAt"":""2026-01-27T12:32:01.950Z""}},{{""Text"":""sphères"",""EndedAt"":""2026-01-27T12:32:02.500Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""HideCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Sphère"", ""timestamp"": ""2026-01-27T12:32:02.500Z"" }}
-        ],
-        ""limit"": ""-1""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 4: Coloriser plusieurs objets avec tri
-Entrée utilisateur:
-{{""Text"":""colorie les deux plus grosses citrouilles en vert"",""Words"":[{{""Text"":""colorie"",""EndedAt"":""2026-01-27T12:33:01.500Z""}},{{""Text"":""les"",""EndedAt"":""2026-01-27T12:33:01.650Z""}},{{""Text"":""deux"",""EndedAt"":""2026-01-27T12:33:01.900Z""}},{{""Text"":""plus"",""EndedAt"":""2026-01-27T12:33:02.100Z""}},{{""Text"":""grosses"",""EndedAt"":""2026-01-27T12:33:02.500Z""}},{{""Text"":""citrouilles"",""EndedAt"":""2026-01-27T12:33:03.100Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-27T12:33:03.250Z""}},{{""Text"":""vert"",""EndedAt"":""2026-01-27T12:33:03.600Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""ColorizeCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""ColorParameter"",
-        ""value"": ""Vert""
-      }},
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Citrouille"", ""timestamp"": ""2026-01-27T12:33:03.100Z"" }}
-        ],
-        ""limit"": ""2"",
-        ""order"": {{
-          ""criterias"": [
-            {{
-              ""type"": ""size"",
-              ""desc"": true
-            }}
-          ]
-        }}
-      }}
-    ]
-  }}
-]
-
 ## EXEMPLE 5: Filtre combiné (Annotation ET Couleur)
 Entrée utilisateur:
 {{""Text"":""colorie en rouge cette pomme verte"",""Words"":[{{""Text"":""colorie"",""EndedAt"":""2026-01-27T12:34:01.500Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-27T12:34:01.600Z""}},{{""Text"":""rouge"",""EndedAt"":""2026-01-27T12:34:02.000Z""}},{{""Text"":""cette"",""EndedAt"":""2026-01-27T12:34:02.300Z""}},{{""Text"":""pomme"",""EndedAt"":""2026-01-27T12:34:02.700Z""}},{{""Text"":""verte"",""EndedAt"":""2026-01-27T12:34:03.100Z""}}]}}
@@ -301,76 +328,7 @@ JSON Attendu:
   }}
 ]
 
-## EXEMPLE 6: Sélectionner l'objet pointé
-Entrée utilisateur:
-{{""Text"":""sélectionne ça"",""Words"":[{{""Text"":""sélectionne"",""EndedAt"":""2026-01-27T12:35:01.600Z""}},{{""Text"":""ça"",""EndedAt"":""2026-01-27T12:35:01.900Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""SelectCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Event"", ""value"": ""{pointerTerm}"", ""timestamp"": ""2026-01-27T12:35:01.900Z"" }}
-        ],
-        ""limit"": ""1""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 7: Commande avec sélection par pointage ('cette')
-Entrée utilisateur:
-{{""Text"":""mets cette pomme en bleu"",""Words"":[{{""Text"":""mets"",""EndedAt"":""2026-01-29T14:49:19.456Z""}},{{""Text"":""cette"",""EndedAt"":""2026-01-29T14:49:19.789Z""}},{{""Text"":""pomme"",""EndedAt"":""2026-01-29T14:49:20.200Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-29T14:49:20.350Z""}},{{""Text"":""bleu"",""EndedAt"":""2026-01-29T14:49:20.700Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""ColorizeCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""ColorParameter"",
-        ""value"": ""Bleu""
-      }},
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Pomme"", ""timestamp"": ""2026-01-29T14:49:20.200Z"" }},
-          ""AND"",
-          {{ ""type"": ""Event"", ""value"": ""{pointerTerm}"", ""timestamp"": ""2026-01-29T14:49:20.200Z"" }}
-        ],
-        ""limit"": ""1""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 8: Sélection par vision ('que je vois')
-Entrée utilisateur:
-{{""Text"":""colorie en bleu toute la nourriture que je vois"",""Words"":[{{""Text"":""colorie"",""EndedAt"":""2026-01-29T15:01:58.300Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-29T15:01:58.400Z""}},{{""Text"":""bleu"",""EndedAt"":""2026-01-29T15:01:58.700Z""}},{{""Text"":""toute"",""EndedAt"":""2026-01-29T15:01:59.000Z""}},{{""Text"":""la"",""EndedAt"":""2026-01-29T15:01:59.100Z""}},{{""Text"":""nourriture"",""EndedAt"":""2026-01-29T15:01:59.700Z""}},{{""Text"":""que"",""EndedAt"":""2026-01-29T15:01:59.850Z""}},{{""Text"":""je"",""EndedAt"":""2026-01-29T15:02:00.000Z""}},{{""Text"":""vois"",""EndedAt"":""2026-01-29T15:02:00.300Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""ColorizeCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""ColorParameter"",
-        ""value"": ""Bleu""
-      }},
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Nourriture"", ""timestamp"": ""2026-01-29T15:01:59.700Z"" }},
-          ""AND"",
-          {{ ""type"": ""Event"", ""value"": ""{cameraTerm}"", ""timestamp"": ""2026-01-29T15:02:00.300Z"" }}
-        ],
-        ""limit"": ""-1""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 9: Commande de colorisation simple
+## EXEMPLE 9: Commande de colorisation simple (CIBLE)
 Entrée utilisateur:
 {{""Text"":""mets les pommes en bleu"",""Words"":[{{""Text"":""mets"",""EndedAt"":""2026-01-29T17:42:52.051Z""}},{{""Text"":""les"",""EndedAt"":""2026-01-29T17:42:52.211Z""}},{{""Text"":""pommes"",""EndedAt"":""2026-01-29T17:42:52.601Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-29T17:42:52.751Z""}},{{""Text"":""bleu"",""EndedAt"":""2026-01-29T17:42:53.101Z""}}]}}
 JSON Attendu:
@@ -392,53 +350,31 @@ JSON Attendu:
     ]
   }}
 ]
+
+## EXEMPLE 10: Commande de colorisation avec 'toutes' et 'couleur' (CIBLE)
+Entrée utilisateur:
+{{""Text"":""coloris toutes les citrouilles en couleur verte"",""Words"":[{{""Text"":""coloris"",""EndedAt"":""2026-02-02T16:10:01.000Z""}},{{""Text"":""toutes"",""EndedAt"":""2026-02-02T16:10:01.400Z""}},{{""Text"":""les"",""EndedAt"":""2026-02-02T16:10:01.600Z""}},{{""Text"":""citrouilles"",""EndedAt"":""2026-02-02T16:10:02.200Z""}},{{""Text"":""en"",""EndedAt"":""2026-02-02T16:10:02.300Z""}},{{""Text"":""couleur"",""EndedAt"":""2026-02-02T16:10:02.700Z""}},{{""Text"":""verte"",""EndedAt"":""2026-02-02T16:10:03.100Z""}}]}}
+JSON Attendu:
+[
+  {{
+    ""type"": ""ColorizeCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""ColorParameter"",
+        ""value"": ""Vert""
+      }},
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Annotation"", ""value"": ""Citrouille"", ""timestamp"": ""2026-02-02T16:10:02.200Z"" }}
+        ],
+        ""limit"": ""-1""
+      }}
+    ]
+  }}
+]
 --- FIN DES EXEMPLES ---
 ";
-
-            // Sérialise un objet anonyme qui correspond à la structure attendue par le prompt
-            var userInput = new
-            {
-                sentence.Text,
-                sentence.Words
-            };
-
-            var requestBody = new
-            {
-                model = "gpt-3.5-turbo",
-                messages = new[]
-                {
-                    new { role = "system", content = systemPrompt },
-                    new { role = "user", content = JsonConvert.SerializeObject(userInput) }
-                },
-                temperature = 0.1
-            };
-
-            // --- AMÉLIORATION 1: Création d'un HttpRequestMessage pour utiliser le HttpClient statique ---
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
-            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
-            requestMessage.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.SendAsync(requestMessage);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                string errorBody = await response.Content.ReadAsStringAsync();
-                Debug.LogError($"[LLM] API Error: {response.StatusCode}\n{errorBody}");
-                return null;
-            }
-
-            string responseBody = await response.Content.ReadAsStringAsync();
-            Debug.Log($"[LLM] Full API response body:\n{responseBody}");
-
-            var openAiResponse = JsonConvert.DeserializeObject<OpenAiResponse>(responseBody);
-
-            if (openAiResponse?.Usage != null)
-            {
-                var usage = openAiResponse.Usage;
-                Debug.Log($"[LLM] Token Usage: Prompt={usage.PromptTokens}, Completion={usage.CompletionTokens}, Total={usage.TotalTokens}");
-            }
-
-            return openAiResponse?.Choices?[0]?.Message?.Content;
         }
 
         // Classes d'aide pour désérialiser la réponse d'OpenAI
@@ -471,15 +407,15 @@ JSON Attendu:
       {{
         ""type"": ""PointParameter"",
         ""value"": ""Pointer"",
-   ""timestamp"": ""{DateTime.Now:yyyy-MM-ddTHH:mm:ss.fffzzz}""
+        ""timestamp"": ""{DateTime.Now:o}""
       }},
       {{
         ""type"": ""SelectionParameter"",
         ""filters"": [
           {{
-            ""type"": ""Event"",
+            ""type"": ""Event"",
             ""value"": ""Pointeur"",
-            ""timestamp"": ""{DateTime.Now:yyyy-MM-ddTHH:mm:ss.fffzzz}""
+            ""timestamp"": ""{DateTime.Now:o}""
           }}
         ],
         ""limit"": ""1""
@@ -503,22 +439,22 @@ JSON Attendu:
       {{
         ""type"": ""SelectionParameter"",
         ""filters"": [
-   {{
+        {{
             ""type"": ""Annotation"",
             ""value"": ""Citrouille"",
-            ""timestamp"": ""{DateTime.Now:yyyy-MM-ddTHH:mm:ss.fffzzz}""
+            ""timestamp"": ""{DateTime.Now:o}""
          }},
-   ""OR"",
-   {{
+        ""OR"",
+        {{
             ""type"": ""Annotation"",
             ""value"": ""Pomme"",
-            ""timestamp"": ""{DateTime.Now:yyyy-MM-ddTHH:mm:ss.fffzzz}""
+            ""timestamp"": ""{DateTime.Now:o}""
           }},
           ""AND"",
           {{
-    ""type"": ""Event"",
-    ""value"": ""Caméra"",
-            ""timestamp"": ""{DateTime.Now:yyyy-MM-ddTHH:mm:ss.fffzzz}""
+            ""type"": ""Event"",
+            ""value"": ""Caméra"",
+            ""timestamp"": ""{DateTime.Now:o}""
           }}
         ],
         ""limit"": ""5"",
