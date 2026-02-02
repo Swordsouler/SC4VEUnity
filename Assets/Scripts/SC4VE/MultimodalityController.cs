@@ -29,219 +29,8 @@ namespace Sc4ve.Multimodality
 
         private static readonly HttpClient _httpClient = new();
 
-        private string _cachedAnnotationTypesString;
-        private string _cachedAvailableColorsString;
-        private string _systemPrompt;
-
-        private void Awake()
-        {
-            UserData.Language = _language;
-            if (_voskSpeechToText != null) _voskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
-        }
-
-        private async void Start()
-        {
-            await BuildSystemPrompt();
-        }
-
-        private async void OnTranscriptionResult(string obj)
-        {
-            var result = new RecognitionResult(obj);
-            for (int i = 0; i < result.Phrases.Length; i++)
-            {
-                if (string.IsNullOrWhiteSpace(result.Phrases[i].Text)) continue;
-
-                Sentence phrase = result.Phrases[i];
-                phrase.Start(new Instant(phrase.StartedAt));
-                phrase.End(new Instant(phrase.EndedAt));
-
-                try
-                {
-                    Debug.Log($"[LLM] Sending sentence for analysis: \"{phrase.Text}\"");
-
-                    // --- NOUVELLE LOGIQUE HYBRIDE ---
-                    string commandJson = await GetValidatedCommandJsonFromLlmAsync(phrase);
-
-                    if (string.IsNullOrWhiteSpace(commandJson))
-                    {
-                        Debug.LogWarning("[LLM] Received empty or null JSON from LLM after all attempts.");
-                        continue;
-                    }
-
-                    Debug.Log($"[LLM] Received FINAL JSON: {commandJson}");
-                    List<Command> commands = DeserializeCommand(commandJson);
-                    if (commands == null) continue;
-
-                    await CommandToGraphOutputCommandAsync(commands);
-                    ResolveCommands(commands);
-                    Debug.Log("[LLM] Commands resolved successfully.");
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"[LLM] An error occurred during LLM processing: {e.Message}\n{e.StackTrace}");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Orchestrateur de l'approche hybride. Tente une requête rapide avec GPT-3.5,
-        /// la valide, et ne passe à GPT-4 qu'en cas d'erreur connue.
-        /// </summary>
-        private async Task<string> GetValidatedCommandJsonFromLlmAsync(Sentence sentence)
-        {
-            // 1. Essai rapide avec GPT-3.5
-            Debug.Log("[LLM] Attempting fast path with gpt-3.5-turbo...");
-            string jsonResponse = await CallLlmApiAsync(sentence, "gpt-3.5-turbo");
-
-            if (string.IsNullOrWhiteSpace(jsonResponse))
-            {
-                Debug.LogError("[LLM] GPT-3.5 returned an empty response.");
-                return null; // Échec précoce
-            }
-
-            // 2. Validation de la réponse
-            List<Command> commands = DeserializeCommand(jsonResponse);
-            if (commands == null) return null;
-
-            bool needsCorrection = false;
-            foreach (var command in commands)
-            {
-                // La condition d'erreur spécifique que nous voulons corriger
-                if (command is ColorizeCommand)
-                {
-                    var selectionParam = command.Parameters.OfType<SelectionParameter>().FirstOrDefault();
-                    if (selectionParam?.Filters.Any(f => f.Condition?.Type == "Color") ?? false)
-                    {
-                        needsCorrection = true;
-                        break;
-                    }
-                }
-            }
-
-            // 3. Si la validation échoue, on corrige avec GPT-4
-            if (needsCorrection)
-            {
-                Debug.LogWarning("[LLM] GPT-3.5 response failed validation. Retrying with gpt-4-turbo for accuracy.");
-                jsonResponse = await CallLlmApiAsync(sentence, "gpt-4-turbo");
-            }
-            else
-            {
-                Debug.Log("[LLM] GPT-3.5 response passed validation. Using fast path result.");
-            }
-
-            return jsonResponse;
-        }
-
-        /// <summary>
-        /// Appelle l'API OpenAI avec le modèle et la phrase spécifiés.
-        /// </summary>
-        private async Task<string> CallLlmApiAsync(Sentence sentence, string model)
-        {
-            if (string.IsNullOrWhiteSpace(_openAiApiKey))
-            {
-                Debug.LogError("[LLM] OpenAI API Key is not set.");
-                return null;
-            }
-            if (string.IsNullOrWhiteSpace(_systemPrompt))
-            {
-                Debug.LogError("[LLM] System prompt not built yet. Rebuilding...");
-                await BuildSystemPrompt();
-            }
-
-            var userInput = new { sentence.Text, sentence.Words };
-            var requestBody = new
-            {
-                model,
-                messages = new[]
-                {
-                    new { role = "system", content = _systemPrompt },
-                    new { role = "user", content = JsonConvert.SerializeObject(userInput) }
-                },
-                temperature = 0.1
-            };
-
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
-            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
-            requestMessage.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.SendAsync(requestMessage);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                string errorBody = await response.Content.ReadAsStringAsync();
-                Debug.LogError($"[LLM] API Error ({model}): {response.StatusCode}\n{errorBody}");
-                return null;
-            }
-
-            string responseBody = await response.Content.ReadAsStringAsync();
-            var openAiResponse = JsonConvert.DeserializeObject<OpenAiResponse>(responseBody);
-
-            if (openAiResponse?.Usage != null)
-            {
-                var usage = openAiResponse.Usage;
-                Debug.Log($"[LLM] Token Usage ({model}): Prompt={usage.PromptTokens}, Completion={usage.CompletionTokens}, Total={usage.TotalTokens}");
-            }
-
-            return openAiResponse?.Choices?[0]?.Message?.Content;
-        }
-
-        private List<Command> DeserializeCommand(string json)
-        {
-            try
-            {
-                return JsonConvert.DeserializeObject<List<Command>>(json);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[LLM] JSON Deserialization failed: {e.Message}\nJSON was: {json}");
-                return null;
-            }
-        }
-
-        public async Task<List<Command>> CommandToGraphOutputCommandAsync(List<Command> commands)
-        {
-            return await Task.Run(async () =>
-            {
-                Graph graph = new();
-                Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
-                foreach (KeyValuePair<string, string> ontology in ontologies)
-                {
-                    TurtleParser turtleParser = new();
-                    turtleParser.Load(graph, ontology.Value);
-                }
-                graph.BaseUri = new Uri(SvenSettings.BaseUri);
-                graph.NamespaceMap.AddNamespace("", UriFactory.Create(SvenSettings.BaseUri));
-                foreach (Command command in commands)
-                    await command.Semanticize(graph);
-
-                GraphManager.Assert(graph.Triples);
-                return commands;
-            });
-        }
-
-        public void ResolveCommands(List<Command> commands)
-        {
-            foreach (Command command in commands)
-            {
-                command.Execute();
-            }
-        }
-
-        /// <summary>
-        /// Construit et met en cache le prompt système au démarrage.
-        /// </summary>
-        private async Task BuildSystemPrompt()
-        {
-            List<string> annotationTypes = await ISemanticAnnotation.GetAvailableTypesAsync(UserData.Locale);
-            _cachedAnnotationTypesString = string.Join(", ", annotationTypes.Select(t => $"'{t}'"));
-
-            List<string> availableColors = await ColorParameter.GetAvailableColorsAsync();
-            _cachedAvailableColorsString = string.Join(", ", availableColors.Select(c => $"'{c}'"));
-
-            string cameraTerm = (UserData.Language == Language.French) ? "Caméra" : "Camera";
-            string pointerTerm = (UserData.Language == Language.French) ? "Pointeur" : "Pointer";
-
-            _systemPrompt = $@"Tu es un système expert qui convertit le langage naturel en un format de commande JSON pour un environnement 3D.
+        // Le corps principal et statique du prompt est maintenant une constante.
+        private const string SYSTEM_PROMPT_TEMPLATE = @"Tu es un système expert qui convertit le langage naturel en un format de commande JSON pour un environnement 3D.
 Ta seule et unique réponse doit être le contenu JSON brut, sans explication ou formatage markdown.
 
 --- FORMAT D'ENTRÉE ---
@@ -273,10 +62,10 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 - 'Event': Pour les événements système. Les valeurs valides sont '{pointerTerm}' et '{cameraTerm}'.
 
 --- VOCABULAIRE D'ANNOTATION CONNU ---
-Lorsque tu utilises un filtre de type 'Annotation', la 'value' DOIT correspondre EXACTEMENT à l'un des termes de la liste {_cachedAnnotationTypesString}, sans le modifier (pas de pluriel, pas de changement de casse).
+Lorsque tu utilises un filtre de type 'Annotation', la 'value' DOIT correspondre EXACTEMENT à l'un des termes de la liste {annotationTypesString}, sans le modifier (pas de pluriel, pas de changement de casse).
 
 --- VOCABULAIRE DE COULEUR CONNU ---
-Lorsque tu utilises un 'ColorParameter' ou un filtre de type 'Color', la 'value' DOIT être l'une des suivantes : {_cachedAvailableColorsString}.
+Lorsque tu utilises un 'ColorParameter' ou un filtre de type 'Color', la 'value' DOIT être l'une des suivantes : {availableColorsString}.
 
 NOTE: Dans les exemples suivants, la propriété 'StartedAt' est omise pour des raisons de concision, mais elle sera présente dans l'entrée utilisateur réelle.
 
@@ -375,6 +164,210 @@ JSON Attendu:
 ]
 --- FIN DES EXEMPLES ---
 ";
+
+        private void Awake()
+        {
+            UserData.Language = _language;
+            if (_voskSpeechToText != null) _voskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
+        }
+
+        private void Start()
+        {
+            // La méthode Start est maintenant vide, l'initialisation se fait à la volée.
+        }
+
+        private async void OnTranscriptionResult(string obj)
+        {
+            var result = new RecognitionResult(obj);
+            for (int i = 0; i < result.Phrases.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(result.Phrases[i].Text)) continue;
+
+                Sentence phrase = result.Phrases[i];
+                phrase.Start(new Instant(phrase.StartedAt));
+                phrase.End(new Instant(phrase.EndedAt));
+
+                try
+                {
+                    Debug.Log($"[LLM] Sending sentence for analysis: \"{phrase.Text}\"");
+
+                    string commandJson = await GetValidatedCommandJsonFromLlmAsync(phrase);
+
+                    if (string.IsNullOrWhiteSpace(commandJson))
+                    {
+                        Debug.LogWarning("[LLM] Received empty or null JSON from LLM after all attempts.");
+                        continue;
+                    }
+
+                    Debug.Log($"[LLM] Received FINAL JSON: {commandJson}");
+                    List<Command> commands = DeserializeCommand(commandJson);
+                    if (commands == null) continue;
+
+                    await CommandToGraphOutputCommandAsync(commands);
+                    ResolveCommands(commands);
+                    Debug.Log("[LLM] Commands resolved successfully.");
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[LLM] An error occurred during LLM processing: {e.Message}\n{e.StackTrace}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Orchestrateur de l'approche hybride. Tente une requête rapide avec GPT-3.5,
+        /// la valide, et ne passe à GPT-4 qu'en cas d'erreur connue.
+        /// </summary>
+        private async Task<string> GetValidatedCommandJsonFromLlmAsync(Sentence sentence)
+        {
+            // 1. Essai rapide avec GPT-3.5
+            Debug.Log("[LLM] Attempting fast path with gpt-3.5-turbo...");
+            string jsonResponse = await CallLlmApiAsync(sentence, "gpt-3.5-turbo");
+
+            if (string.IsNullOrWhiteSpace(jsonResponse))
+            {
+                Debug.LogError("[LLM] GPT-3.5 returned an empty response.");
+                return null; // Échec précoce
+            }
+
+            // 2. Validation de la réponse
+            List<Command> commands = DeserializeCommand(jsonResponse);
+            if (commands == null) return null;
+
+            bool needsCorrection = false;
+            foreach (var command in commands)
+            {
+                // La condition d'erreur spécifique que nous voulons corriger
+                if (command is ColorizeCommand)
+                {
+                    var selectionParam = command.Parameters.OfType<SelectionParameter>().FirstOrDefault();
+                    if (selectionParam?.Filters.Any(f => f.Condition?.Type == "Color") ?? false)
+                    {
+                        needsCorrection = true;
+                        break;
+                    }
+                }
+            }
+
+            // 3. Si la validation échoue, on corrige avec GPT-4
+            if (needsCorrection)
+            {
+                Debug.LogWarning("[LLM] GPT-3.5 response failed validation. Retrying with gpt-4-turbo for accuracy.");
+                jsonResponse = await CallLlmApiAsync(sentence, "gpt-4-turbo");
+            }
+            else
+            {
+                Debug.Log("[LLM] GPT-3.5 response passed validation. Using fast path result.");
+            }
+
+            return jsonResponse;
+        }
+
+        /// <summary>
+        /// Appelle l'API OpenAI avec le modèle et la phrase spécifiés.
+        /// </summary>
+        private async Task<string> CallLlmApiAsync(Sentence sentence, string model)
+        {
+            if (string.IsNullOrWhiteSpace(_openAiApiKey))
+            {
+                Debug.LogError("[LLM] OpenAI API Key is not set.");
+                return null;
+            }
+
+            // Récupération des listes à la volée pour garantir qu'elles sont à jour
+            List<string> annotationTypes = await ISemanticAnnotation.GetAvailableTypesAsync(UserData.Locale);
+            string annotationTypesString = string.Join(", ", annotationTypes.Select(t => $"'{t}'"));
+
+            List<string> availableColors = await ColorParameter.GetAvailableColorsAsync();
+            string availableColorsString = string.Join(", ", availableColors.Select(c => $"'{c}'"));
+
+            string cameraTerm = (UserData.Language == Language.French) ? "Caméra" : "Camera";
+            string pointerTerm = (UserData.Language == Language.French) ? "Pointeur" : "Pointer";
+
+            // Construction du prompt final à partir du template
+            string finalSystemPrompt = SYSTEM_PROMPT_TEMPLATE
+                .Replace("{annotationTypesString}", annotationTypesString)
+                .Replace("{availableColorsString}", availableColorsString)
+                .Replace("{cameraTerm}", cameraTerm)
+                .Replace("{pointerTerm}", pointerTerm);
+
+            var userInput = new { sentence.Text, sentence.Words };
+            var requestBody = new
+            {
+                model,
+                messages = new[]
+                {
+                    new { role = "system", content = finalSystemPrompt },
+                    new { role = "user", content = JsonConvert.SerializeObject(userInput) }
+                },
+                temperature = 0.1
+            };
+
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
+            requestMessage.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.SendAsync(requestMessage);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                string errorBody = await response.Content.ReadAsStringAsync();
+                Debug.LogError($"[LLM] API Error ({model}): {response.StatusCode}\n{errorBody}");
+                return null;
+            }
+
+            string responseBody = await response.Content.ReadAsStringAsync();
+            var openAiResponse = JsonConvert.DeserializeObject<OpenAiResponse>(responseBody);
+
+            if (openAiResponse?.Usage != null)
+            {
+                var usage = openAiResponse.Usage;
+                Debug.Log($"[LLM] Token Usage ({model}): Prompt={usage.PromptTokens}, Completion={usage.CompletionTokens}, Total={usage.TotalTokens}");
+            }
+
+            return openAiResponse?.Choices?[0]?.Message?.Content;
+        }
+
+        private List<Command> DeserializeCommand(string json)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<List<Command>>(json);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[LLM] JSON Deserialization failed: {e.Message}\nJSON was: {json}");
+                return null;
+            }
+        }
+
+        public async Task<List<Command>> CommandToGraphOutputCommandAsync(List<Command> commands)
+        {
+            return await Task.Run(async () =>
+            {
+                Graph graph = new();
+                Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
+                foreach (KeyValuePair<string, string> ontology in ontologies)
+                {
+                    TurtleParser turtleParser = new();
+                    turtleParser.Load(graph, ontology.Value);
+                }
+                graph.BaseUri = new Uri(SvenSettings.BaseUri);
+                graph.NamespaceMap.AddNamespace("", UriFactory.Create(SvenSettings.BaseUri));
+                foreach (Command command in commands)
+                    await command.Semanticize(graph);
+
+                GraphManager.Assert(graph.Triples);
+                return commands;
+            });
+        }
+
+        public void ResolveCommands(List<Command> commands)
+        {
+            foreach (Command command in commands)
+            {
+                command.Execute();
+            }
         }
 
         // Classes d'aide pour désérialiser la réponse d'OpenAI
