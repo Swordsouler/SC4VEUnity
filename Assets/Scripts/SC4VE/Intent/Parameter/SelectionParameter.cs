@@ -103,6 +103,7 @@ WHERE {{
 {FiltersSparql}
 {OrderSparqlBody}
 }} {OrderSparqlTail} {LimitSparql}";
+            Debug.Log(query);
             SparqlResultSet results = queryGraph.ExecuteQuery(query) as SparqlResultSet;
             List<string> objectsUri = new();
             foreach (SparqlResult result in results.Cast<SparqlResult>())
@@ -297,7 +298,9 @@ select * where {{
         {{
             {intervalQuery}
             ?object sven:component ?component .
-            ?component a ?componentType ;
+            ?component a sven:Annotator ;
+                       sven:annotation ?annotation .
+            ?annotation sven:value ?componentType ;
                         sven:hasTemporalExtent ?interval{index} .
             ?componentType rdfs:label ""{Value}""@{locale}
         }} LIMIT 10000
