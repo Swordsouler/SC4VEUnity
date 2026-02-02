@@ -117,6 +117,31 @@ JSON Attendu:
   }}
 ]
 
+## EXEMPLE 7: Commande avec sélection par pointage ('cette')
+Entrée utilisateur:
+{{""Text"":""mets cette pomme en bleu"",""Words"":[{{""Text"":""mets"",""EndedAt"":""2026-01-29T14:49:19.456Z""}},{{""Text"":""cette"",""EndedAt"":""2026-01-29T14:49:19.789Z""}},{{""Text"":""pomme"",""EndedAt"":""2026-01-29T14:49:20.200Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-29T14:49:20.350Z""}},{{""Text"":""bleu"",""EndedAt"":""2026-01-29T14:49:20.700Z""}}]}}
+JSON Attendu:
+[
+  {{
+    ""type"": ""ColorizeCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""ColorParameter"",
+        ""value"": ""Bleu""
+      }},
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Annotation"", ""value"": ""Pomme"", ""timestamp"": ""2026-01-29T14:49:20.200Z"" }},
+          ""AND"",
+          {{ ""type"": ""Event"", ""value"": ""{pointerTerm}"", ""timestamp"": ""2026-01-29T14:49:19.789Z"" }}
+        ],
+        ""limit"": ""1""
+      }}
+    ]
+  }}
+]
+
 ## EXEMPLE 9: Commande de colorisation simple (CIBLE)
 Entrée utilisateur:
 {{""Text"":""mets les pommes en bleu"",""Words"":[{{""Text"":""mets"",""EndedAt"":""2026-01-29T17:42:52.051Z""}},{{""Text"":""les"",""EndedAt"":""2026-01-29T17:42:52.211Z""}},{{""Text"":""pommes"",""EndedAt"":""2026-01-29T17:42:52.601Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-29T17:42:52.751Z""}},{{""Text"":""bleu"",""EndedAt"":""2026-01-29T17:42:53.101Z""}}]}}
@@ -235,16 +260,27 @@ JSON Attendu:
             if (commands == null) return null;
 
             bool needsCorrection = false;
-            foreach (var command in commands)
+
+            // Règle 1: Vérifier la présence incorrecte d'un filtre de couleur dans une ColorizeCommand
+            if (commands.Any(c => c is ColorizeCommand && (c.Parameters.OfType<SelectionParameter>().FirstOrDefault()?.Filters.Any(f => f.Condition?.Type == "Color") ?? false)))
             {
-                // La condition d'erreur spécifique que nous voulons corriger
-                if (command is ColorizeCommand)
+                needsCorrection = true;
+            }
+
+            // Règle 2: Vérifier l'absence de filtre pointeur si un mot déictique est présent
+            if (!needsCorrection)
+            {
+                string pointerTerm = (UserData.Language == Language.French) ? "Pointeur" : "Pointer";
+                var deicticWords = new HashSet<string> { "ce", "cette", "cet", "ces", "ceci", "ça" };
+                bool sentenceHasDeictic = deicticWords.Any(word => sentence.Text.ToLower().Contains(word));
+
+                if (sentenceHasDeictic)
                 {
-                    var selectionParam = command.Parameters.OfType<SelectionParameter>().FirstOrDefault();
-                    if (selectionParam?.Filters.Any(f => f.Condition?.Type == "Color") ?? false)
+                    var allSelectionParams = commands.SelectMany(c => c.Parameters.OfType<SelectionParameter>());
+                    if (allSelectionParams.Any() && allSelectionParams.All(sp => !sp.Filters.Any(f => f.Condition?.Type == "Event" && f.Condition?.Value == pointerTerm)))
                     {
+                        Debug.Log("[LLM] Validation failed: Deictic word found but pointer event filter is missing.");
                         needsCorrection = true;
-                        break;
                     }
                 }
             }
