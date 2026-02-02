@@ -27,10 +27,27 @@ namespace Sc4ve.Multimodality
         [BoxGroup("LLM Settings"), SerializeField, Tooltip("Clé API OpenAI. Ne pas exposer publiquement.")]
         private string _openAiApiKey;
 
+        // --- AMÉLIORATION 1: Instance HttpClient statique et réutilisée ---
+        private static readonly HttpClient _httpClient = new();
+
+        // --- AMÉLIORATION 2: Mise en cache des variables du prompt ---
+        private string _cachedAnnotationTypesString;
+        private string _cachedAvailableColorsString;
+
         private void Awake()
         {
             UserData.Language = _language;
             if (_voskSpeechToText != null) _voskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
+        }
+
+        // --- AMÉLIORATION 2: Récupération des vocabulaires au démarrage ---
+        private async void Start()
+        {
+            List<string> annotationTypes = await ISemanticAnnotation.GetAvailableTypesAsync(UserData.Locale);
+            _cachedAnnotationTypesString = string.Join(", ", annotationTypes.Select(t => $"'{t}'"));
+
+            List<string> availableColors = await ColorParameter.GetAvailableColorsAsync();
+            _cachedAvailableColorsString = string.Join(", ", availableColors.Select(c => $"'{c}'"));
         }
 
         private async void OnTranscriptionResult(string obj)
@@ -116,18 +133,11 @@ namespace Sc4ve.Multimodality
                 return null;
             }
 
-            // Récupère dynamiquement les types d'annotations sémantiques disponibles
-            List<string> annotationTypes = await ISemanticAnnotation.GetAvailableTypesAsync(UserData.Locale);
-            string annotationTypesString = string.Join(", ", annotationTypes.Select(t => $"'{t}'"));
-
-            // Récupère dynamiquement les couleurs disponibles
-            List<string> availableColors = await ColorParameter.GetAvailableColorsAsync();
-            string availableColorsString = string.Join(", ", availableColors.Select(c => $"'{c}'"));
-
             // Définit les termes localisés pour les événements
             string cameraTerm = (UserData.Language == Language.French) ? "Caméra" : "Camera";
             string pointerTerm = (UserData.Language == Language.French) ? "Pointeur" : "Pointer";
 
+            // --- AMÉLIORATION 2: Utilisation des variables de prompt mises en cache ---
             string systemPrompt = $@"Tu es un système expert qui convertit le langage naturel en un format de commande JSON pour un environnement 3D.
 Ta seule et unique réponse doit être le contenu JSON brut, sans explication ou formatage markdown.
 
@@ -168,16 +178,18 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 - 'Event': Pour les événements système. Les valeurs valides sont '{pointerTerm}' et '{cameraTerm}'.
 
 --- VOCABULAIRE D'ANNOTATION CONNU ---
-Lorsque tu utilises un filtre de type 'Annotation', la 'value' DOIT correspondre EXACTEMENT à l'un des termes de la liste {annotationTypesString}, sans le modifier (pas de pluriel, pas de changement de casse).
+Lorsque tu utilises un filtre de type 'Annotation', la 'value' DOIT correspondre EXACTEMENT à l'un des termes de la liste {_cachedAnnotationTypesString}, sans le modifier (pas de pluriel, pas de changement de casse).
 
 --- VOCABULAIRE DE COULEUR CONNU ---
-Lorsque tu utilises un 'ColorParameter' ou un filtre de type 'Color', la 'value' DOIT être l'une des suivantes : {availableColorsString}.
+Lorsque tu utilises un 'ColorParameter' ou un filtre de type 'Color', la 'value' DOIT être l'une des suivantes : {_cachedAvailableColorsString}.
+
+NOTE: Dans les exemples suivants, la propriété 'StartedAt' est omise pour des raisons de concision, mais elle sera présente dans l'entrée utilisateur réelle.
 
 --- EXEMPLES ---
 
 ## EXEMPLE 1: Masquer un objet spécifique (décrit par sa couleur)
 Entrée utilisateur:
-{{""Text"":""masque la voiture rouge"",""Words"":[{{""Text"":""masque"",""StartedAt"":""2026-01-27T12:30:01.100Z"",""EndedAt"":""2026-01-27T12:30:01.500Z""}},{{""Text"":""la"",""StartedAt"":""2026-01-27T12:30:01.520Z"",""EndedAt"":""2026-01-27T12:30:01.650Z""}},{{""Text"":""voiture"",""StartedAt"":""2026-01-27T12:30:01.670Z"",""EndedAt"":""2026-01-27T12:30:02.100Z""}},{{""Text"":""rouge"",""StartedAt"":""2026-01-27T12:30:02.120Z"",""EndedAt"":""2026-01-27T12:30:02.500Z""}}]}}
+{{""Text"":""masque la voiture rouge"",""Words"":[{{""Text"":""masque"",""EndedAt"":""2026-01-27T12:30:01.500Z""}},{{""Text"":""la"",""EndedAt"":""2026-01-27T12:30:01.650Z""}},{{""Text"":""voiture"",""EndedAt"":""2026-01-27T12:30:02.100Z""}},{{""Text"":""rouge"",""EndedAt"":""2026-01-27T12:30:02.500Z""}}]}}
 JSON Attendu:
 [
   {{
@@ -198,7 +210,7 @@ JSON Attendu:
 
 ## EXEMPLE 2: Déplacer un objet
 Entrée utilisateur:
-{{""Text"":""déplace la caisse ici"",""Words"":[{{""Text"":""déplace"",""StartedAt"":""2026-01-27T12:31:05.000Z"",""EndedAt"":""2026-01-27T12:31:05.500Z""}},{{""Text"":""la"",""StartedAt"":""2026-01-27T12:31:05.520Z"",""EndedAt"":""2026-01-27T12:31:05.650Z""}},{{""Text"":""caisse"",""StartedAt"":""2026-01-27T12:31:05.670Z"",""EndedAt"":""2026-01-27T12:31:06.100Z""}},{{""Text"":""ici"",""StartedAt"":""2026-01-27T12:31:06.120Z"",""EndedAt"":""2026-01-27T12:31:06.400Z""}}]}}
+{{""Text"":""déplace la caisse ici"",""Words"":[{{""Text"":""déplace"",""EndedAt"":""2026-01-27T12:31:05.500Z""}},{{""Text"":""la"",""EndedAt"":""2026-01-27T12:31:05.650Z""}},{{""Text"":""caisse"",""EndedAt"":""2026-01-27T12:31:06.100Z""}},{{""Text"":""ici"",""EndedAt"":""2026-01-27T12:31:06.400Z""}}]}}
 JSON Attendu:
 [
   {{
@@ -216,7 +228,7 @@ JSON Attendu:
 
 ## EXEMPLE 3: Sélection de 'tous' les objets
 Entrée utilisateur:
-{{""Text"":""cache toutes les sphères"",""Words"":[{{""Text"":""cache"",""StartedAt"":""2026-01-27T12:32:01.000Z"",""EndedAt"":""2026-01-27T12:32:01.400Z""}},{{""Text"":""toutes"",""StartedAt"":""2026-01-27T12:32:01.420Z"",""EndedAt"":""2026-01-27T12:32:01.800Z""}},{{""Text"":""les"",""StartedAt"":""2026-01-27T12:32:01.820Z"",""EndedAt"":""2026-01-27T12:32:01.950Z""}},{{""Text"":""sphères"",""StartedAt"":""2026-01-27T12:32:02.000Z"",""EndedAt"":""2026-01-27T12:32:02.500Z""}}]}}
+{{""Text"":""cache toutes les sphères"",""Words"":[{{""Text"":""cache"",""EndedAt"":""2026-01-27T12:32:01.400Z""}},{{""Text"":""toutes"",""EndedAt"":""2026-01-27T12:32:01.800Z""}},{{""Text"":""les"",""EndedAt"":""2026-01-27T12:32:01.950Z""}},{{""Text"":""sphères"",""EndedAt"":""2026-01-27T12:32:02.500Z""}}]}}
 JSON Attendu:
 [
   {{
@@ -235,7 +247,7 @@ JSON Attendu:
 
 ## EXEMPLE 4: Coloriser plusieurs objets avec tri
 Entrée utilisateur:
-{{""Text"":""colorie les deux plus grosses citrouilles en vert"",""Words"":[{{""Text"":""colorie"",""StartedAt"":""2026-01-27T12:33:01.000Z"",""EndedAt"":""2026-01-27T12:33:01.500Z""}},{{""Text"":""les"",""StartedAt"":""2026-01-27T12:33:01.520Z"",""EndedAt"":""2026-01-27T12:33:01.650Z""}},{{""Text"":""deux"",""StartedAt"":""2026-01-27T12:33:01.670Z"",""EndedAt"":""2026-01-27T12:33:01.900Z""}},{{""Text"":""plus"",""StartedAt"":""2026-01-27T12:33:01.920Z"",""EndedAt"":""2026-01-27T12:33:02.100Z""}},{{""Text"":""grosses"",""StartedAt"":""2026-01-27T12:33:02.120Z"",""EndedAt"":""2026-01-27T12:33:02.500Z""}},{{""Text"":""citrouilles"",""StartedAt"":""2026-01-27T12:33:02.520Z"",""EndedAt"":""2026-01-27T12:33:03.100Z""}},{{""Text"":""en"",""StartedAt"":""2026-01-27T12:33:03.120Z"",""EndedAt"":""2026-01-27T12:33:03.250Z""}},{{""Text"":""vert"",""StartedAt"":""2026-01-27T12:33:03.270Z"",""EndedAt"":""2026-01-27T12:33:03.600Z""}}]}}
+{{""Text"":""colorie les deux plus grosses citrouilles en vert"",""Words"":[{{""Text"":""colorie"",""EndedAt"":""2026-01-27T12:33:01.500Z""}},{{""Text"":""les"",""EndedAt"":""2026-01-27T12:33:01.650Z""}},{{""Text"":""deux"",""EndedAt"":""2026-01-27T12:33:01.900Z""}},{{""Text"":""plus"",""EndedAt"":""2026-01-27T12:33:02.100Z""}},{{""Text"":""grosses"",""EndedAt"":""2026-01-27T12:33:02.500Z""}},{{""Text"":""citrouilles"",""EndedAt"":""2026-01-27T12:33:03.100Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-27T12:33:03.250Z""}},{{""Text"":""vert"",""EndedAt"":""2026-01-27T12:33:03.600Z""}}]}}
 JSON Attendu:
 [
   {{
@@ -266,7 +278,7 @@ JSON Attendu:
 
 ## EXEMPLE 5: Filtre combiné (Annotation ET Couleur)
 Entrée utilisateur:
-{{""Text"":""colorie en rouge cette pomme verte"",""Words"":[{{""Text"":""colorie"",""StartedAt"":""2026-01-27T12:34:01.000Z"",""EndedAt"":""2026-01-27T12:34:01.500Z""}},{{""Text"":""en"",""StartedAt"":""2026-01-27T12:34:01.520Z"",""EndedAt"":""2026-01-27T12:34:01.600Z""}},{{""Text"":""rouge"",""StartedAt"":""2026-01-27T12:34:01.620Z"",""EndedAt"":""2026-01-27T12:34:02.000Z""}},{{""Text"":""cette"",""StartedAt"":""2026-01-27T12:34:02.020Z"",""EndedAt"":""2026-01-27T12:34:02.300Z""}},{{""Text"":""pomme"",""StartedAt"":""2026-01-27T12:34:02.320Z"",""EndedAt"":""2026-01-27T12:34:02.700Z""}},{{""Text"":""verte"",""StartedAt"":""2026-01-27T12:34:02.720Z"",""EndedAt"":""2026-01-27T12:34:03.100Z""}}]}}
+{{""Text"":""colorie en rouge cette pomme verte"",""Words"":[{{""Text"":""colorie"",""EndedAt"":""2026-01-27T12:34:01.500Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-27T12:34:01.600Z""}},{{""Text"":""rouge"",""EndedAt"":""2026-01-27T12:34:02.000Z""}},{{""Text"":""cette"",""EndedAt"":""2026-01-27T12:34:02.300Z""}},{{""Text"":""pomme"",""EndedAt"":""2026-01-27T12:34:02.700Z""}},{{""Text"":""verte"",""EndedAt"":""2026-01-27T12:34:03.100Z""}}]}}
 JSON Attendu:
 [
   {{
@@ -291,7 +303,7 @@ JSON Attendu:
 
 ## EXEMPLE 6: Sélectionner l'objet pointé
 Entrée utilisateur:
-{{""Text"":""sélectionne ça"",""Words"":[{{""Text"":""sélectionne"",""StartedAt"":""2026-01-27T12:35:01.000Z"",""EndedAt"":""2026-01-27T12:35:01.600Z""}},{{""Text"":""ça"",""StartedAt"":""2026-01-27T12:35:01.620Z"",""EndedAt"":""2026-01-27T12:35:01.900Z""}}]}}
+{{""Text"":""sélectionne ça"",""Words"":[{{""Text"":""sélectionne"",""EndedAt"":""2026-01-27T12:35:01.600Z""}},{{""Text"":""ça"",""EndedAt"":""2026-01-27T12:35:01.900Z""}}]}}
 JSON Attendu:
 [
   {{
@@ -310,7 +322,7 @@ JSON Attendu:
 
 ## EXEMPLE 7: Commande avec sélection par pointage ('cette')
 Entrée utilisateur:
-{{""Text"":""mets cette pomme en bleu"",""Words"":[{{""Text"":""mets"",""StartedAt"":""2026-01-29T14:49:19.123Z"",""EndedAt"":""2026-01-29T14:49:19.456Z""}},{{""Text"":""cette"",""StartedAt"":""2026-01-29T14:49:19.476Z"",""EndedAt"":""2026-01-29T14:49:19.789Z""}},{{""Text"":""pomme"",""StartedAt"":""2026-01-29T14:49:19.809Z"",""EndedAt"":""2026-01-29T14:49:20.200Z""}},{{""Text"":""en"",""StartedAt"":""2026-01-29T14:49:20.220Z"",""EndedAt"":""2026-01-29T14:49:20.350Z""}},{{""Text"":""bleu"",""StartedAt"":""2026-01-29T14:49:20.370Z"",""EndedAt"":""2026-01-29T14:49:20.700Z""}}]}}
+{{""Text"":""mets cette pomme en bleu"",""Words"":[{{""Text"":""mets"",""EndedAt"":""2026-01-29T14:49:19.456Z""}},{{""Text"":""cette"",""EndedAt"":""2026-01-29T14:49:19.789Z""}},{{""Text"":""pomme"",""EndedAt"":""2026-01-29T14:49:20.200Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-29T14:49:20.350Z""}},{{""Text"":""bleu"",""EndedAt"":""2026-01-29T14:49:20.700Z""}}]}}
 JSON Attendu:
 [
   {{
@@ -335,7 +347,7 @@ JSON Attendu:
 
 ## EXEMPLE 8: Sélection par vision ('que je vois')
 Entrée utilisateur:
-{{""Text"":""colorie en bleu toute la nourriture que je vois"",""Words"":[{{""Text"":""colorie"",""StartedAt"":""2026-01-29T15:01:57.900Z"",""EndedAt"":""2026-01-29T15:01:58.300Z""}},{{""Text"":""en"",""StartedAt"":""2026-01-29T15:01:58.320Z"",""EndedAt"":""2026-01-29T15:01:58.400Z""}},{{""Text"":""bleu"",""StartedAt"":""2026-01-29T15:01:58.420Z"",""EndedAt"":""2026-01-29T15:01:58.700Z""}},{{""Text"":""toute"",""StartedAt"":""2026-01-29T15:01:58.720Z"",""EndedAt"":""2026-01-29T15:01:59.000Z""}},{{""Text"":""la"",""StartedAt"":""2026-01-29T15:01:59.020Z"",""EndedAt"":""2026-01-29T15:01:59.100Z""}},{{""Text"":""nourriture"",""StartedAt"":""2026-01-29T15:01:59.120Z"",""EndedAt"":""2026-01-29T15:01:59.700Z""}},{{""Text"":""que"",""StartedAt"":""2026-01-29T15:01:59.720Z"",""EndedAt"":""2026-01-29T15:01:59.850Z""}},{{""Text"":""je"",""StartedAt"":""2026-01-29T15:01:59.870Z"",""EndedAt"":""2026-01-29T15:02:00.000Z""}},{{""Text"":""vois"",""StartedAt"":""2026-01-29T15:02:00.020Z"",""EndedAt"":""2026-01-29T15:02:00.300Z""}}]}}
+{{""Text"":""colorie en bleu toute la nourriture que je vois"",""Words"":[{{""Text"":""colorie"",""EndedAt"":""2026-01-29T15:01:58.300Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-29T15:01:58.400Z""}},{{""Text"":""bleu"",""EndedAt"":""2026-01-29T15:01:58.700Z""}},{{""Text"":""toute"",""EndedAt"":""2026-01-29T15:01:59.000Z""}},{{""Text"":""la"",""EndedAt"":""2026-01-29T15:01:59.100Z""}},{{""Text"":""nourriture"",""EndedAt"":""2026-01-29T15:01:59.700Z""}},{{""Text"":""que"",""EndedAt"":""2026-01-29T15:01:59.850Z""}},{{""Text"":""je"",""EndedAt"":""2026-01-29T15:02:00.000Z""}},{{""Text"":""vois"",""EndedAt"":""2026-01-29T15:02:00.300Z""}}]}}
 JSON Attendu:
 [
   {{
@@ -360,7 +372,7 @@ JSON Attendu:
 
 ## EXEMPLE 9: Commande de colorisation simple
 Entrée utilisateur:
-{{""Text"":""mets les pommes en bleu"",""Words"":[{{""Text"":""mets"",""StartedAt"":""2026-01-29T17:42:51.801Z"",""EndedAt"":""2026-01-29T17:42:52.051Z""}},{{""Text"":""les"",""StartedAt"":""2026-01-29T17:42:52.071Z"",""EndedAt"":""2026-01-29T17:42:52.211Z""}},{{""Text"":""pommes"",""StartedAt"":""2026-01-29T17:42:52.231Z"",""EndedAt"":""2026-01-29T17:42:52.601Z""}},{{""Text"":""en"",""StartedAt"":""2026-01-29T17:42:52.621Z"",""EndedAt"":""2026-01-29T17:42:52.751Z""}},{{""Text"":""bleu"",""StartedAt"":""2026-01-29T17:42:52.771Z"",""EndedAt"":""2026-01-29T17:42:53.101Z""}}]}}
+{{""Text"":""mets les pommes en bleu"",""Words"":[{{""Text"":""mets"",""EndedAt"":""2026-01-29T17:42:52.051Z""}},{{""Text"":""les"",""EndedAt"":""2026-01-29T17:42:52.211Z""}},{{""Text"":""pommes"",""EndedAt"":""2026-01-29T17:42:52.601Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-29T17:42:52.751Z""}},{{""Text"":""bleu"",""EndedAt"":""2026-01-29T17:42:53.101Z""}}]}}
 JSON Attendu:
 [
   {{
@@ -382,8 +394,6 @@ JSON Attendu:
 ]
 --- FIN DES EXEMPLES ---
 ";
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
 
             // Sérialise un objet anonyme qui correspond à la structure attendue par le prompt
             var userInput = new
@@ -403,8 +413,12 @@ JSON Attendu:
                 temperature = 0.1
             };
 
-            var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-            var response = await httpClient.PostAsync("https://api.openai.com/v1/chat/completions", content);
+            // --- AMÉLIORATION 1: Création d'un HttpRequestMessage pour utiliser le HttpClient statique ---
+            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
+            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
+            requestMessage.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.SendAsync(requestMessage);
 
             if (!response.IsSuccessStatusCode)
             {
