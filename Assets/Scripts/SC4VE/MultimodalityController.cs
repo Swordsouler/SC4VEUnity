@@ -394,7 +394,7 @@ JSON Attendu:
 
             var requestBody = new
             {
-                model = "gpt-4-turbo",
+                model = "gpt-3.5-turbo",
                 messages = new[]
                 {
                     new { role = "system", content = systemPrompt },
