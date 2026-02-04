@@ -1,4 +1,5 @@
-﻿using SparkTTS;
+﻿using Sc4ve.Service;
+using SparkTTS;
 using SparkTTS.Models;
 using SparkTTS.Utils;
 using System.Threading.Tasks;
@@ -6,12 +7,16 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality
 {
+    [RequireComponent(typeof(AudioSource))]
     public class TextToSpeechController : MonoBehaviour
     {
-        private CharacterVoice characterVoice;
-        private AudioSource audioSource;
+        private static readonly Service<TextToSpeechController, TextToSpeechService> _instanceService = new();
+        private static TextToSpeechController Instance => _instanceService.Instance;
 
-        async void Start()
+        private CharacterVoice _characterVoice;
+        private AudioSource _audioSource;
+
+        private async void Start()
         {
             // Initialize with Performance mode for fastest inference
             CharacterVoiceFactory.Initialize(
@@ -24,13 +29,13 @@ namespace Sc4ve.Multimodality
             await CharacterVoiceFactory.WaitForModelsLoadedAsync();
 
             // Get reference to AudioSource
-            audioSource = GetComponent<AudioSource>();
+            _audioSource = GetComponent<AudioSource>();
 
             // Get the singleton instance of the factory
             var voiceFactory = CharacterVoiceFactory.Instance;
 
             // Create a styled voice (gender: male/female, pitch: very_low/low/moderate/high/very_high, speed: very_low/low/moderate/high/very_high)
-            characterVoice = await voiceFactory.CreateFromStyleAsync(
+            _characterVoice = await voiceFactory.CreateFromStyleAsync(
                 gender: "female",
                 pitch: "moderate",
                 speed: "moderate",
@@ -38,29 +43,29 @@ namespace Sc4ve.Multimodality
             );
 
             // Generate and play speech
-            if (characterVoice != null)
+            if (_characterVoice != null)
             {
                 await GenerateAndPlaySpeech("Hello, welcome to my game! I'm an on-device TTS voice.");
             }
         }
 
-        public async Task GenerateAndPlaySpeech(string text)
+        public static async Task GenerateAndPlaySpeech(string text)
         {
-            if (characterVoice == null) return;
+            if (Instance._characterVoice == null) return;
 
-            AudioClip generatedClip = await characterVoice.GenerateSpeechAsync(text);
+            AudioClip generatedClip = await Instance._characterVoice.GenerateSpeechAsync(text);
 
-            if (generatedClip != null && audioSource != null)
+            if (generatedClip != null && Instance._audioSource != null)
             {
-                audioSource.clip = generatedClip;
-                audioSource.Play();
+                Instance._audioSource.clip = generatedClip;
+                Instance._audioSource.Play();
             }
         }
 
         private void OnDestroy()
         {
             // Clean up resources
-            characterVoice?.Dispose();
+            _characterVoice?.Dispose();
             // Note: Don't dispose the factory instance as it's a singleton
         }
     }
