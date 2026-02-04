@@ -189,15 +189,14 @@ JSON Attendu:
 --- FIN DES EXEMPLES ---
 ";
 
+        private Task _initializationTask;
+        private string _annotationTypesString;
+        private string _availableColorsString;
+
         private void Awake()
         {
             UserData.Language = _language;
             if (_voskSpeechToText != null) _voskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
-        }
-
-        private void Start()
-        {
-            // La méthode Start est maintenant vide, l'initialisation se fait à la volée.
         }
 
         private async void OnTranscriptionResult(string obj)
@@ -298,6 +297,28 @@ JSON Attendu:
             return jsonResponse;
         }
 
+        private Task InitializeVocabulariesAsync()
+        {
+            _initializationTask ??= DoInitializeVocabulariesAsync();
+            return _initializationTask;
+        }
+
+        private async Task DoInitializeVocabulariesAsync()
+        {
+            Debug.Log("[LLM] Initializing and caching vocabularies...");
+            var annotationTypesTask = ISemanticAnnotation.GetAvailableTypesAsync(UserData.Locale);
+            var availableColorsTask = ColorParameter.GetAvailableColorsAsync();
+
+            await Task.WhenAll(annotationTypesTask, availableColorsTask);
+
+            List<string> annotationTypes = await annotationTypesTask;
+            _annotationTypesString = string.Join(", ", annotationTypes.Select(t => $"'{t}'"));
+
+            List<string> availableColors = await availableColorsTask;
+            _availableColorsString = string.Join(", ", availableColors.Select(c => $"'{c}'"));
+            Debug.Log("[LLM] Vocabularies cached.");
+        }
+
         /// <summary>
         /// Appelle l'API OpenAI avec le modèle et la phrase spécifiés.
         /// </summary>
@@ -309,20 +330,16 @@ JSON Attendu:
                 return null;
             }
 
-            // Récupération des listes à la volée pour garantir qu'elles sont à jour
-            List<string> annotationTypes = await ISemanticAnnotation.GetAvailableTypesAsync(UserData.Locale);
-            string annotationTypesString = string.Join(", ", annotationTypes.Select(t => $"'{t}'"));
-
-            List<string> availableColors = await ColorParameter.GetAvailableColorsAsync();
-            string availableColorsString = string.Join(", ", availableColors.Select(c => $"'{c}'"));
+            // S'assure que les vocabulaires sont initialisés avant de continuer
+            await InitializeVocabulariesAsync();
 
             string cameraTerm = (UserData.Language == Language.French) ? "Caméra" : "Camera";
             string pointerTerm = (UserData.Language == Language.French) ? "Pointeur" : "Pointer";
 
             // Construction du prompt final à partir du template
             string finalSystemPrompt = SYSTEM_PROMPT_TEMPLATE
-                .Replace("{annotationTypesString}", annotationTypesString)
-                .Replace("{availableColorsString}", availableColorsString)
+                .Replace("{annotationTypesString}", _annotationTypesString)
+                .Replace("{availableColorsString}", _availableColorsString)
                 .Replace("{cameraTerm}", cameraTerm)
                 .Replace("{pointerTerm}", pointerTerm);
 
