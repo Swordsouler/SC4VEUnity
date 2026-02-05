@@ -13,44 +13,19 @@ namespace Sc4ve.Multimodality
         private static readonly Service<TextToSpeechController, TextToSpeechService> _instanceService = new();
         private static TextToSpeechController Instance => _instanceService.Instance;
 
+        private static bool _isInitialized = false;
+
         private CharacterVoice _characterVoice;
         private AudioSource _audioSource;
 
         private async void Start()
         {
-            // Initialize with Performance mode for fastest inference
-            CharacterVoiceFactory.Initialize(
-                LogLevel.INFO,
-                MemoryUsage.Performance,
-                ExecutionProvider.CoreML
-            );
-
-            // Wait for all models to be ready (Performance mode only)
-            await CharacterVoiceFactory.WaitForModelsLoadedAsync();
-
-            // Get reference to AudioSource
-            _audioSource = GetComponent<AudioSource>();
-
-            // Get the singleton instance of the factory
-            var voiceFactory = CharacterVoiceFactory.Instance;
-
-            // Create a styled voice (gender: male/female, pitch: very_low/low/moderate/high/very_high, speed: very_low/low/moderate/high/very_high)
-            _characterVoice = await voiceFactory.CreateFromStyleAsync(
-                gender: "female",
-                pitch: "moderate",
-                speed: "moderate",
-                referenceText: "Hello, I am a character voice sample."
-            );
-
-            // Generate and play speech
-            if (_characterVoice != null)
-            {
-                await GenerateAndPlaySpeech("Hello, welcome to my game! I'm an on-device TTS voice.");
-            }
+            await Initialize();
         }
 
         public static async Task GenerateAndPlaySpeech(string text)
         {
+            if (Instance == null) return;
             if (Instance._characterVoice == null) return;
 
             AudioClip generatedClip = await Instance._characterVoice.GenerateSpeechAsync(text);
@@ -60,6 +35,44 @@ namespace Sc4ve.Multimodality
                 Instance._audioSource.clip = generatedClip;
                 Instance._audioSource.Play();
             }
+        }
+
+        public static async Task Initialize()
+        {
+            if (Instance == null) return;
+            if (_isInitialized) return;
+
+            _isInitialized = true;
+
+            // Initialize with Performance mode for fastest inference
+            CharacterVoiceFactory.Initialize(
+                LogLevel.INFO,
+                MemoryUsage.Performance,
+                ExecutionProvider.CUDA
+            );
+
+            // Wait for all models to be ready (Performance mode only)
+            await CharacterVoiceFactory.WaitForModelsLoadedAsync();
+
+            // Get reference to AudioSource
+            Instance._audioSource = Instance.GetComponent<AudioSource>();
+
+            // Get the singleton instance of the factory
+            var voiceFactory = CharacterVoiceFactory.Instance;
+
+            // Create a styled voice (gender: male/female, pitch: very_low/low/moderate/high/very_high, speed: very_low/low/moderate/high/very_high)
+            Instance._characterVoice = await voiceFactory.CreateFromStyleAsync(
+                gender: "female",
+                pitch: "moderate",
+                speed: "moderate",
+                referenceText: "Hello, I am a character voice sample."
+            );
+
+            // Generate and play speech
+            /*if (Instance._characterVoice != null)
+            {
+                await GenerateAndPlaySpeech("Hello, welcome to my game! I'm an on-device TTS voice.");
+            }*/
         }
 
         private void OnDestroy()
