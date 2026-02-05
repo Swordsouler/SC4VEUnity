@@ -40,9 +40,13 @@ namespace Sven.Demo
 
         private Dictionary<GameObject, Material> _focusObjects = new();
         public List<TextMeshPro> textMeshes = new();
+        public static DemoCharacterController _instance;
+        public static DemoCharacterController Instance => _instance;
 
         private void Awake()
         {
+            _instance = this;
+
             _rb = GetComponent<Rigidbody>();
             _rb.freezeRotation = true;
         }
@@ -210,6 +214,18 @@ namespace Sven.Demo
             {
                 isGrounded = true;
             }
+        }
+
+        public static void TryPickupObjectStatic()
+        {
+            if (Instance == null) return;
+            Instance.TryPickupObject();
+        }
+
+        public static void DropObjectStatic()
+        {
+            if (Instance == null) return;
+            Instance.DropObject();
         }
 
         private void TryPickupObject()

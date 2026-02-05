@@ -353,15 +353,12 @@ JSON Attendu:
             // S'assure que les vocabulaires sont initialisés avant de continuer
             await InitializeVocabulariesAsync();
 
-            string cameraTerm = (UserData.Language == Language.French) ? "Caméra" : "Camera";
-            string pointerTerm = (UserData.Language == Language.French) ? "Pointeur" : "Pointer";
-
             // Construction du prompt final à partir du template
             string finalSystemPrompt = SYSTEM_PROMPT_TEMPLATE
                 .Replace("{annotationTypesString}", _annotationTypesString)
                 .Replace("{availableColorsString}", _availableColorsString)
-                .Replace("{cameraTerm}", cameraTerm)
-                .Replace("{pointerTerm}", pointerTerm);
+                .Replace("{cameraTerm}", _cameraNamesString)
+                .Replace("{pointerTerm}", _pointerNamesString);
 
             var userInput = new { sentence.Text, sentence.Words };
             var requestBody = new
