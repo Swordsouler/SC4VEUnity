@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Sc4ve.Multimodality.Intent;
 using Sc4ve.Voice;
 using Sven.Content;
+using Sven.Context;
 using Sven.GraphManagement;
 using Sven.OwlTime;
 using Sven.Utils;
@@ -192,14 +193,17 @@ JSON Attendu:
         private Task _initializationTask;
         private string _annotationTypesString;
         private string _availableColorsString;
+        private string _cameraNamesString;
+        private string _pointerNamesString;
+        private string _pointerDeicticsString;
 
         private async void Awake()
         {
             UserData.Language = _language;
             if (_voskSpeechToText != null) _voskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
 
-            await TextToSpeechController.Initialize();
-            await TextToSpeechController.GenerateAndPlaySpeech("Ceci est un test pour vérifier que le système de synthèse vocale fonctionne correctement.");
+            //await TextToSpeechController.Initialize();
+            //await TextToSpeechController.GenerateAndPlaySpeech("Ceci est un test pour vérifier que le système de synthèse vocale fonctionne correctement.");
         }
 
         private async void OnTranscriptionResult(string obj)
@@ -271,14 +275,14 @@ JSON Attendu:
             // Règle 2: Vérifier l'absence de filtre pointeur si un mot déictique est présent
             if (!needsCorrection)
             {
-                string pointerTerm = (UserData.Language == Language.French) ? "Pointeur" : "Pointer";
-                var deicticWords = new HashSet<string> { "ce", "cette", "cet", "ces", "ceci", "ça" };
+                // split ", "
+                HashSet<string> deicticWords = new(_pointerDeicticsString.Split(", ").Select(s => s.Trim('\'').ToLower()));
                 bool sentenceHasDeictic = deicticWords.Any(word => sentence.Text.ToLower().Contains(word));
 
                 if (sentenceHasDeictic)
                 {
                     var allSelectionParams = commands.SelectMany(c => c.Parameters.OfType<SelectionParameter>());
-                    if (allSelectionParams.Any() && allSelectionParams.All(sp => !sp.Filters.Any(f => f.Condition?.Type == "Event" && f.Condition?.Value == pointerTerm)))
+                    if (allSelectionParams.Any() && allSelectionParams.All(sp => !sp.Filters.Any(f => f.Condition?.Type == "Event" && f.Condition?.Value == _pointerNamesString)))
                     {
                         Debug.Log("[LLM] Validation failed: Deictic word found but pointer event filter is missing.");
                         needsCorrection = true;
@@ -311,14 +315,27 @@ JSON Attendu:
             Debug.Log("[LLM] Initializing and caching vocabularies...");
             var annotationTypesTask = ISemanticAnnotation.GetAvailableTypesAsync(UserData.Locale);
             var availableColorsTask = ColorParameter.GetAvailableColorsAsync();
+            var pointerDeicticsTask = Pointer.GetAllAvailableDeictics(UserData.Locale);
+            var pointerNameTask = Pointer.GetAllAvailableNames(UserData.Locale);
+            var cameraNameTask = PointOfView.GetAllAvailableNames(UserData.Locale);
 
-            await Task.WhenAll(annotationTypesTask, availableColorsTask);
+            await Task.WhenAll(annotationTypesTask, availableColorsTask, pointerDeicticsTask, pointerNameTask, cameraNameTask);
 
             List<string> annotationTypes = await annotationTypesTask;
             _annotationTypesString = string.Join(", ", annotationTypes.Select(t => $"'{t}'"));
 
             List<string> availableColors = await availableColorsTask;
             _availableColorsString = string.Join(", ", availableColors.Select(c => $"'{c}'"));
+
+            List<string> pointerDeictics = await pointerDeicticsTask;
+            _pointerDeicticsString = string.Join(", ", pointerDeictics.Select(d => $"'{d}'"));
+
+            List<string> pointerNames = await pointerNameTask;
+            _pointerNamesString = string.Join(", ", pointerNames.Select(n => $"'{n}'"));
+
+            List<string> cameraNames = await cameraNameTask;
+            _cameraNamesString = string.Join(", ", cameraNames.Select(n => $"'{n}'"));
+
             Debug.Log("[LLM] Vocabularies cached.");
         }
 
