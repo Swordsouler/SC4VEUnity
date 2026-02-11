@@ -74,6 +74,7 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 - 'Annotation': Pour filtrer par le nom ou le type général d'un objet (ex: 'Voiture', 'Pomme').
 - 'Color': Pour filtrer des objets par leur couleur actuelle (ex: trouver une 'Pomme' qui est 'Verte').
 - 'Event': Pour les événements système. Les valeurs valides sont '{pointerTerm}' et '{cameraTerm}'.
+- 'Coreference': Pour faire référence à des objets d'une commande précédente (par exemple, en utilisant des pronoms comme 'les', 'eux', 'le'). La seule valeur valide est '{lastResultTerm}'.
 
 --- VOCABULAIRE D'ANNOTATION CONNU ---
 Lorsque tu utilises un filtre de type 'Annotation', la 'value' DOIT correspondre EXACTEMENT à l'un des termes de la liste {annotationTypesString}, sans le modifier (pas de pluriel, pas de changement de casse).
@@ -212,6 +213,30 @@ JSON Attendu (si plusieurs pommes sont présentes, par exemple une rouge et une 
       {{
         ""type"": ""SentenceParameter"",
         ""value"": ""Il y a plusieurs pommes. Laquelle voulez-vous prendre ? La rouge ou la verte ?""
+      }}
+    ]
+  }}
+]
+
+## EXEMPLE 13: Coréférence pour colorier des objets précédemment sélectionnés
+Contexte: L'utilisateur a d'abord dit ""sélectionne les pommes"". Maintenant il dit :
+Entrée utilisateur:
+{{""Text"":""colorie les en vert"",""Words"":[{{""Text"":""colorie"",""EndedAt"":""2026-02-04T11:00:01.000Z""}},{{""Text"":""les"",""EndedAt"":""2026-02-04T11:00:01.500Z""}},{{""Text"":""en"",""EndedAt"":""2026-02-04T11:00:01.700Z""}},{{""Text"":""vert"",""EndedAt"":""2026-02-04T11:00:02.200Z""}}]}}
+JSON Attendu:
+[
+  {{
+    ""type"": ""ColorizeCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""ColorParameter"",
+        ""value"": ""Vert""
+      }},
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Coreference"", ""timestamp"": ""2026-02-04T11:00:01.500Z"" }}
+        ],
+        ""limit"": ""-1""
       }}
     ]
   }}
