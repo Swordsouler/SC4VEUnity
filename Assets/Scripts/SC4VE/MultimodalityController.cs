@@ -48,6 +48,12 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 1.  RÈGLE D'OR (NON NÉGOCIABLE) : Si le type de commande est 'ColorizeCommand', le 'SelectionParameter' ne doit JAMAIS contenir un filtre de type 'Color'. La couleur cible va UNIQUEMENT dans le 'ColorParameter'. La seule exception est pour décrire un objet existant, comme 'la pomme QUI EST verte'. Les phrases comme '... en vert', '... en couleur verte' ou '... avec la couleur verte' NE SONT PAS des exceptions et ne doivent pas générer de filtre 'Color'.
 2.  Pour une phrase comme 'colorie les légumes', NE PAS ajouter de filtre 'Event' pour '{pointerTerm}'. Il n'y a pas de mot déictique ('ce', 'cette', etc.), donc il n'y a pas de pointage.
 
+--- GESTION DE L'AMBIGUÏTÉ ---
+- Si la commande de l'utilisateur est ambiguë ou incomplète, tu DOIS utiliser `SpeechCommand` pour poser une question de clarification.
+- Utilise `SpeechCommand` si une sélection peut retourner plusieurs objets mais que le contexte suggère un seul objet (par exemple, l'utilisation d'un article singulier comme 'la', 'le', 'un').
+- La question doit guider l'utilisateur pour qu'il fournisse les informations manquantes, en proposant si possible des options basées sur les objets présents dans la scène (ex: 'Laquelle ? La rouge ou la verte ?').
+- N'invente pas de commandes si l'intention n'est pas claire. Demande des précisions.
+
 --- COMMANDES DISPONIBLES ---
 - ColorizeCommand: Applique une couleur. Paramètres: ColorParameter, SelectionParameter.
 - MoveCommand: Déplace des objets. Paramètres: SelectionParameter (source), et soit PointParameter (destination) soit SelectionParameter (destination).
@@ -56,6 +62,13 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 - ScaleUpCommand / ScaleDownCommand: Change la taille. Paramètres: SelectionParameter.
 - GrabCommand / ReleaseCommand: Saisit/relâche. Paramètres: SelectionParameter.
 - MeasureCommand: Mesure une distance. Paramètres: multiples SelectionParameter et/ou PointParameter.
+- SpeechCommand: Pose une question de clarification à l'utilisateur. Paramètres: SentenceParameter.
+
+--- TYPES DE PARAMÈTRES ---
+- 'SelectionParameter': Pour sélectionner des objets. Contient des filtres.
+- 'PointParameter': Pour définir un point dans l'espace (souvent via un pointage).
+- 'ColorParameter': Pour définir une couleur cible.
+- 'SentenceParameter': Contient la phrase à prononcer par le système pour demander une clarification.
 
 --- TYPES DE FILTRES ---
 - 'Annotation': Pour filtrer par le nom ou le type général d'un objet (ex: 'Voiture', 'Pomme').
@@ -183,6 +196,22 @@ JSON Attendu:
         ""type"": ""PointParameter"",
         ""value"": ""{pointerTerm}"",
         ""timestamp"": ""2026-02-02T17:20:02.000Z""
+      }}
+    ]
+  }}
+]
+
+## EXEMPLE 12: Gestion d'ambiguïté
+Entrée utilisateur:
+{{""Text"":""prends la pomme"",""Words"":[{{""Text"":""prends"",""EndedAt"":""2026-02-03T10:00:01.000Z""}},{{""Text"":""la"",""EndedAt"":""2026-02-03T10:00:01.200Z""}},{{""Text"":""pomme"",""EndedAt"":""2026-02-03T10:00:01.800Z""}}]}}
+JSON Attendu (si plusieurs pommes sont présentes, par exemple une rouge et une verte):
+[
+  {{
+    ""type"": ""SpeechCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""SentenceParameter"",
+        ""value"": ""Il y a plusieurs pommes. Laquelle voulez-vous prendre ? La rouge ou la verte ?""
       }}
     ]
   }}
