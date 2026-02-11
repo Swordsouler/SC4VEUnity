@@ -1,4 +1,6 @@
+using Sven.Content;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
@@ -9,15 +11,16 @@ namespace Sc4ve.Multimodality.Intent
         private PointParameter PointParameter1 => GetParameter<PointParameter>(1);
         private PointParameter PointParameter2 => GetParameter<PointParameter>(2);
 
-        public override void Execute()
+        public override List<SemantizationCore> Execute()
         {
             if (PointParameter1 == null || PointParameter2 == null || PointParameter1.Point == null || PointParameter2.Point == null)
             {
                 Debug.LogError("MeasureCommand requires two valid PointParameters.");
-                return;
+                return new();
             }
             float distance = Vector3.Distance((Vector3)PointParameter1.Point, (Vector3)PointParameter2.Point);
             Debug.Log($"Distance: {distance} units");
+            return new();
         }
     }
 }

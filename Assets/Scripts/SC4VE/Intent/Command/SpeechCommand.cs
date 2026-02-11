@@ -1,4 +1,6 @@
+using Sven.Content;
 using System;
+using System.Collections.Generic;
 
 namespace Sc4ve.Multimodality.Intent
 {
@@ -7,9 +9,10 @@ namespace Sc4ve.Multimodality.Intent
     {
         private SentenceParameter SentenceParameter => GetParameter<SentenceParameter>();
 
-        public override void Execute()
+        public override List<SemantizationCore> Execute()
         {
             _ = TextToSpeechController.GenerateAndPlaySpeech(SentenceParameter.Value);
+            return new();
         }
     }
 }

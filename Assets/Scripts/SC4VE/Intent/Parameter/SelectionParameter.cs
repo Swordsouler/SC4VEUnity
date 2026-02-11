@@ -86,6 +86,7 @@ namespace Sc4ve.Multimodality.Intent
             return null;
         }).Where(obj => obj != null).ToList();
 
+        [JsonIgnore] public bool HasCoreferenceCondition => Filters != null && Filters.Any(f => !f.IsOperator && f.Condition.IsCoreference);
         [JsonIgnore] public string OrderSparqlTail => Order != null ? Order.SparqlTail : string.Empty;
         [JsonIgnore] public string OrderSparqlBody => Order != null ? Order.SparqlBody : string.Empty;
 
@@ -154,8 +155,14 @@ select * where {{
             }*/
 
             /******************************************/
+            List<string> objectsUri = await QueryObjects(sceneGraphCopy);
+            // if contains IsCoreference condition, also add coreferenced objects
+            if (HasCoreferenceCondition)
+                foreach (string objUri in Command.LastObjectIds)
+                    if (!objectsUri.Contains(objUri))
+                        objectsUri.Add(objUri);
+            ObjectsUri ??= objectsUri;
 
-            ObjectsUri ??= await QueryObjects(sceneGraphCopy);
             foreach (string objectUri in ObjectsUri)
             {
                 IUriNode hasObject = graph.CreateUriNode("sven:value");
@@ -257,6 +264,7 @@ select * where {{
         [JsonIgnore] public bool IsAnnotation => Type.ToLower() == "annotation";
         [JsonIgnore] public bool IsColor => Type.ToLower() == "color";
         [JsonIgnore] public bool IsEvent => Type.ToLower() == "event";
+        [JsonIgnore] public bool IsCoreference => Type.ToLower() == "coreference";
 
         [SerializeField] private string _value;
         [JsonProperty("value")]
@@ -358,6 +366,7 @@ select * where {{
         }} LIMIT 10000
     }}";
             }
+
             Debug.LogWarning($"Condition.Sparql: Unknown condition type '{Type}'");
             return "";
         }

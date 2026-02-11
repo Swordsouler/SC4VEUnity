@@ -462,10 +462,12 @@ JSON Attendu (si plusieurs pommes sont présentes, par exemple une rouge et une 
 
         public void ResolveCommands(List<Command> commands)
         {
+            List<SemantizationCore> lastObjects = new();
             foreach (Command command in commands)
             {
-                command.Execute();
+                lastObjects.AddRange(command.Execute());
             }
+            Command.LastObjects = lastObjects;
         }
 
         // Classes d'aide pour désérialiser la réponse d'OpenAI

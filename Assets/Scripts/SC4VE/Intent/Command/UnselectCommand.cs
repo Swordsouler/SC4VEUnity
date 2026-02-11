@@ -1,5 +1,6 @@
 using Sven.Content;
 using System;
+using System.Collections.Generic;
 
 namespace Sc4ve.Multimodality.Intent
 {
@@ -8,12 +9,14 @@ namespace Sc4ve.Multimodality.Intent
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
 
-        public override void Execute()
+        public override List<SemantizationCore> Execute()
         {
-            foreach (SemantizationCore semantizationCore in SelectionParameter.Objects)
+            List<SemantizationCore> objects = SelectionParameter.Objects;
+            foreach (SemantizationCore semantizationCore in objects)
             {
                 throw new NotImplementedException("Select functionality is not implemented yet.");
             }
+            return objects;
         }
     }
 }

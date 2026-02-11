@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using Sven.Content;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,6 +40,19 @@ namespace Sc4ve.Multimodality.Intent
             set => _parameters = value;
         }
 
+        private static List<SemantizationCore> _lastObjects = new();
+        public static List<string> LastObjectIds => _lastObjects?.Select(obj => obj.GetUUID()).ToList() ?? new List<string>();
+        public static List<SemantizationCore> LastObjects
+        {
+            get => _lastObjects;
+            set
+            {
+                if (_lastObjects == value) return;
+                // be sure it's unique objects
+                _lastObjects = value?.GroupBy(obj => obj.GetUUID()).Select(group => group.First()).ToList();
+            }
+        }
+
         public async Task<IUriNode> Semanticize(Graph graph)
         {
             // Create a URI node for the command
@@ -60,7 +74,7 @@ namespace Sc4ve.Multimodality.Intent
             return commandNode;
         }
 
-        public abstract void Execute();
+        public abstract List<SemantizationCore> Execute();
 
         protected T GetParameter<T>(int element = 1) where T : Parameter
         {

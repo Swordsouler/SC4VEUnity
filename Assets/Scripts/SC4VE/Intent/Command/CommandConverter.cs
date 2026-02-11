@@ -1,7 +1,9 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using Sven.Content;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
@@ -119,9 +121,10 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable]
     public class UnknownCommand : Command
     {
-        public override void Execute()
+        public override List<SemantizationCore> Execute()
         {
             Debug.LogWarning($"UnknownCommand executed (original type: {Type}). No action performed.");
+            return new();
         }
     }
 }

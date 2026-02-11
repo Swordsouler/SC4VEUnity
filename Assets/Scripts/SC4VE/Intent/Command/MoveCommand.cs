@@ -1,5 +1,6 @@
 using Sven.Content;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
@@ -10,15 +11,16 @@ namespace Sc4ve.Multimodality.Intent
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
         private PointParameter PointParameter => GetParameter<PointParameter>();
 
-        public override void Execute()
+        public override List<SemantizationCore> Execute()
         {
-            foreach (SemantizationCore semantizationCore in SelectionParameter.Objects)
+            List<SemantizationCore> objects = SelectionParameter.Objects;
+            foreach (SemantizationCore semantizationCore in objects)
             {
-                Debug.Log($"Preparing to move object {semantizationCore.GetUUID()}");
                 if (PointParameter == null || PointParameter.Point == null) continue;
                 semantizationCore.transform.position = (Vector3)PointParameter.Point;
                 Debug.Log($"Moving object {semantizationCore.GetUUID()} to position {PointParameter.Point}");
             }
+            return objects;
         }
     }
 }
