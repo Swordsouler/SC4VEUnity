@@ -3882,6 +3882,7 @@ MonoBehaviour:
   _maxRecordLength: 5
   _autoStart: 1
   _keyPhrases: []
+  _pushToTalk: 1
 --- !u!4 &1806090971
 Transform:
   m_ObjectHideFlags: 0

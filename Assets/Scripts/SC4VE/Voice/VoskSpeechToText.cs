@@ -70,6 +70,14 @@ namespace Sc4ve.Voice
             set => _keyPhrases = value;
         }
 
+        [BoxGroup("Settings"), SerializeField, Tooltip("Enable push to talk with the 'T' key.")]
+        private bool _pushToTalk = false;
+        public bool PushToTalk
+        {
+            get => _pushToTalk;
+            set => _pushToTalk = value;
+        }
+
         //Cached version of the Vosk Model.
         private Model _model;
 
@@ -187,7 +195,10 @@ namespace Sc4ve.Voice
             _isInitializing = false;
             _didInit = true;
 
-            ToggleRecording();
+            if (!_pushToTalk)
+            {
+                ToggleRecording();
+            }
         }
 
         //Translates the KeyPhraseses into a json array and appends the `[unk]` keyword at the end to tell vosk to filter other phrases.
@@ -199,7 +210,7 @@ namespace Sc4ve.Voice
                 return;
             }
 
-            JSONArray keywords = new JSONArray();
+            JSONArray keywords = new();
             foreach (string keyphrase in KeyPhrases)
             {
                 keywords.Add(new JSONString(keyphrase.ToLower()));
@@ -295,6 +306,12 @@ namespace Sc4ve.Voice
         //Can be called from a script or a GUI button to start detection.
         public void ToggleRecording()
         {
+            if (_pushToTalk)
+            {
+                Debug.LogWarning("ToggleRecording is disabled when PushToTalk is active.");
+                return;
+            }
+
             Debug.Log("Toggle Recording");
             if (!VoiceProcessor.IsRecording)
             {
@@ -317,6 +334,29 @@ namespace Sc4ve.Voice
             if (_threadedResultQueue.TryDequeue(out string voiceResult))
             {
                 OnTranscriptionResult?.Invoke(voiceResult);
+            }
+
+            if (_pushToTalk)
+            {
+                if (Input.GetKeyDown(KeyCode.T))
+                {
+                    if (!VoiceProcessor.IsRecording)
+                    {
+                        Debug.Log("Start PTT Recording");
+                        _running = true;
+                        VoiceProcessor.StartRecording();
+                        Task.Run(ThreadedWork).ConfigureAwait(false);
+                    }
+                }
+                else if (Input.GetKeyUp(KeyCode.T))
+                {
+                    if (VoiceProcessor.IsRecording)
+                    {
+                        Debug.Log("Stop PTT Recording");
+                        _running = false;
+                        VoiceProcessor.StopRecording();
+                    }
+                }
             }
         }
 
