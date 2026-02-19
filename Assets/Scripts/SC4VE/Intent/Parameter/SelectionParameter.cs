@@ -366,6 +366,11 @@ select * where {{
         }} LIMIT 10000
     }}";
             }
+            else if (IsCoreference)
+            {
+                // tolérance : also take objects in Command.LastObjectIds even if not in interval
+                return $@"";
+            }
 
             Debug.LogWarning($"Condition.Sparql: Unknown condition type '{Type}'");
             return "";
