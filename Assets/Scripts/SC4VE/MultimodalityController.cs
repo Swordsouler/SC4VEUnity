@@ -82,6 +82,9 @@ Lorsque tu utilises un filtre de type 'Annotation', la 'value' DOIT correspondre
 --- VOCABULAIRE DE COULEUR CONNU ---
 Lorsque tu utilises un 'ColorParameter' ou un filtre de type 'Color', la 'value' DOIT être l'une des suivantes : {availableColorsString}.
 
+--- MOTS DÉICTIQUES DE POINTAGE CONNUS ---
+Les mots déictiques valides pour faire référence au pointage sont : {pointerDeicticsString}
+
 NOTE: Dans les exemples suivants, la propriété 'StartedAt' est omise pour des raisons de concision, mais elle sera présente dans l'entrée utilisateur réelle.
 
 --- EXEMPLES ---
@@ -413,7 +416,8 @@ JSON Attendu:
                 .Replace("{annotationTypesString}", _annotationTypesString)
                 .Replace("{availableColorsString}", _availableColorsString)
                 .Replace("{cameraTerm}", _cameraNamesString)
-                .Replace("{pointerTerm}", _pointerNamesString);
+                .Replace("{pointerTerm}", _pointerNamesString)
+                .Replace("{pointerDeicticsString}", _pointerDeicticsString);
 
             var userInput = new { sentence.Text, sentence.Words };
             var requestBody = new
