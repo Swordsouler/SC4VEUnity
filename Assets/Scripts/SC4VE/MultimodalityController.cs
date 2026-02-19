@@ -47,6 +47,7 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 --- ERREURS FRÉQUENTES À ÉVITER ---
 1.  RÈGLE D'OR (NON NÉGOCIABLE) : Si le type de commande est 'ColorizeCommand', le 'SelectionParameter' ne doit JAMAIS contenir un filtre de type 'Color'. La couleur cible va UNIQUEMENT dans le 'ColorParameter'. La seule exception est pour décrire un objet existant, comme 'la pomme QUI EST verte'. Les phrases comme '... en vert', '... en couleur verte' ou '... avec la couleur verte' NE SONT PAS des exceptions et ne doivent pas générer de filtre 'Color'.
 2.  Pour une phrase comme 'colorie les légumes', NE PAS ajouter de filtre 'Event' pour '{pointerTerm}'. Il n'y a pas de mot déictique ('ce', 'cette', etc.), donc il n'y a pas de pointage.
+3.  CORÉFÉRENCE EXCLUSIVE : Si la phrase contient UNIQUEMENT une commande suivie d'un pronom ('le', 'la', 'les', 'eux', 'celui-ci', etc.) sans description d'objet, c'est une coréférence. Le filtre 'Coreference' doit être SEUL dans la liste des filtres. AUCUN filtre 'Annotation' ne doit être ajouté.
 
 --- COMMANDES DISPONIBLES ---
 - ColorizeCommand: Applique une couleur. Paramètres: ColorParameter, SelectionParameter.
