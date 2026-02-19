@@ -256,12 +256,13 @@ JSON Attendu:
             UserData.Language = _language;
             if (_voskSpeechToText != null) _voskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
 
-            await TextToSpeechController.Initialize();
+            //await TextToSpeechController.Initialize();
             //await TextToSpeechController.GenerateAndPlaySpeech("Ceci est un test pour vérifier que le système de synthèse vocale fonctionne correctement.");
         }
 
         private async void OnTranscriptionResult(string obj)
         {
+            Debug.Log($"[LLM] Received transcription result: {obj}");
             var result = new RecognitionResult(obj);
             for (int i = 0; i < result.Phrases.Length; i++)
             {

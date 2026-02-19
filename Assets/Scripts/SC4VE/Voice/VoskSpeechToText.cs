@@ -123,6 +123,9 @@ namespace Sc4ve.Voice
         //Thread safe queue of resuts
         private readonly ConcurrentQueue<string> _threadedResultQueue = new();
 
+        //Flag to track if PTT key is currently pressed
+        private bool _pttKeyActive = false;
+
 
 
         private static readonly ProfilerMarker voskRecognizerCreateMarker = new("VoskRecognizer.Create");
@@ -338,24 +341,19 @@ namespace Sc4ve.Voice
 
             if (_pushToTalk)
             {
-                if (Input.GetKeyDown(KeyCode.T))
+                // Mettre à jour l'état de la touche PTT
+                _pttKeyActive = Input.GetKey(KeyCode.T);
+
+                // Démarrer la détection lors du premier appui sur T
+                if (Input.GetKeyDown(KeyCode.T) && !_running)
                 {
+                    Debug.Log("Start PTT Recording");
+                    _running = true;
                     if (!VoiceProcessor.IsRecording)
                     {
-                        Debug.Log("Start PTT Recording");
-                        _running = true;
                         VoiceProcessor.StartRecording();
-                        Task.Run(ThreadedWork).ConfigureAwait(false);
                     }
-                }
-                else if (Input.GetKeyUp(KeyCode.T))
-                {
-                    if (VoiceProcessor.IsRecording)
-                    {
-                        Debug.Log("Stop PTT Recording");
-                        _running = false;
-                        VoiceProcessor.StopRecording();
-                    }
+                    Task.Run(ThreadedWork).ConfigureAwait(false);
                 }
             }
         }
@@ -363,7 +361,16 @@ namespace Sc4ve.Voice
         //Callback from the voice processor when new audio is detected
         private void VoiceProcessorOnOnFrameCaptured(short[] samples)
         {
-            _threadedBufferQueue.Enqueue(samples);
+            if (_pushToTalk && !_pttKeyActive)
+            {
+                // Envoyer du silence (samples à zéro) pour que Vosk traite la fin de la parole
+                short[] silenceSamples = new short[samples.Length];
+                _threadedBufferQueue.Enqueue(silenceSamples);
+            }
+            else
+            {
+                _threadedBufferQueue.Enqueue(samples);
+            }
         }
 
         //Callback from the voice processor when recording stops
