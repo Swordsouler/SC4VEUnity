@@ -30,6 +30,7 @@ namespace Sc4ve.Multimodality
 
         private static readonly HttpClient _httpClient = new();
 
+        // LLama-7b, qwen-3.5, mistral-nemo 
         // Le corps principal et statique du prompt est maintenant une constante.
         private const string SYSTEM_PROMPT_TEMPLATE = @"Tu es un système expert qui convertit le langage naturel en un format de commande JSON pour un environnement 3D.
 Ta seule et unique réponse doit être le contenu JSON brut, sans explication ou formatage markdown.
