@@ -61,6 +61,11 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 1.  RÈGLE D'OR (NON NÉGOCIABLE) : Si le type de commande est 'ColorizeCommand', le 'SelectionParameter' ne doit JAMAIS contenir un filtre de type 'Color'. La couleur cible va UNIQUEMENT dans le 'ColorParameter'. La seule exception est pour décrire un objet existant, comme 'la pomme QUI EST verte'. Les phrases comme '... en vert', '... en couleur verte' ou '... avec la couleur verte' NE SONT PAS des exceptions et ne doivent pas générer de filtre 'Color'.
 2.  Pour une phrase comme 'colorie les légumes', NE PAS ajouter de filtre 'Event' pour '{pointerTerm}'. Il n'y a pas de mot déictique ('ce', 'cette', etc.), donc il n'y a pas de pointage.
 3.  CORÉFÉRENCE EXCLUSIVE : Si la phrase contient UNIQUEMENT une commande suivie d'un pronom ('le', 'la', 'les', 'eux', 'celui-ci', etc.) sans description d'objet, c'est une coréférence. Le filtre 'Coreference' doit être SEUL dans la liste des filtres. AUCUN filtre 'Annotation' ne doit être ajouté.
+4.  VOCABULAIRE STRICT : Les valeurs pour les filtres 'Annotation' et 'Color' DOIVENT provenir EXCLUSIVEMENT des listes de vocabulaire fournies. N'invente JAMAIS de termes. Si un mot comme 'objet' est utilisé par l'utilisateur mais ne figure pas dans le vocabulaire d'annotation, ne génère PAS de filtre 'Annotation' pour ce mot. Filtre uniquement sur les autres aspects décrits (comme la couleur, si applicable).
+5.  STRUCTURE OBLIGATOIRE DU TABLEAU 'filters' : Le tableau 'filters' ne doit JAMAIS, en aucun cas, contenir deux objets de filtre JSON l'un après l'autre. Chaque objet de filtre DOIT être séparé du suivant par une chaîne de caractères : soit ""AND"", soit ""OR"". Si la logique de la phrase est une conjonction (ex: 'les voitures rouges'), utilise ""AND"". C'est le cas par défaut.
+- **EXEMPLE INCORRECT** : `""filters"": [ {{ ""type"": ""Annotation"", ... }}, {{ ""type"": ""Color"", ... }} ]`
+- **EXEMPLE CORRECT** : `""filters"": [ {{ ""type"": ""Annotation"", ... }}, ""AND"", {{ ""type"": ""Color"", ... }} ]`
+- Omettre l'opérateur est une **erreur critique** qui rend le JSON invalide.
 
 --- COMMANDES DISPONIBLES ---
 - ColorizeCommand: Applique une couleur. Paramètres: ColorParameter, SelectionParameter.
@@ -501,7 +506,7 @@ JSON Attendu:
                 },
                 temperature = 0.1
             };
-            Debug.Log(finalSystemPrompt);
+            Debug.Log(JsonConvert.SerializeObject(userInput) + "\n\n" + finalSystemPrompt);
 
             HttpRequestMessage requestMessage;
             string endpointUrlForLogging;
