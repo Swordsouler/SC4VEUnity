@@ -236,39 +236,78 @@ JSON Attendu:
     ]
   }}
 ]
+
+## EXEMPLE 14: Sélection avec ordre et limite
+Entrée utilisateur:
+{{""Text"":""sélectionne les 3 plus petites voitures"",""Words"":[]}}
+JSON Attendu:
+[
+  {{
+    ""type"": ""SelectCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Annotation"", ""value"": ""Voiture"", ""timestamp"": ""..."" }}
+        ],
+        ""limit"": ""3"",
+        ""order"": {{
+          ""criterias"": [
+            {{ ""type"": ""size"", ""desc"": false }}
+          ]
+        }}
+      }}
+    ]
+  }}
+]
+
+## EXEMPLE 15: Agrandissement avec filtre OR
+Entrée utilisateur:
+{{""Text"":""agrandis les pommes ou les citrouilles"",""Words"":[]}}
+JSON Attendu:
+[
+  {{
+    ""type"": ""ScaleUpCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Annotation"", ""value"": ""Pomme"", ""timestamp"": ""..."" }},
+          ""OR"",
+          {{ ""type"": ""Annotation"", ""value"": ""Citrouille"", ""timestamp"": ""..."" }}
+        ],
+        ""limit"": ""-1""
+      }}
+    ]
+  }}
+]
+
+## EXEMPLE 16: Mesure de distance avec double déictique
+Entrée utilisateur:
+{{""Text"":""mesure la distance entre ça et ça"",""Words"":[]}}
+JSON Attendu:
+[
+  {{
+    ""type"": ""MeasureCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Event"", ""value"": ""{pointerTerm}"", ""timestamp"": ""..."" }}
+        ],
+        ""limit"": ""1""
+      }},
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Event"", ""value"": ""{pointerTerm}"", ""timestamp"": ""..."" }}
+        ],
+        ""limit"": ""1""
+      }}
+    ]
+  }}
+]
 --- FIN DES EXEMPLES ---
-";
-
-        private const string LOCAL_SYSTEM_PROMPT_TEMPLATE = @"Tu es un système expert qui convertit le langage naturel en un format de commande JSON pour un environnement 3D.
-Ta seule et unique réponse doit être le contenu JSON brut, sans explication ou formatage markdown.
-
---- COMMANDES DISPONIBLES ---
-- ColorizeCommand: Applique une couleur. Paramètres: ColorParameter, SelectionParameter.
-- MoveCommand: Déplace des objets. Paramètres: SelectionParameter (source), et soit PointParameter (destination) soit SelectionParameter (destination).
-- SelectCommand / UnselectCommand: Sélectionne/désélectionne. Paramètres: SelectionParameter.
-- ShowCommand / HideCommand: Affiche/masque. Paramètres: SelectionParameter.
-- ScaleUpCommand / ScaleDownCommand: Change la taille. Paramètres: SelectionParameter.
-- GrabCommand / ReleaseCommand: Saisit/relâche. Paramètres: SelectionParameter.
-- MeasureCommand: Mesure une distance. Paramètres: multiples SelectionParameter et/ou PointParameter.
-- SpeechCommand: Pose une question de clarification à l'utilisateur. Paramètres: SentenceParameter.
-
---- TYPES DE PARAMÈTRES ---
-- 'SelectionParameter': Pour sélectionner des objets. Contient des filtres.
-- 'PointParameter': Pour définir un point dans l'espace (souvent via un pointage).
-- 'ColorParameter': Pour définir une couleur cible.
-- 'SentenceParameter': Contient la phrase à prononcer par le système.
-
---- TYPES DE FILTRES ---
-- 'Annotation': Filtre par nom/type d'objet. La valeur DOIT être l'un de : {annotationTypesString}.
-- 'Color': Filtre par couleur actuelle. La valeur DOIT être l'un de : {availableColorsString}.
-- 'Event': Événements système. Valeurs valides: '{pointerTerm}', '{cameraTerm}'.
-- 'Coreference': Référence à une commande précédente. Valeur valide: '{lastResultTerm}'.
-
---- RÈGLE IMPORTANTE ---
-Pour 'ColorizeCommand', la couleur cible va dans 'ColorParameter'. N'ajoutez PAS de filtre 'Color' dans 'SelectionParameter' pour la couleur cible.
-
-L'entrée utilisateur est un JSON avec ""Text"" et ""Words"" (avec horodatage). Utilise l'horodatage 'EndedAt' du mot correspondant pour la propriété 'timestamp' dans le JSON de sortie.
-Génère uniquement le JSON.
 ";
 
         private Task _initializationTask;
@@ -289,8 +328,9 @@ Génère uniquement le JSON.
 
         private async void OnTranscriptionResult(string obj)
         {
-            Debug.Log($"[LLM] Received transcription result: {obj}");
             var result = new RecognitionResult(obj);
+            if (result.Phrases.Any(p => !string.IsNullOrWhiteSpace(p.Text)))
+                Debug.Log($"[LLM] Received transcription result: {obj}");
             for (int i = 0; i < result.Phrases.Length; i++)
             {
                 if (string.IsNullOrWhiteSpace(result.Phrases[i].Text)) continue;
@@ -443,11 +483,7 @@ Génère uniquement le JSON.
         {
             await InitializeVocabulariesAsync();
 
-            string systemPromptTemplate = (_llmService == LlmService.Local)
-                ? LOCAL_SYSTEM_PROMPT_TEMPLATE
-                : SYSTEM_PROMPT_TEMPLATE;
-
-            string finalSystemPrompt = systemPromptTemplate
+            string finalSystemPrompt = SYSTEM_PROMPT_TEMPLATE
                 .Replace("{annotationTypesString}", _annotationTypesString)
                 .Replace("{availableColorsString}", _availableColorsString)
                 .Replace("{cameraTerm}", _cameraNamesString)
@@ -465,6 +501,7 @@ Génère uniquement le JSON.
                 },
                 temperature = 0.1
             };
+            Debug.Log(finalSystemPrompt);
 
             HttpRequestMessage requestMessage;
             string endpointUrlForLogging;
