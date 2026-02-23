@@ -20,13 +20,25 @@ using VDS.RDF.Parsing;
 
 namespace Sc4ve.Multimodality
 {
+    public enum LlmService
+    {
+        OpenAI,
+        Local
+    }
+
     public class MultimodalityController : MonoBehaviour
     {
         [BoxGroup("References"), SerializeField] private VoskSpeechToText _voskSpeechToText;
         [BoxGroup("References"), SerializeField] private Language _language = Language.English;
 
-        [BoxGroup("LLM Settings"), SerializeField, Tooltip("Clé API OpenAI. Ne pas exposer publiquement.")]
+        [BoxGroup("LLM Settings"), SerializeField]
+        private LlmService _llmService = LlmService.OpenAI;
+
+        [BoxGroup("LLM Settings"), ShowIf("_llmService", LlmService.OpenAI), SerializeField, Tooltip("Clé API OpenAI. Ne pas exposer publiquement.")]
         private string _openAiApiKey;
+
+        [BoxGroup("LLM Settings"), ShowIf("_llmService", LlmService.Local), SerializeField, Tooltip("URL du serveur LLM local (ex: http://localhost:1234/v1).")]
+        private string _localLlmUrl = "http://localhost:1234/v1";
 
         private static readonly HttpClient _httpClient = new();
 
@@ -227,6 +239,38 @@ JSON Attendu:
 --- FIN DES EXEMPLES ---
 ";
 
+        private const string LOCAL_SYSTEM_PROMPT_TEMPLATE = @"Tu es un système expert qui convertit le langage naturel en un format de commande JSON pour un environnement 3D.
+Ta seule et unique réponse doit être le contenu JSON brut, sans explication ou formatage markdown.
+
+--- COMMANDES DISPONIBLES ---
+- ColorizeCommand: Applique une couleur. Paramètres: ColorParameter, SelectionParameter.
+- MoveCommand: Déplace des objets. Paramètres: SelectionParameter (source), et soit PointParameter (destination) soit SelectionParameter (destination).
+- SelectCommand / UnselectCommand: Sélectionne/désélectionne. Paramètres: SelectionParameter.
+- ShowCommand / HideCommand: Affiche/masque. Paramètres: SelectionParameter.
+- ScaleUpCommand / ScaleDownCommand: Change la taille. Paramètres: SelectionParameter.
+- GrabCommand / ReleaseCommand: Saisit/relâche. Paramètres: SelectionParameter.
+- MeasureCommand: Mesure une distance. Paramètres: multiples SelectionParameter et/ou PointParameter.
+- SpeechCommand: Pose une question de clarification à l'utilisateur. Paramètres: SentenceParameter.
+
+--- TYPES DE PARAMÈTRES ---
+- 'SelectionParameter': Pour sélectionner des objets. Contient des filtres.
+- 'PointParameter': Pour définir un point dans l'espace (souvent via un pointage).
+- 'ColorParameter': Pour définir une couleur cible.
+- 'SentenceParameter': Contient la phrase à prononcer par le système.
+
+--- TYPES DE FILTRES ---
+- 'Annotation': Filtre par nom/type d'objet. La valeur DOIT être l'un de : {annotationTypesString}.
+- 'Color': Filtre par couleur actuelle. La valeur DOIT être l'un de : {availableColorsString}.
+- 'Event': Événements système. Valeurs valides: '{pointerTerm}', '{cameraTerm}'.
+- 'Coreference': Référence à une commande précédente. Valeur valide: '{lastResultTerm}'.
+
+--- RÈGLE IMPORTANTE ---
+Pour 'ColorizeCommand', la couleur cible va dans 'ColorParameter'. N'ajoutez PAS de filtre 'Color' dans 'SelectionParameter' pour la couleur cible.
+
+L'entrée utilisateur est un JSON avec ""Text"" et ""Words"" (avec horodatage). Utilise l'horodatage 'EndedAt' du mot correspondant pour la propriété 'timestamp' dans le JSON de sortie.
+Génère uniquement le JSON.
+";
+
         private Task _initializationTask;
         private string _annotationTypesString;
         private string _availableColorsString;
@@ -285,36 +329,54 @@ JSON Attendu:
         /// <summary>
         /// Orchestrateur de l'approche hybride. Tente une requête rapide avec GPT-3.5,
         /// la valide, et ne passe à GPT-4 qu'en cas d'erreur connue.
+        /// Pour un LLM local, une seule requête est effectuée.
         /// </summary>
         private async Task<string> GetValidatedCommandJsonFromLlmAsync(Sentence sentence)
         {
+            if (_llmService == LlmService.Local)
+            {
+                Debug.Log("[LLM] Using local LLM...");
+                string jsonResponse = await CallLlmApiAsync(sentence, "local-model"); // Le nom du modèle est souvent ignoré par les serveurs locaux
+                if (string.IsNullOrWhiteSpace(jsonResponse))
+                {
+                    Debug.LogError("[LLM] Local LLM returned an empty response.");
+                    return null;
+                }
+                return jsonResponse;
+            }
+
+            // --- Chemin OpenAI avec validation et bascule ---
             // 1. Essai rapide avec GPT-3.5
             Debug.Log("[LLM] Attempting fast path with gpt-3.5-turbo...");
-            string jsonResponse = await CallLlmApiAsync(sentence, "gpt-3.5-turbo");
+            string gpt35Response = await CallLlmApiAsync(sentence, "gpt-3.5-turbo");
 
-            if (string.IsNullOrWhiteSpace(jsonResponse))
+            if (string.IsNullOrWhiteSpace(gpt35Response))
             {
-                Debug.LogError("[LLM] GPT-3.5 returned an empty response.");
+                Debug.LogError("[LLM] GPT-3.5 returned an empty response. No fallback will be attempted.");
                 return null; // Échec précoce
             }
 
             // 2. Validation de la réponse
-            List<Command> commands = DeserializeCommand(jsonResponse);
-            if (commands == null) return null;
+            List<Command> commands = DeserializeCommand(gpt35Response);
+            if (commands == null)
+            {
+                Debug.LogWarning("[LLM] Failed to deserialize GPT-3.5 response. Retrying with gpt-4-turbo.");
+                return await CallLlmApiAsync(sentence, "gpt-4-turbo");
+            }
 
             bool needsCorrection = false;
 
             // Règle 1: Vérifier la présence incorrecte d'un filtre de couleur dans une ColorizeCommand
             if (commands.Any(c => c is ColorizeCommand && (c.Parameters.OfType<SelectionParameter>().FirstOrDefault()?.Filters.Any(f => f.Condition?.Type == "Color") ?? false)))
             {
+                Debug.Log("[LLM] Validation failed: ColorizeCommand contains a 'Color' filter in SelectionParameter.");
                 needsCorrection = true;
             }
 
             // Règle 2: Vérifier l'absence de filtre pointeur si un mot déictique est présent
             if (!needsCorrection)
             {
-                // split ", "
-                HashSet<string> deicticWords = new(_pointerDeicticsString.Split(", ").Select(s => s.Trim('\'').ToLower()));
+                HashSet<string> deicticWords = new(_pointerDeicticsString.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim('\'').ToLower()));
                 bool sentenceHasDeictic = deicticWords.Any(word => sentence.Text.ToLower().Contains(word));
 
                 if (sentenceHasDeictic)
@@ -332,14 +394,11 @@ JSON Attendu:
             if (needsCorrection)
             {
                 Debug.LogWarning("[LLM] GPT-3.5 response failed validation. Retrying with gpt-4-turbo for accuracy.");
-                jsonResponse = await CallLlmApiAsync(sentence, "gpt-4-turbo");
-            }
-            else
-            {
-                Debug.Log("[LLM] GPT-3.5 response passed validation. Using fast path result.");
+                return await CallLlmApiAsync(sentence, "gpt-4-turbo");
             }
 
-            return jsonResponse;
+            Debug.Log("[LLM] GPT-3.5 response passed validation. Using fast path result.");
+            return gpt35Response;
         }
 
         private Task InitializeVocabulariesAsync()
@@ -378,21 +437,17 @@ JSON Attendu:
         }
 
         /// <summary>
-        /// Appelle l'API OpenAI avec le modèle et la phrase spécifiés.
+        /// Appelle l'API LLM (OpenAI ou locale) avec le modèle et la phrase spécifiés.
         /// </summary>
         private async Task<string> CallLlmApiAsync(Sentence sentence, string model)
         {
-            if (string.IsNullOrWhiteSpace(_openAiApiKey))
-            {
-                Debug.LogError("[LLM] OpenAI API Key is not set.");
-                return null;
-            }
-
-            // S'assure que les vocabulaires sont initialisés avant de continuer
             await InitializeVocabulariesAsync();
 
-            // Construction du prompt final à partir du template
-            string finalSystemPrompt = SYSTEM_PROMPT_TEMPLATE
+            string systemPromptTemplate = (_llmService == LlmService.Local)
+                ? LOCAL_SYSTEM_PROMPT_TEMPLATE
+                : SYSTEM_PROMPT_TEMPLATE;
+
+            string finalSystemPrompt = systemPromptTemplate
                 .Replace("{annotationTypesString}", _annotationTypesString)
                 .Replace("{availableColorsString}", _availableColorsString)
                 .Replace("{cameraTerm}", _cameraNamesString)
@@ -411,29 +466,63 @@ JSON Attendu:
                 temperature = 0.1
             };
 
-            using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://api.openai.com/v1/chat/completions");
-            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
+            HttpRequestMessage requestMessage;
+            string endpointUrlForLogging;
+
+            if (_llmService == LlmService.OpenAI)
+            {
+                if (string.IsNullOrWhiteSpace(_openAiApiKey))
+                {
+                    Debug.LogError("[LLM] OpenAI API Key is not set. Please set it in the inspector.");
+                    return null;
+                }
+                const string openAiUrl = "https://api.openai.com/v1/chat/completions";
+                requestMessage = new HttpRequestMessage(HttpMethod.Post, openAiUrl);
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
+                endpointUrlForLogging = openAiUrl;
+            }
+            else // LlmService.Local
+            {
+                if (string.IsNullOrWhiteSpace(_localLlmUrl))
+                {
+                    Debug.LogError("[LLM] Local LLM URL is not set. Please set it in the inspector.");
+                    return null;
+                }
+                string localApiUrl = _localLlmUrl.TrimEnd('/') + "/chat/completions";
+                requestMessage = new HttpRequestMessage(HttpMethod.Post, localApiUrl);
+                // Aucune authentification n'est généralement nécessaire pour un serveur local comme LM Studio
+                endpointUrlForLogging = localApiUrl;
+            }
+
             requestMessage.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.SendAsync(requestMessage);
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                string errorBody = await response.Content.ReadAsStringAsync();
-                Debug.LogError($"[LLM] API Error ({model}): {response.StatusCode}\n{errorBody}");
+                var response = await _httpClient.SendAsync(requestMessage);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorBody = await response.Content.ReadAsStringAsync();
+                    Debug.LogError($"[LLM] API Error ({model} @ {endpointUrlForLogging}): {response.StatusCode}\n{errorBody}");
+                    return null;
+                }
+
+                string responseBody = await response.Content.ReadAsStringAsync();
+                var openAiResponse = JsonConvert.DeserializeObject<OpenAiResponse>(responseBody);
+
+                if (openAiResponse?.Usage != null)
+                {
+                    var usage = openAiResponse.Usage;
+                    Debug.Log($"[LLM] Token Usage ({model}): Prompt={usage.PromptTokens}, Completion={usage.CompletionTokens}, Total={usage.TotalTokens}");
+                }
+
+                return openAiResponse?.Choices?[0]?.Message?.Content;
+            }
+            catch (HttpRequestException e)
+            {
+                Debug.LogError($"[LLM] Network Error when calling {endpointUrlForLogging}: {e.Message}");
                 return null;
             }
-
-            string responseBody = await response.Content.ReadAsStringAsync();
-            var openAiResponse = JsonConvert.DeserializeObject<OpenAiResponse>(responseBody);
-
-            if (openAiResponse?.Usage != null)
-            {
-                var usage = openAiResponse.Usage;
-                Debug.Log($"[LLM] Token Usage ({model}): Prompt={usage.PromptTokens}, Completion={usage.CompletionTokens}, Total={usage.TotalTokens}");
-            }
-
-            return openAiResponse?.Choices?[0]?.Message?.Content;
         }
 
         private List<Command> DeserializeCommand(string json)
