@@ -12,7 +12,7 @@ namespace Sc4ve.Multimodality.Intent
 
         public override List<SemantizationCore> Execute()
         {
-            //_ = TextToSpeechController.GenerateAndPlaySpeech(SentenceParameter.Value);
+            _ = TextToSpeechController.GenerateAndPlaySpeech(SentenceParameter.Value);
             Debug.Log(SentenceParameter.Value);
             return new();
         }
