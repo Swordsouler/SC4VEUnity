@@ -1138,6 +1138,15 @@ sven:Component rdf:type owl:Class ;
                           "Composant"@fr .
 
 
+###  https://sven.lisn.upsaclay.fr/ontology#AnnotationComponent
+sven:AnnotationComponent rdf:type owl:Class ;
+                         rdfs:subClassOf sven:Component ;
+                         rdfs:comment "An annotation component that represents an annotation in the simulation."@en ,
+                                      "Un composant d'annotation qui représente une annotation dans la simulation."@fr ;
+                         rdfs:label "Annotation component"@en ,
+                                    "Composant d'annotation"@fr .
+
+
 ###  https://sven.lisn.upsaclay.fr/ontology#Event
 sven:Event rdf:type owl:Class ;
            rdfs:comment "An event is an action that occurs during the simulation."@en ,
