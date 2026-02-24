@@ -127,31 +127,48 @@ WHERE {{
             // apply ontology inference (for annotation)
             await GraphManager.ApplyOntologyAsync(sceneGraphCopy);
 
-            /*Graph ontologyGraph = new();
-            Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
-            TurtleParser turtleParser = new();
-            foreach (KeyValuePair<string, string> ontology in ontologies)
-            {
-                turtleParser.Load(ontologyGraph, ontology.Value);
-            }
-            StaticRdfsReasoner reasoner = new();
-            reasoner.Initialise(ontologyGraph);
-            reasoner.Apply(sceneGraphCopy);
             // execute this query :
-            string queryTest = $@"
-PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
+            /*string queryTest = $@"
+PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-select * where {{
-    ?object sven:component ?component .
-    ?object rdfs:label ?objectName .
-    ?component a sven:Vegetable . #?componentType .
-    #?componentType rdfs:label ""Légume""@fr .
-}} limit 100";
+PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
+PREFIX time: <http://www.w3.org/2006/time#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+SELECT *
+WHERE
+{{
+    {{
+        ?object sven:component ?component .
+        ?component sven:color ?property .
+        ?property a sven:Color ;
+        sven:hasTemporalExtent ?interval2 ;
+        sven:r ?r2 ;
+        sven:g ?g2 ;
+        sven:b ?b2 ;
+        sven:a ?a2 .
+    }}
+    {{
+        ?color a sven:Color ;
+        rdfs:label ""Rouge""@fr ;
+        sven:r ?tr2 ;
+        sven:g ?tg2 ;
+        sven:b ?tb2 ;
+        sc4ve:tolerance ?t2 .
+        BIND(?tr2 - ?t2 AS ?minR2)
+        BIND(?tr2 + ?t2 AS ?maxR2)
+        BIND(?tg2 - ?t2 AS ?minG2)
+        BIND(?tg2 + ?t2 AS ?maxG2)
+        BIND(?tb2 - ?t2 AS ?minB2)
+        BIND(?tb2 + ?t2 AS ?maxB2)
+    }}
+    FILTER(?minR2 <= ?r2 && ?r2 <= ?maxR2 && ?minG2 <= ?g2 && ?g2 <= ?maxG2 && ?minB2 <= ?b2 && ?b2 <= ?maxB2)
+}} LIMIT 10000";
             SparqlResultSet results = sceneGraphCopy.ExecuteQuery(queryTest) as SparqlResultSet;
+            Debug.Log("Test query results:");
             foreach (SparqlResult result in results.Cast<SparqlResult>())
             {
                 // objectName
-                Debug.Log(result["objectName"]);
+                Debug.Log(result);
             }*/
 
             /******************************************/
@@ -344,8 +361,8 @@ select * where {{
                 BIND(?tg{index} + ?t{index} AS ?maxG{index})
                 BIND(?tb{index} - ?t{index} AS ?minB{index})
                 BIND(?tb{index} + ?t{index} AS ?maxB{index})
-                FILTER(?minR{index} <= ?r{index} && ?r{index} <= ?maxR{index} && ?minG{index} <= ?g{index} && ?g{index} <= ?maxG{index} && ?minB{index} <= ?b{index} && ?b{index} <= ?maxB{index})
             }}
+            FILTER(?minR{index} <= ?r{index} && ?r{index} <= ?maxR{index} && ?minG{index} <= ?g{index} && ?g{index} <= ?maxG{index} && ?minB{index} <= ?b{index} && ?b{index} <= ?maxB{index})
         }} LIMIT 10000
     }}";
             }
