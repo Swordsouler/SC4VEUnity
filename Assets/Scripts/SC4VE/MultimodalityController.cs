@@ -70,9 +70,10 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 - **EXEMPLE CORRECT** : `""filters"": [ {{ ""type"": ""Annotation"", ... }}, ""AND"", {{ ""type"": ""Color"", ... }} ]`
 - Omettre l'opérateur est une **erreur critique** qui rend le JSON invalide.
 6.  PAS DE FILTRE D'ANNOTATION PAR DÉFAUT : Si la phrase de l'utilisateur est générale et ne spécifie pas de type d'objet (par exemple, 'tout', 'tout ce qui est...', 'les éléments'), ne génère PAS de filtre 'Annotation' par défaut. Si la phrase est 'colorie tout ce qui est bleu en rouge', le 'SelectionParameter' doit contenir UNIQUEMENT un filtre de type 'Color' pour la valeur 'Bleu', sans aucun filtre 'Annotation'.
-7.  TIMESTAMPS OBLIGATOIRES : Chaque paramètre ou condition de filtre qui se rapporte à un mot ou un moment précis de la phrase DOIT IMPÉRATIVEMENT contenir une propriété ""timestamp"". La valeur doit correspondre à la propriété ""EndedAt"" du mot le plus pertinent.
+7.  TIMESTAMPS OBLIGATOIRES : Chaque paramètre ou condition de filtre qui se rapporte à un mot ou un moment précis de la phrase DOIT IMPÉRATIVEMENT contenir une propriété ""timestamp"". La valeur doit correspondre à la propriété ""EndedAt"" du mot le plus pertinent, SAUF EXCEPTION.
+- **Exception pour MoveCommand** : Pour un 'MoveCommand', le 'SelectionParameter' source (l'objet à déplacer) doit utiliser le 'StartedAt' du mot pertinent (ex: 'ça'). Le 'PointParameter' de destination (ex: 'ici') continue d'utiliser 'EndedAt'.
 - S'applique à : 'Annotation', 'Color', 'Event', 'Coreference', 'PointParameter'.
-- Par exemple, pour 'déplace ça ici', le 'SelectionParameter' (via son filtre 'Event' pour 'ça') et le 'PointParameter' (pour 'ici') auront chacun un 'timestamp' basé sur le 'EndedAt' des mots 'ça' et 'ici'.
+- Par exemple, pour 'déplace ça ici', le 'SelectionParameter' (via son filtre 'Event' pour 'ça') aura un 'timestamp' basé sur le 'StartedAt' du mot 'ça', et le 'PointParameter' (pour 'ici') aura un 'timestamp' basé sur le 'EndedAt' du mot 'ici'.
 
 --- COMMANDES DISPONIBLES ---
 - ColorizeCommand: Applique une couleur. Paramètres: ColorParameter, SelectionParameter.
@@ -104,7 +105,7 @@ Lorsque tu utilises un 'ColorParameter' ou un filtre de type 'Color', la 'value'
 --- MOTS DÉICTIQUES DE POINTAGE CONNUS ---
 Les mots déictiques valides pour faire référence au pointage sont : {pointerDeicticsString}
 
-NOTE: Dans les exemples suivants, la propriété 'StartedAt' est omise pour des raisons de concision, mais elle sera présente dans l'entrée utilisateur réelle.
+NOTE: Dans les exemples suivants, la propriété 'StartedAt' est généralement omise pour des raisons de concision, mais elle sera présente dans l'entrée utilisateur réelle. Elle est explicitement montrée dans les cas où elle est cruciale (ex: MoveCommand).
 
 --- EXEMPLES ---
 
@@ -202,7 +203,7 @@ JSON Attendu:
 
 ## EXEMPLE 11: Commande de déplacement avec double déictique ('ça', 'ici')
 Entrée utilisateur:
-{{""Text"":""déplace ça ici"",""Words"":[{{""Text"":""déplace"",""EndedAt"":""2026-02-02T17:20:01.000Z""}},{{""Text"":""ça"",""EndedAt"":""2026-02-02T17:20:01.500Z""}},{{""Text"":""ici"",""EndedAt"":""2026-02-02T17:20:02.000Z""}}]}}
+{{""Text"":""déplace ça ici"",""Words"":[{{""Text"":""déplace"",""StartedAt"":""2026-02-02T17:20:00.800Z"",""EndedAt"":""2026-02-02T17:20:01.000Z""}},{{""Text"":""ça"",""StartedAt"":""2026-02-02T17:20:01.100Z"",""EndedAt"":""2026-02-02T17:20:01.500Z""}},{{""Text"":""ici"",""StartedAt"":""2026-02-02T17:20:01.800Z"",""EndedAt"":""2026-02-02T17:20:02.000Z""}}]}}
 JSON Attendu:
 [
   {{
@@ -211,7 +212,7 @@ JSON Attendu:
       {{
         ""type"": ""SelectionParameter"",
         ""filters"": [
-          {{ ""type"": ""Event"", ""value"": ""{pointerTerm}"", ""timestamp"": ""2026-02-02T17:20:01.500Z"" }}
+          {{ ""type"": ""Event"", ""value"": ""{pointerTerm}"", ""timestamp"": ""2026-02-02T17:20:01.100Z"" }}
         ],
         ""limit"": ""1""
       }},
@@ -766,7 +767,7 @@ JSON Attendu:
             {
                 thereParameter = new PointParameter
                 {
-                    Value = "Pointer",
+                    Value = "Pointeur",
                     Timestamp = DateTime.Now,
                 };
                 Command moveCommand;
