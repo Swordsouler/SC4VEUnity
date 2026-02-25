@@ -104,7 +104,7 @@ WHERE {{
 {FiltersSparql}
 {OrderSparqlBody}
 }} {OrderSparqlTail} {LimitSparql}";
-            Debug.Log(query);
+            Debug.Log(query + " " + JsonConvert.SerializeObject(this));
             SparqlResultSet results = queryGraph.ExecuteQuery(query) as SparqlResultSet;
             List<string> objectsUri = new();
             foreach (SparqlResult result in results.Cast<SparqlResult>())
@@ -350,7 +350,7 @@ WHERE
             }}
             {{
                 ?color a sven:Color ;
-                        rdfs:label ""Rouge""@fr ;
+                        rdfs:label ""{Value}""@fr ;
                         sven:r ?tr{index} ;
                         sven:g ?tg{index} ;
                         sven:b ?tb{index} ;
