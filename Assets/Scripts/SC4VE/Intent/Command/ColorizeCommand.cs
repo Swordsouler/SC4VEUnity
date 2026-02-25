@@ -13,6 +13,7 @@ namespace Sc4ve.Multimodality.Intent
 
         public override List<SemantizationCore> Execute()
         {
+            if (SelectionParameter == null) Debug.Log($"Executing ColorizeCommand with color {ColorParameter.Color.Value} on {SelectionParameter.Objects.Count} objects.");
             List<SemantizationCore> objects = SelectionParameter.Objects;
             foreach (SemantizationCore semantizationCore in objects)
             {
