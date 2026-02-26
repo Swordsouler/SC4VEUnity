@@ -127,7 +127,7 @@ namespace Sc4ve.Voice
         private bool _pttKeyActive = false;
 
         private DateTime _recognizerInitializedAt;
-        public DateTime RecognizerInitializedAt => _recognizerInitializedAt;
+        public DateTime RecognizerStartedAt => _recognizerInitializedAt;
 
 
 

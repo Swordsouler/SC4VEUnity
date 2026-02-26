@@ -17,7 +17,7 @@ namespace Sc4ve.Voice
 
         private void OnTranscriptionResult(string obj)
         {
-            var result = new RecognitionResult(obj, VoskSpeechToText.RecognizerInitializedAt);
+            var result = new RecognitionResult(obj, VoskSpeechToText.RecognizerStartedAt);
             if (result.Phrases.All(p => p.Text == "")) return;
             ResultText.text = "";
             for (int i = 0; i < result.Phrases.Length; i++)

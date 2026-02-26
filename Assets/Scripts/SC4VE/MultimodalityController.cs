@@ -340,7 +340,7 @@ JSON Attendu:
 
         private async void OnTranscriptionResult(string obj)
         {
-            var result = new RecognitionResult(obj, _voskSpeechToText.RecognizerInitializedAt);
+            var result = new RecognitionResult(obj, _voskSpeechToText.RecognizerStartedAt);
             if (result.Phrases.Any(p => !string.IsNullOrWhiteSpace(p.Text)))
                 Debug.Log($"[LLM] Received transcription result: {obj}");
             for (int i = 0; i < result.Phrases.Length; i++)
