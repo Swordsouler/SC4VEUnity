@@ -346,20 +346,23 @@ namespace Sc4ve.Voice
 
             if (_pushToTalk)
             {
-                // Mettre à jour l'état de la touche PTT
-                _pttKeyActive = Input.GetKey(KeyCode.T);
+                bool pttKeyIsPressed = Input.GetKey(KeyCode.T);
 
-                // À chaque nouvel appui sur la touche T, on affiche un log
-                if (Input.GetKeyDown(KeyCode.T))
+                // Key was just pressed
+                if (pttKeyIsPressed && !_pttKeyActive)
                 {
-                    // On s'assure que le thread de traitement ne soit démarré qu'une seule fois
-                    if (!_running)
-                    {
-                        Debug.Log("Start PTT Recording");
-                        _running = true;
-                        Task.Run(ThreadedWork).ConfigureAwait(false);
-                    }
+                    Debug.Log("Start PTT Recording");
+                    _running = true;
+                    Task.Run(ThreadedWork).ConfigureAwait(false);
                 }
+                // Key was just released
+                else if (!pttKeyIsPressed && _pttKeyActive)
+                {
+                    Debug.Log("Stop PTT Recording");
+                    _running = false;
+                }
+
+                _pttKeyActive = pttKeyIsPressed;
             }
         }
 
@@ -368,14 +371,11 @@ namespace Sc4ve.Voice
         {
             if (_pushToTalk && !_pttKeyActive)
             {
-                // Envoyer du silence (samples à zéro) pour que Vosk traite la fin de la parole
-                short[] silenceSamples = new short[samples.Length];
-                _threadedBufferQueue.Enqueue(silenceSamples);
+                // Do not send audio if PTT is not active
+                return;
             }
-            else
-            {
-                _threadedBufferQueue.Enqueue(samples);
-            }
+
+            _threadedBufferQueue.Enqueue(samples);
         }
 
         //Callback from the voice processor when recording stops
@@ -386,9 +386,22 @@ namespace Sc4ve.Voice
 
         private void OnDestroy()
         {
-            VoiceProcessor.StopRecording();
-            VoiceProcessor.OnFrameCaptured -= VoiceProcessorOnOnFrameCaptured;
-            VoiceProcessor.OnRecordingStop -= VoiceProcessorOnOnRecordingStop;
+            _running = false;
+            if (VoiceProcessor != null)
+            {
+                VoiceProcessor.StopRecording();
+                VoiceProcessor.OnFrameCaptured -= VoiceProcessorOnOnFrameCaptured;
+                VoiceProcessor.OnRecordingStop -= VoiceProcessorOnOnRecordingStop;
+            }
+
+            if (_recognizer != null)
+            {
+                _recognizer.Dispose();
+            }
+            if (_model != null)
+            {
+                _model.Dispose();
+            }
         }
 
         //Feeds the autio logic into the vosk recorgnizer
@@ -412,6 +425,10 @@ namespace Sc4ve.Voice
                     await Task.Delay(100);
                 }
             }
+
+            // Process the final result after the loop finishes
+            var finalResult = _recognizer.FinalResult();
+            _threadedResultQueue.Enqueue(finalResult);
 
             voskRecognizerReadMarker.End();
         }
