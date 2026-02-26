@@ -129,6 +129,9 @@ namespace Sc4ve.Voice
         private DateTime _recognizerInitializedAt;
         public DateTime RecognizerStartedAt => _recognizerInitializedAt;
 
+        private DateTime _recordingStoppedAt;
+        private bool _isFirstRecording = true;
+
 
 
         private static readonly ProfilerMarker voskRecognizerCreateMarker = new("VoskRecognizer.Create");
@@ -324,15 +327,14 @@ namespace Sc4ve.Voice
             if (!VoiceProcessor.IsRecording)
             {
                 Debug.Log("Start Recording");
-                _running = true;
                 VoiceProcessor.StartRecording();
-                Task.Run(ThreadedWork).ConfigureAwait(false);
+                HandleRecordingStart();
             }
             else
             {
                 Debug.Log("Stop Recording");
-                _running = false;
                 VoiceProcessor.StopRecording();
+                HandleRecordingStop();
             }
         }
 
@@ -352,14 +354,13 @@ namespace Sc4ve.Voice
                 if (pttKeyIsPressed && !_pttKeyActive)
                 {
                     Debug.Log("Start PTT Recording");
-                    _running = true;
-                    Task.Run(ThreadedWork).ConfigureAwait(false);
+                    HandleRecordingStart();
                 }
                 // Key was just released
                 else if (!pttKeyIsPressed && _pttKeyActive)
                 {
                     Debug.Log("Stop PTT Recording");
-                    _running = false;
+                    HandleRecordingStop();
                 }
 
                 _pttKeyActive = pttKeyIsPressed;
@@ -433,6 +434,29 @@ namespace Sc4ve.Voice
             voskRecognizerReadMarker.End();
         }
 
+        private void HandleRecordingStart()
+        {
+            if (_isFirstRecording)
+            {
+                _recognizerInitializedAt = DateTime.Now;
+                _isFirstRecording = false;
+            }
+            else
+            {
+                var pausedDuration = DateTime.Now - _recordingStoppedAt;
+                _recognizerInitializedAt = _recognizerInitializedAt.Add(pausedDuration);
+            }
+
+            _running = true;
+            Task.Run(ThreadedWork).ConfigureAwait(false);
+        }
+
+        private void HandleRecordingStop()
+        {
+            _recordingStoppedAt = DateTime.Now;
+            _running = false;
+        }
+
         private void CreateRecognizer()
         {
             voskRecognizerCreateMarker.Begin();
@@ -450,7 +474,6 @@ namespace Sc4ve.Voice
 
             _recognizer.SetMaxAlternatives(MaxAlternatives);
             _recognizer.SetWords(true);
-            _recognizerInitializedAt = DateTime.Now;
             _recognizerReady = true;
             voskRecognizerCreateMarker.End();
         }
