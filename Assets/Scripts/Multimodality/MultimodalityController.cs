@@ -28,14 +28,14 @@ namespace Sven.Multimodality
 
         private void OnTranscriptionResult(string obj)
         {
-            var result = new RecognitionResult(obj);
+            /*var result = new RecognitionResult(obj);
             for (int i = 0; i < result.Phrases.Length; i++)
             {
                 if (result.Phrases[i].Text == "") continue;
 
                 _commandChain = new CommandChain(_commandExecutionMode, result.Phrases[i], Settings);
                 _commandChain.Execute();
-            }
+            }*/
         }
 
         public static void AddSelectedObject(SemantizationCore semantizationCore)

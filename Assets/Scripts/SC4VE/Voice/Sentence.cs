@@ -2,7 +2,6 @@ using Sven.GraphManagement;
 using Sven.OwlTime;
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 using VDS.RDF;
 using VDS.RDF.Parsing;
 
@@ -48,8 +47,7 @@ namespace Sc4ve.Voice
             _words = words ?? new List<Word>();
             _words.Sort((x, y) => x.StartedAt.CompareTo(y.StartedAt));
         }
-
-        public Sentence(JSONObject json) : base(null)
+        public Sentence(JSONObject json, DateTime recognizerInitializedAt) : base(null)
         {
             if (json.HasKey(ConfidenceKey)) _confidence = json[ConfidenceKey].AsFloat;
             if (json.HasKey(TextKey)) _text = json[TextKey].Value.Trim();
@@ -57,27 +55,14 @@ namespace Sc4ve.Voice
             if (json.HasKey(WordsKey))
             {
                 var wordsJson = json[WordsKey].AsArray;
-                // get max of ended at to calculate offset
-                float maxEndedAt = 0.0f;
-                for (int i = 0; i < wordsJson.Count; i++)
-                {
-                    var wordJson = wordsJson[i].AsObject;
-                    if (wordJson.HasKey("end"))
-                    {
-                        float endedAt = wordJson["end"].AsFloat;
-                        if (endedAt > maxEndedAt) maxEndedAt = endedAt;
-                    }
-                }
-                Debug.Log($"Max ended at: {maxEndedAt}");
-
                 for (int i = 0; i < wordsJson.Count; i++)
                 {
                     var wordJson = wordsJson[i].AsObject;
                     if (wordJson.HasKey("word") && wordJson.HasKey("start") && wordJson.HasKey("end"))
                     {
                         string wordText = wordJson["word"].Value.Trim();
-                        DateTime startedAt = DateTime.Now.AddSeconds(wordJson["start"].AsFloat - maxEndedAt);
-                        DateTime endedAt = DateTime.Now.AddSeconds(wordJson["end"].AsFloat - maxEndedAt);
+                        DateTime startedAt = recognizerInitializedAt.AddSeconds(wordJson["start"].AsFloat);
+                        DateTime endedAt = recognizerInitializedAt.AddSeconds(wordJson["end"].AsFloat);
                         _words.Add(new Word(wordText, startedAt, endedAt));
                     }
                 }

@@ -1,3 +1,5 @@
+using System;
+
 namespace Sc4ve.Voice
 {
     public class RecognitionResult
@@ -9,7 +11,7 @@ namespace Sc4ve.Voice
         public Sentence[] Phrases;
         public bool Partial;
 
-        public RecognitionResult(string json)
+        public RecognitionResult(string json, DateTime recognizerInitializedAt)
         {
             JSONObject resultJson = JSONNode.Parse(json).AsObject;
 
@@ -20,13 +22,13 @@ namespace Sc4ve.Voice
 
                 for (int i = 0; i < Phrases.Length; i++)
                 {
-                    Phrases[i] = new Sentence(alternatives[i].AsObject);
+                    Phrases[i] = new Sentence(alternatives[i].AsObject, recognizerInitializedAt);
                 }
 
             }
             else if (resultJson.HasKey(ResultKey))
             {
-                Phrases = new Sentence[] { new(resultJson.AsObject) };
+                Phrases = new Sentence[] { new(resultJson.AsObject, recognizerInitializedAt) };
             }
             else if (resultJson.HasKey(PartialKey))
             {

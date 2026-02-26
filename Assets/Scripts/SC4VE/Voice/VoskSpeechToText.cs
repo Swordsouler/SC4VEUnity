@@ -126,6 +126,9 @@ namespace Sc4ve.Voice
         //Flag to track if PTT key is currently pressed
         private bool _pttKeyActive = false;
 
+        private DateTime _recognizerInitializedAt;
+        public DateTime RecognizerInitializedAt => _recognizerInitializedAt;
+
 
 
         private static readonly ProfilerMarker voskRecognizerCreateMarker = new("VoskRecognizer.Create");
@@ -430,6 +433,7 @@ namespace Sc4ve.Voice
 
             _recognizer.SetMaxAlternatives(MaxAlternatives);
             _recognizer.SetWords(true);
+            _recognizerInitializedAt = DateTime.Now;
             _recognizerReady = true;
             voskRecognizerCreateMarker.End();
         }
