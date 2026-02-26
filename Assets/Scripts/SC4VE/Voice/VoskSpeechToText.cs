@@ -188,11 +188,14 @@ namespace Sc4ve.Voice
 
             yield return null;
 
+            // The recognizer is now created upfront
+            CreateRecognizer();
+
             OnStatusUpdated?.Invoke("Initialized");
             VoiceProcessor.OnFrameCaptured += VoiceProcessorOnOnFrameCaptured;
             VoiceProcessor.OnRecordingStop += VoiceProcessorOnOnRecordingStop;
 
-            if (startMicrophone)
+            if (startMicrophone || _pushToTalk)
                 VoiceProcessor.StartRecording();
 
             _isInitializing = false;
@@ -234,7 +237,6 @@ namespace Sc4ve.Voice
                 OnStatusUpdated?.Invoke("Using existing decompressed model.");
                 _decompressedModelPath =
                     Path.Combine(Application.persistentDataPath, Path.GetFileNameWithoutExtension(ModelPath));
-                Debug.Log(_decompressedModelPath);
 
                 yield break;
             }
@@ -344,16 +346,16 @@ namespace Sc4ve.Voice
                 // Mettre à jour l'état de la touche PTT
                 _pttKeyActive = Input.GetKey(KeyCode.T);
 
-                // Démarrer la détection lors du premier appui sur T
-                if (Input.GetKeyDown(KeyCode.T) && !_running)
+                // À chaque nouvel appui sur la touche T, on affiche un log
+                if (Input.GetKeyDown(KeyCode.T))
                 {
-                    Debug.Log("Start PTT Recording");
-                    _running = true;
-                    if (!VoiceProcessor.IsRecording)
+                    // On s'assure que le thread de traitement ne soit démarré qu'une seule fois
+                    if (!_running)
                     {
-                        VoiceProcessor.StartRecording();
+                        Debug.Log("Start PTT Recording");
+                        _running = true;
+                        Task.Run(ThreadedWork).ConfigureAwait(false);
                     }
-                    Task.Run(ThreadedWork).ConfigureAwait(false);
                 }
             }
         }
@@ -389,31 +391,6 @@ namespace Sc4ve.Voice
         //Feeds the autio logic into the vosk recorgnizer
         private async Task ThreadedWork()
         {
-            voskRecognizerCreateMarker.Begin();
-            if (!_recognizerReady)
-            {
-                UpdateGrammar();
-
-                //Only detect defined keywords if they are specified.
-                if (string.IsNullOrEmpty(_grammar))
-                {
-                    _recognizer = new VoskRecognizer(_model, 16000.0f);
-                }
-                else
-                {
-                    _recognizer = new VoskRecognizer(_model, 16000.0f, _grammar);
-                }
-
-                _recognizer.SetMaxAlternatives(MaxAlternatives);
-                _recognizer.SetWords(true);
-                //_recognizer.SetWords(true);
-                _recognizerReady = true;
-
-                Debug.Log("Recognizer ready");
-            }
-
-            voskRecognizerCreateMarker.End();
-
             voskRecognizerReadMarker.Begin();
 
             while (_running)
@@ -424,7 +401,6 @@ namespace Sc4ve.Voice
                     {
                         var result = _recognizer.Result();
                         _threadedResultQueue.Enqueue(result);
-                        Debug.Log(result);
                     }
                 }
                 else
@@ -435,6 +411,27 @@ namespace Sc4ve.Voice
             }
 
             voskRecognizerReadMarker.End();
+        }
+
+        private void CreateRecognizer()
+        {
+            voskRecognizerCreateMarker.Begin();
+            UpdateGrammar();
+
+            //Only detect defined keywords if they are specified.
+            if (string.IsNullOrEmpty(_grammar))
+            {
+                _recognizer = new VoskRecognizer(_model, 16000.0f);
+            }
+            else
+            {
+                _recognizer = new VoskRecognizer(_model, 16000.0f, _grammar);
+            }
+
+            _recognizer.SetMaxAlternatives(MaxAlternatives);
+            _recognizer.SetWords(true);
+            _recognizerReady = true;
+            voskRecognizerCreateMarker.End();
         }
     }
 }
