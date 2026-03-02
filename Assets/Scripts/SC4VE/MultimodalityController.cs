@@ -81,6 +81,7 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 - ShowCommand / HideCommand: Affiche/masque. Paramètres: SelectionParameter.
 - ScaleUpCommand / ScaleDownCommand: Change la taille. Paramètres: SelectionParameter.
 - GrabCommand / ReleaseCommand: Saisit/relâche. Paramètres: SelectionParameter.
+- DuplicateCommand: Duplique les objets sélectionnés. Paramètres: SelectionParameter.
 - MeasureCommand: Mesure une distance. Paramètres: multiples SelectionParameter et/ou PointParameter.
 - SpeechCommand: Pose une question de clarification à l'utilisateur. Paramètres: SentenceParameter.
 

@@ -34,6 +34,8 @@ namespace Sc4ve.Multimodality.Intent
                 "SelectCommand" => new SelectCommand(),
                 "ShowCommand" => new ShowCommand(),
                 "UnselectCommand" => new UnselectCommand(),
+                "SpeechCommand" => new SpeechCommand(),
+                "DuplicateCommand" => new DuplicateCommand(),
                 _ => new UnknownCommand { Type = typeStr ?? "Unknown" }
             };
 
