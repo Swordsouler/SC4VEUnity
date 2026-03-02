@@ -329,7 +329,7 @@ JSON Attendu:
         private string _pointerNamesString;
         private string _pointerDeicticsString;
 
-        private async void Awake()
+        private void Awake()
         {
             UserData.Language = _language;
             if (_voskSpeechToText != null) _voskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
@@ -718,7 +718,7 @@ JSON Attendu:
             return DeserializeCommand(jsonTest);
         }
 
-        public async void PrintTest()
+        public void PrintTest()
         {
             /*Debug.Log(JsonConvert.SerializeObject(CommandTest1()));
             Debug.Log(JsonConvert.SerializeObject(CommandTest2()));

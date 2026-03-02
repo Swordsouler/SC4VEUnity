@@ -84,10 +84,6 @@ namespace Sc4ve.Voice
         //Cached version of the Vosk recognizer.
         private VoskRecognizer _recognizer;
 
-        //Conditional flag to see if a recognizer has already been created.
-        //TODO: Allow for runtime changes to the recognizer.
-        private bool _recognizerReady;
-
         //Holds all of the audio data until the user stops talking.
         private readonly List<short> _buffer = new();
 
@@ -474,7 +470,6 @@ namespace Sc4ve.Voice
 
             _recognizer.SetMaxAlternatives(MaxAlternatives);
             _recognizer.SetWords(true);
-            _recognizerReady = true;
             voskRecognizerCreateMarker.End();
         }
     }
