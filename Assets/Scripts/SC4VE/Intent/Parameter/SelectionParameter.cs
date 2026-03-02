@@ -109,7 +109,7 @@ WHERE {{
             List<string> objectsUri = new();
             foreach (SparqlResult result in results.Cast<SparqlResult>())
             {
-                if (result["object"] != null)
+                if (result.HasBoundValue("object") && result["object"] != null)
                 {
                     string objUri = result["object"].ToString();
                     objectsUri.Add(objUri);
