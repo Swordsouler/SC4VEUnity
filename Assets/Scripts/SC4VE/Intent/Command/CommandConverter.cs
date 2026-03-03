@@ -24,6 +24,7 @@ namespace Sc4ve.Multimodality.Intent
             Command target = typeStr switch
             {
                 "ColorizeCommand" => new ColorizeCommand(),
+                "ColorizeCopyCommand" => new ColorizeCopyCommand(),
                 "GrabCommand" => new GrabCommand(),
                 "HideCommand" => new HideCommand(),
                 "MeasureCommand" => new MeasureCommand(),

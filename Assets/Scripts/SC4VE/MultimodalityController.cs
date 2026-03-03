@@ -77,6 +77,7 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 
 --- COMMANDES DISPONIBLES ---
 - ColorizeCommand: Applique une couleur. Paramètres: ColorParameter, SelectionParameter.
+- ColorizeCopyCommand: Applique la couleur d'un objet à un autre. Paramètres: SelectionParameter (cible), SelectionParameter (source).
 - MoveCommand: Déplace des objets. Paramètres: SelectionParameter (source), et soit PointParameter (destination) soit SelectionParameter (destination).
 - ShowCommand / HideCommand: Affiche/masque. Paramètres: SelectionParameter.
 - ScaleUpCommand / ScaleDownCommand: Change la taille. Paramètres: SelectionParameter.
