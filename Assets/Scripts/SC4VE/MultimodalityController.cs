@@ -99,6 +99,12 @@ Lorsque tu utilises un 'ColorParameter' ou un filtre de type 'Color', la 'value'
 --- MOTS DÉICTIQUES DE POINTAGE CONNUS ---
 Les mots déictiques valides pour faire référence au pointage sont : {pointerDeicticsString}
 
+--- ENCHAÎNEMENT DE COMMANDES ---
+Lorsque l'utilisateur demande d'effectuer une action plusieurs fois (ex: 'trois fois', 'deux fois', etc.), tu DOIS générer plusieurs commandes successives dans le tableau JSON principal.
+- **Règle importante** : Chaque commande est un objet JSON complet et distinct dans le tableau de sortie.
+- Le nombre de répétitions doit correspondre exactement au nombre demandé par l'utilisateur.
+- Les paramètres doivent être répétés.
+
 NOTE: Dans les exemples suivants, la propriété 'StartedAt' est généralement omise pour des raisons de concision, mais elle sera présente dans l'entrée utilisateur réelle. Elle est explicitement montrée dans les cas où elle est cruciale (ex: MoveCommand).
 
 --- EXEMPLES ---
@@ -312,6 +318,48 @@ JSON Attendu:
       }}
     ]
   }}
+]
+
+## EXEMPLE 17: Enchaînement de commandes (répétition multiple)
+Entrée utilisateur:
+{{""Text"":""assombris trois fois les légumes"",""Words"":[{{""Text"":""assombris"",""EndedAt"":""2026-03-05T14:20:01.000Z""}},{{""Text"":""trois"",""EndedAt"":""2026-03-05T14:20:01.500Z""}},{{""Text"":""fois"",""EndedAt"":""2026-03-05T14:20:01.800Z""}},{{""Text"":""les"",""EndedAt"":""2026-03-05T14:20:02.000Z""}},{{""Text"":""légumes"",""EndedAt"":""2026-03-05T14:20:02.500Z""}}]}}</details><details><summary>JSON Attendu
+[
+  {
+    ""type"": ""ColorizeDarkerCommand"",
+    ""parameters"": [
+      {
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Annotation"", ""value"": ""Légume"", ""timestamp"": ""2026-03-05T14:20:02.500Z"" }}
+        ],
+        ""limit"": ""-1""
+      }}
+    ]
+  },
+  {
+    ""type"": ""ColorizeDarkerCommand"",
+    ""parameters"": [
+      {
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Annotation"", ""value"": ""Légume"", ""timestamp"": ""2026-03-05T14:20:02.500Z"" }}
+        ],
+        ""limit"": ""-1""
+      }}
+    ]
+  },
+  {
+    ""type"": ""ColorizeDarkerCommand"",
+    ""parameters"": [
+      {
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Annotation"", ""value"": ""Légume"", ""timestamp"": ""2026-03-05T14:20:02.500Z"" }}
+        ],
+        ""limit"": ""-1""
+      }}
+    ]
+  }
 ]
 --- FIN DES EXEMPLES ---
 ";
