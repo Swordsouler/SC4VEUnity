@@ -170,6 +170,7 @@ MonoBehaviour:
   _debug: 1
   <PointerIndex>k__BackingField: 0
   <PointerDistance>k__BackingField: 4
+  <PointerConeAngle>k__BackingField: 5
   <PointerPosition>k__BackingField: {x: 0, y: 0, z: 0}
   <PointerDirection>k__BackingField: {x: 0, y: 0, z: 1}
   <PointerHitPosition>k__BackingField: {x: 0, y: 0, z: 0}
@@ -1727,6 +1728,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: com.nsaintl.sven::Sven.Context.GraspArea
   _debug: 1
   <GraspDistance>k__BackingField: 2
+  <GraspHeight>k__BackingField: 0
 --- !u!114 &717523666
 MonoBehaviour:
   m_ObjectHideFlags: 0
