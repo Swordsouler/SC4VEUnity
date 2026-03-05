@@ -74,6 +74,10 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 - **Exception pour MoveCommand** : Pour un 'MoveCommand', le 'SelectionParameter' source (l'objet à déplacer) doit utiliser le 'StartedAt' du mot pertinent (ex: 'ça'). Le 'PointParameter' de destination (ex: 'ici') continue d'utiliser 'EndedAt'.
 - S'applique à : 'Annotation', 'Color', 'Event', 'Coreference', 'PointParameter'.
 - Par exemple, pour 'déplace ça ici', le 'SelectionParameter' (via son filtre 'Event' pour 'ça') aura un 'timestamp' basé sur le 'StartedAt' du mot 'ça', et le 'PointParameter' (pour 'ici') aura un 'timestamp' basé sur le 'EndedAt' du mot 'ici'.
+8.  GESTION DES QUANTITÉS NUMÉRIQUES : Lorsque l'utilisateur spécifie une quantité explicite (ex: 'trois citrouilles', 'les 5 plus petites voitures'), tu DOIS utiliser cette quantité pour la propriété 'limit' du 'SelectionParameter'.
+- Une quantité explicite (ex: 'trois', 'trois citrouilles') définit le nombre exact d'objets à sélectionner : `""limit"": ""3""`.
+- Sans quantité explicite ou avec des quantificateurs généraux (ex: 'les', 'les citrouilles'), utilise : `""limit"": ""-1""` (tous les objets).
+- La quantité s'applique UNIQUEMENT au 'SelectionParameter', JAMAIS au nombre de commandes générées (sauf pour l'enchaînement 'X fois').
 
 --- COMMANDES DISPONIBLES ---
 {availableCommandsString}
@@ -104,6 +108,7 @@ Lorsque l'utilisateur demande d'effectuer une action plusieurs fois (ex: 'trois 
 - **Règle importante** : Chaque commande est un objet JSON complet et distinct dans le tableau de sortie.
 - Le nombre de répétitions doit correspondre exactement au nombre demandé par l'utilisateur.
 - Les paramètres doivent être répétés.
+- **Distinction critique** : 'trois fois' (répète la même commande 3 fois) est DIFFÉRENT de 'trois citrouilles' (sélectionne 3 citrouilles dans une seule commande).
 
 NOTE: Dans les exemples suivants, la propriété 'StartedAt' est généralement omise pour des raisons de concision, mais elle sera présente dans l'entrée utilisateur réelle. Elle est explicitement montrée dans les cas où elle est cruciale (ex: MoveCommand).
 
@@ -220,6 +225,30 @@ JSON Attendu:
         ""type"": ""PointParameter"",
         ""value"": ""{pointerTerm}"",
         ""timestamp"": ""2026-02-02T17:20:02.000Z""
+      }}
+    ]
+  }}
+]
+
+## EXEMPLE 12: Déplacement avec quantité numérique (QUANTITÉ DANS LA SÉLECTION)
+Entrée utilisateur:
+{{""Text"":""déplace trois citrouilles ici"",""Words"":[{{""Text"":""déplace"",""StartedAt"":""2026-02-02T17:20:00.800Z"",""EndedAt"":""2026-02-02T17:20:01.000Z""}},{{""Text"":""trois"",""EndedAt"":""2026-02-02T17:20:01.300Z""}},{{""Text"":""citrouilles"",""EndedAt"":""2026-02-02T17:20:01.800Z""}},{{""Text"":""ici"",""StartedAt"":""2026-02-02T17:20:02.000Z"",""EndedAt"":""2026-02-02T17:20:02.200Z""}}]}}
+JSON Attendu:
+[
+  {{
+    ""type"": ""MoveCommand"",
+    ""parameters"": [
+      {{
+        ""type"": ""SelectionParameter"",
+        ""filters"": [
+          {{ ""type"": ""Annotation"", ""value"": ""Citrouille"", ""timestamp"": ""2026-02-02T17:20:01.800Z"" }}
+        ],
+        ""limit"": ""3""
+      }},
+      {{
+        ""type"": ""PointParameter"",
+        ""value"": ""{pointerTerm}"",
+        ""timestamp"": ""2026-02-02T17:20:02.200Z""
       }}
     ]
   }}
