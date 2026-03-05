@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Change la taille (agrandissement). Paramètres: SelectionParameter.")]
     public class ScaleUpCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
@@ -16,7 +16,7 @@ namespace Sc4ve.Multimodality.Intent
             foreach (SemantizationCore semantizationCore in objects)
             {
                 semantizationCore.transform.localScale *= 1.1f;
-                Debug.Log($"Scaling up object {semantizationCore.GetUUID()} to scale {semantizationCore.transform.localScale}");
+                Debug.Log($"Scaling up object {semantizationCore.GetUUID()} to {semantizationCore.transform.localScale}");
             }
             return objects;
         }

@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Masque les objets. Paramètres: SelectionParameter.")]
     public class HideCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

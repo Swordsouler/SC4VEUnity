@@ -21,24 +21,7 @@ namespace Sc4ve.Multimodality.Intent
             var typeToken = obj["type"];
             var typeStr = typeToken?.ToString();
 
-            Command target = typeStr switch
-            {
-                "ColorizeCommand" => new ColorizeCommand(),
-                "ColorizeCopyCommand" => new ColorizeCopyCommand(),
-                "GrabCommand" => new GrabCommand(),
-                "HideCommand" => new HideCommand(),
-                "MeasureCommand" => new MeasureCommand(),
-                "MoveCommand" => new MoveCommand(),
-                "ReleaseCommand" => new ReleaseCommand(),
-                "ScaleDownCommand" => new ScaleDownCommand(),
-                "ScaleUpCommand" => new ScaleUpCommand(),
-                "SelectCommand" => new SelectCommand(),
-                "ShowCommand" => new ShowCommand(),
-                "UnselectCommand" => new UnselectCommand(),
-                "SpeechCommand" => new SpeechCommand(),
-                "DuplicateCommand" => new DuplicateCommand(),
-                _ => new UnknownCommand { Type = typeStr ?? "Unknown" }
-            };
+            Command target = CommandDescriptionAttribute.CreateCommandInstance(typeStr);
 
             using (var sr = obj.CreateReader())
             {

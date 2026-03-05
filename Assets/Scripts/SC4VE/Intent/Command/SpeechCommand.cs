@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Pose une question de clarification à l'utilisateur. Paramètres: SentenceParameter.")]
     public class SpeechCommand : Command
     {
         private SentenceParameter SentenceParameter => GetParameter<SentenceParameter>();

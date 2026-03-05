@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Mesure une distance. Paramètres: multiples SelectionParameter et/ou PointParameter.")]
     public class MeasureCommand : Command
     {
         private PointParameter PointParameter1 => GetParameter<PointParameter>(1);

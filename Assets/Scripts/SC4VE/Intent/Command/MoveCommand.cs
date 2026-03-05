@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Déplace des objets. Paramètres: SelectionParameter (source), et soit PointParameter (destination) soit SelectionParameter (destination).")]
     public class MoveCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

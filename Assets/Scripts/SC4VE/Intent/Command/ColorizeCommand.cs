@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Applique une couleur. Paramètres: ColorParameter, SelectionParameter.")]
     public class ColorizeCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

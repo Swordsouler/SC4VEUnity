@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Change la taille (réduction). Paramètres: SelectionParameter.")]
     public class ScaleDownCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
@@ -15,8 +15,8 @@ namespace Sc4ve.Multimodality.Intent
             List<SemantizationCore> objects = SelectionParameter.Objects;
             foreach (SemantizationCore semantizationCore in objects)
             {
-                semantizationCore.transform.localScale *= 0.9f;
-                Debug.Log($"Scaling down object {semantizationCore.GetUUID()} to scale {semantizationCore.transform.localScale}");
+                semantizationCore.transform.localScale /= 1.1f;
+                Debug.Log($"Scaling down object {semantizationCore.GetUUID()} to {semantizationCore.transform.localScale}");
             }
             return objects;
         }

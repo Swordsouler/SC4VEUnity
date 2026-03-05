@@ -6,23 +6,24 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Applique la couleur d'un objet à un autre. Paramètres: SelectionParameter (cible), SelectionParameter (source).")]
     public class ColorizeCopyCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-        private SelectionParameter SelectionParameter2 => GetParameter<SelectionParameter>();
+        private SelectionParameter SelectionParameterTarget => GetParameter<SelectionParameter>(1);
+        private SelectionParameter SelectionParameterSource => GetParameter<SelectionParameter>(2);
 
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> objects = SelectionParameter.Objects;
-            SemantizationCore firstObject = SelectionParameter2.Objects.FirstOrDefault();
-            foreach (SemantizationCore semantizationCore in objects)
+            List<SemantizationCore> targetObjects = SelectionParameterTarget.Objects;
+            SemantizationCore sourceObject = SelectionParameterSource.Objects.FirstOrDefault();
+            if (!sourceObject.TryGetComponent(out MeshRenderer sourceRenderer) || sourceRenderer.material == null) return new();
+            UnityEngine.Color colorToCopy = sourceRenderer.material.color;
+            foreach (SemantizationCore semantizationCore in targetObjects)
             {
                 if (!semantizationCore.TryGetComponent(out Renderer renderer) || renderer.material == null) continue;
-                if (!firstObject.TryGetComponent(out Renderer renderer2) || renderer2.material == null) continue;
-                renderer.material.color = renderer2.material.color;
+                renderer.material.color = colorToCopy;
             }
-            return objects;
+            return targetObjects;
         }
     }
 }

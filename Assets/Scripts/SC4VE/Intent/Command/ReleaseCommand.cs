@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Relâche les objets. Paramètres: SelectionParameter.")]
     public class ReleaseCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

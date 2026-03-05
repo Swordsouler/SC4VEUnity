@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Affiche les objets. Paramètres: SelectionParameter.")]
     public class ShowCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

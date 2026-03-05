@@ -76,15 +76,7 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 - Par exemple, pour 'déplace ça ici', le 'SelectionParameter' (via son filtre 'Event' pour 'ça') aura un 'timestamp' basé sur le 'StartedAt' du mot 'ça', et le 'PointParameter' (pour 'ici') aura un 'timestamp' basé sur le 'EndedAt' du mot 'ici'.
 
 --- COMMANDES DISPONIBLES ---
-- ColorizeCommand: Applique une couleur. Paramètres: ColorParameter, SelectionParameter.
-- ColorizeCopyCommand: Applique la couleur d'un objet à un autre. Paramètres: SelectionParameter (cible), SelectionParameter (source).
-- MoveCommand: Déplace des objets. Paramètres: SelectionParameter (source), et soit PointParameter (destination) soit SelectionParameter (destination).
-- ShowCommand / HideCommand: Affiche/masque. Paramètres: SelectionParameter.
-- ScaleUpCommand / ScaleDownCommand: Change la taille. Paramètres: SelectionParameter.
-- GrabCommand / ReleaseCommand: Saisit/relâche. Paramètres: SelectionParameter.
-- DuplicateCommand: Duplique les objets sélectionnés. Paramètres: SelectionParameter.
-- MeasureCommand: Mesure une distance. Paramètres: multiples SelectionParameter et/ou PointParameter.
-- SpeechCommand: Pose une question de clarification à l'utilisateur. Paramètres: SentenceParameter.
+{availableCommandsString}
 
 --- TYPES DE PARAMÈTRES ---
 - 'SelectionParameter': Pour sélectionner des objets. Contient des filtres.
@@ -330,6 +322,7 @@ JSON Attendu:
         private string _cameraNamesString;
         private string _pointerNamesString;
         private string _pointerDeicticsString;
+        private string _availableCommandsString;
 
         private void Awake()
         {
@@ -390,7 +383,7 @@ JSON Attendu:
             if (_llmService == LlmService.Local)
             {
                 Debug.Log("[LLM] Using local LLM...");
-                string jsonResponse = await CallLlmApiAsync(sentence, "local-model"); // Le nom du modèle est souvent ignoré par les serveurs locaux
+                string jsonResponse = await CallLlmApiAsync(sentence, "local-model");
                 if (string.IsNullOrWhiteSpace(jsonResponse))
                 {
                     Debug.LogError("[LLM] Local LLM returned an empty response.");
@@ -407,7 +400,7 @@ JSON Attendu:
             if (string.IsNullOrWhiteSpace(gpt35Response))
             {
                 Debug.LogError("[LLM] GPT-3.5 returned an empty response. No fallback will be attempted.");
-                return null; // Échec précoce
+                return null;
             }
 
             // 2. Validation de la réponse
@@ -466,8 +459,8 @@ JSON Attendu:
             Debug.Log("[LLM] Initializing and caching vocabularies...");
             var annotationTypesTask = ISemanticAnnotation.GetAvailableTypesAsync(UserData.Locale);
             var availableColorsTask = ColorParameter.GetAvailableColorsAsync();
-            var pointerDeicticsTask = Pointer.GetAllAvailableDeictics(UserData.Locale);
-            var pointerNameTask = Pointer.GetAllAvailableNames(UserData.Locale);
+            var pointerDeicticsTask = Sven.Context.Pointer.GetAllAvailableDeictics(UserData.Locale);
+            var pointerNameTask = Sven.Context.Pointer.GetAllAvailableNames(UserData.Locale);
             var cameraNameTask = PointOfView.GetAllAvailableNames(UserData.Locale);
 
             await Task.WhenAll(annotationTypesTask, availableColorsTask, pointerDeicticsTask, pointerNameTask, cameraNameTask);
@@ -487,6 +480,8 @@ JSON Attendu:
             List<string> cameraNames = await cameraNameTask;
             _cameraNamesString = string.Join(", ", cameraNames.Select(n => $"{n}"));
 
+            _availableCommandsString = CommandDescriptionAttribute.GetAvailableCommandsString();
+
             Debug.Log("[LLM] Vocabularies cached.");
         }
 
@@ -502,7 +497,8 @@ JSON Attendu:
                 .Replace("{availableColorsString}", _availableColorsString)
                 .Replace("{cameraTerm}", _cameraNamesString)
                 .Replace("{pointerTerm}", _pointerNamesString)
-                .Replace("{pointerDeicticsString}", _pointerDeicticsString);
+                .Replace("{pointerDeicticsString}", _pointerDeicticsString)
+                .Replace("{availableCommandsString}", _availableCommandsString);
 
             var userInput = new { sentence.Text, sentence.Words };
             var requestBody = new
@@ -541,7 +537,6 @@ JSON Attendu:
                 }
                 string localApiUrl = _localLlmUrl.TrimEnd('/') + "/chat/completions";
                 requestMessage = new HttpRequestMessage(HttpMethod.Post, localApiUrl);
-                // Aucune authentification n'est généralement nécessaire pour un serveur local comme LM Studio
                 endpointUrlForLogging = localApiUrl;
             }
 
@@ -637,7 +632,6 @@ JSON Attendu:
             [JsonProperty("total_tokens")]
             public int TotalTokens { get; set; }
         }
-
 
         #region TestCommands
 

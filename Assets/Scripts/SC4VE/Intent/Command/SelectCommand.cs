@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Sélectionne des objets. Paramètres: SelectionParameter.")]
     public class SelectCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

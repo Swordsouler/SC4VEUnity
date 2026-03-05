@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Duplique les objets sélectionnés. Paramètres: SelectionParameter.")]
     public class DuplicateCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

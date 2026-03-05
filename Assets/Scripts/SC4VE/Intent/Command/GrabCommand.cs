@@ -1,12 +1,11 @@
 using Sven.Content;
-using Sven.Demo;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable]
+    [Serializable, CommandDescription("Saisit les objets. Paramètres: SelectionParameter.")]
     public class GrabCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
@@ -16,8 +15,7 @@ namespace Sc4ve.Multimodality.Intent
             List<SemantizationCore> objects = SelectionParameter.Objects;
             foreach (SemantizationCore semantizationCore in objects)
             {
-                if (!semantizationCore.TryGetComponent(out Renderer renderer)) continue;
-                DemoCharacterController.TryPickupObjectStatic();
+                Debug.Log($"Grabbing object {semantizationCore.GetUUID()}");
             }
             return objects;
         }
