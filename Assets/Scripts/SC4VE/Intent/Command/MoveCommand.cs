@@ -23,7 +23,7 @@ namespace Sc4ve.Multimodality.Intent
             // On lit directement PointerHitPosition depuis la scène.
             if (destination == null && PointParameter != null)
             {
-                Pointer pointer = Object.FindFirstObjectByType<Pointer>();
+                Pointer pointer = UnityEngine.Object.FindFirstObjectByType<Pointer>();
                 if (pointer != null)
                 {
                     destination = pointer.PointerHitPosition;
