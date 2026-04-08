@@ -152,6 +152,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 return null;
 
             string text = sentence.Text.ToLowerInvariant().Trim();
+            text = CorrectHomophones(text);
             List<Word> words = sentence.Words ?? new List<Word>();
 
             // 1. Détection du type de commande via les verbes d'action
@@ -190,6 +191,35 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             string json = JsonConvert.SerializeObject(commands, Formatting.Indented);
             Debug.Log($"[RuleBased] JSON produit :\n{json}");
             return json;
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Correction des homophones STT
+        // ─────────────────────────────────────────────────────────────────────
+        //
+        // Le STT peut confondre des homophones : "mets" (/mɛ/) → "mais".
+        // La grammaire Vosk réduit ces erreurs, mais pas pour les premières
+        // phrases arrivant avant que la grammaire soit appliquée.
+        // Ce dictionnaire corrige les homophones token par token.
+
+        private static readonly Dictionary<string, string> CommandHomophones =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                { "mais",  "mets"   },   // /mɛ/  : "mais" (conj.) → "mets" (mettre)
+                { "est",   "et"     },   // /ɛ/   : "est" (être)   → "et"   (conj.) — rare
+                { "ses",   "ces"    },   // /se/  : "ses" (poss.)  → "ces"  (dém.)
+                { "on",    "ont"    },   // /ɔ̃/  : "on" → "ont" — contextuel, désactivé par défaut
+            };
+
+        private static string CorrectHomophones(string text)
+        {
+            string[] tokens = text.Split(' ');
+            for (int i = 0; i < tokens.Length; i++)
+            {
+                if (CommandHomophones.TryGetValue(tokens[i], out string correction))
+                    tokens[i] = correction;
+            }
+            return string.Join(" ", tokens);
         }
 
         // ─────────────────────────────────────────────────────────────────────
