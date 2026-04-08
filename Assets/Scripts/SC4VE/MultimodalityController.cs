@@ -662,7 +662,9 @@ Entrée utilisateur:
             {
                 "le", "la", "les", "l", "un", "une", "des",
                 "de", "du", "en", "à", "au", "aux",
-                "et", "ou", "mais", "donc",
+                "et", "ou", "donc",
+                // "mais" volontairement absent : homophone de "mets" (/mɛ/).
+                // Sans "mais" dans la grammaire, Vosk choisit "mets" pour ce son.
                 "ici", "là", "là-bas", "là-haut",
                 "ce", "cet", "cette", "ces",
                 "ça", "cela", "ceci",
