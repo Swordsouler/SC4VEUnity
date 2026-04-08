@@ -185,6 +185,14 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
 
         private string DetectCommandType(string text)
         {
+            // Normalisation des accents pour la comparaison
+            string normalizedText = FrenchStemmer.NormalizeAccents(text);
+
+            // Stems de chaque token du texte d'entrée (pour la comparaison stemmer)
+            string[] inputTokens = normalizedText.Split(
+                new[] { ' ', ',', '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] inputStems = System.Array.ConvertAll(inputTokens, FrenchStemmer.Stem);
+
             // Priorité aux déclencheurs les plus longs (multi-mots d'abord)
             var ordered = ActionMappings
                 .SelectMany(m => m.Triggers.Select(t => (Trigger: t, m.CommandType)))
@@ -192,8 +200,27 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
 
             foreach (var (trigger, commandType) in ordered)
             {
-                if (ContainsPhrase(text, trigger))
+                string normalizedTrigger = FrenchStemmer.NormalizeAccents(trigger);
+
+                // 1. Correspondance exacte (phrase entière ou mot avec frontière)
+                if (ContainsPhrase(normalizedText, normalizedTrigger))
                     return commandType;
+
+                // 2. Pour les déclencheurs mono-mot : comparaison des stems
+                //    stem("coloris") == stem("colorie") == "color" → match
+                if (!trigger.Contains(' '))
+                {
+                    string triggerStem = FrenchStemmer.Stem(normalizedTrigger);
+                    foreach (string inputStem in inputStems)
+                    {
+                        if (inputStem == triggerStem)
+                        {
+                            Debug.Log($"[RuleBased/Stem] \"{inputTokens[System.Array.IndexOf(inputStems, inputStem)]}\" " +
+                                      $"→ stem \"{inputStem}\" = stem(\"{trigger}\") \"{triggerStem}\" → {commandType}");
+                            return commandType;
+                        }
+                    }
+                }
             }
             return null;
         }
