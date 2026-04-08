@@ -440,34 +440,34 @@ Entrée utilisateur:
 
                 try
                 {
-                    List<Command> commands;
+                    string commandJson;
 
                     if (_recognizerMode == RecognizerMode.RuleBased)
                     {
                         Debug.Log($"[RuleBased] Analyse de la phrase : \"{phrase.Text}\"");
                         await InitializeVocabulariesAsync();
                         EnsureRuleBasedRecognizer();
-                        commands = _ruleBasedRecognizer.Recognize(phrase);
-                        if (commands == null || commands.Count == 0)
+                        commandJson = _ruleBasedRecognizer.Recognize(phrase);
+                        if (string.IsNullOrWhiteSpace(commandJson))
                         {
                             Debug.LogWarning("[RuleBased] Aucune commande produite pour cette phrase.");
                             continue;
                         }
-                        Debug.Log($"[RuleBased] {commands.Count} commande(s) produite(s).");
                     }
                     else
                     {
                         Debug.Log($"[LLM] Sending sentence for analysis: \"{phrase.Text}\"");
-                        string commandJson = await GetValidatedCommandJsonFromLlmAsync(phrase);
+                        commandJson = await GetValidatedCommandJsonFromLlmAsync(phrase);
                         if (string.IsNullOrWhiteSpace(commandJson))
                         {
                             Debug.LogWarning("[LLM] Received empty or null JSON from LLM after all attempts.");
                             continue;
                         }
                         Debug.Log($"[LLM] Received FINAL JSON: {commandJson}");
-                        commands = DeserializeCommand(commandJson);
-                        if (commands == null) continue;
                     }
+
+                    List<Command> commands = DeserializeCommand(commandJson);
+                    if (commands == null) continue;
 
                     await CommandToGraphOutputCommandAsync(commands);
                     ResolveCommands(commands);

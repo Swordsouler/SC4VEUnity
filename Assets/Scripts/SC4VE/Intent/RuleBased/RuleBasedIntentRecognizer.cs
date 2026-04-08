@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using Sc4ve.Voice;
 using System;
 using System.Collections.Generic;
@@ -140,10 +141,12 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Reconnaît l'intention d'une phrase et retourne la liste de commandes correspondante.
+        /// Reconnaît l'intention d'une phrase et retourne un JSON de commandes
+        /// au même format que celui produit par le LLM, prêt à être passé à
+        /// DeserializeCommand puis CommandToGraphOutputCommandAsync.
         /// Retourne null si aucune intention n'est reconnue.
         /// </summary>
-        public List<Command> Recognize(Sentence sentence)
+        public string Recognize(Sentence sentence)
         {
             if (sentence == null || string.IsNullOrWhiteSpace(sentence.Text))
                 return null;
@@ -178,9 +181,15 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 $"Déictiques : [{string.Join(", ", deictics.Select(d => d.Value))}] | " +
                 $"Coréf : {hasCoreference} | Limite : {limit}");
 
-            // 3. Construction des commandes
-            return BuildCommands(commandType, annotations, colors, deictics,
-                                 hasCoreference, limit, words, text);
+            // 3. Construction des commandes et sérialisation JSON
+            List<Command> commands = BuildCommands(commandType, annotations, colors, deictics,
+                                                   hasCoreference, limit, words, text);
+            if (commands == null || commands.Count == 0)
+                return null;
+
+            string json = JsonConvert.SerializeObject(commands, Formatting.Indented);
+            Debug.Log($"[RuleBased] JSON produit :\n{json}");
+            return json;
         }
 
         // ─────────────────────────────────────────────────────────────────────
