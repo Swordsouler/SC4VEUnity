@@ -3780,6 +3780,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Sc4ve.Multimodality.MultimodalityController
   _voskSpeechToText: {fileID: 1806090970}
   _language: 0
+  _recognizerMode: 1
   _llmService: 1
   _openAiApiKey: ***CLE-RETIREE***
   _localLlmUrl: http://localhost:1234/v1

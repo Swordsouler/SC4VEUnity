@@ -1,6 +1,7 @@
 ﻿using NaughtyAttributes;
 using Newtonsoft.Json;
 using Sc4ve.Multimodality.Intent;
+using Sc4ve.Multimodality.Intent.RuleBased;
 using Sc4ve.Voice;
 using Sven.Content;
 using Sven.Context;
@@ -26,21 +27,35 @@ namespace Sc4ve.Multimodality
         Local
     }
 
+    public enum RecognizerMode
+    {
+        LLM,
+        RuleBased
+    }
+
     public class MultimodalityController : MonoBehaviour
     {
         [BoxGroup("References"), SerializeField] private VoskSpeechToText _voskSpeechToText;
         [BoxGroup("References"), SerializeField] private Language _language = Language.English;
 
-        [BoxGroup("LLM Settings"), SerializeField]
+        [BoxGroup("Recognizer Settings"), SerializeField, Tooltip("LLM : utilise un modèle de langage (OpenAI ou local). RuleBased : utilise uniquement des algorithmes, sans LLM.")]
+        private RecognizerMode _recognizerMode = RecognizerMode.LLM;
+
+        [BoxGroup("LLM Settings"), ShowIf("IsLlmMode"), SerializeField]
         private LlmService _llmService = LlmService.OpenAI;
 
-        [BoxGroup("LLM Settings"), ShowIf("_llmService", LlmService.OpenAI), SerializeField, Tooltip("Clé API OpenAI. Ne pas exposer publiquement.")]
+        [BoxGroup("LLM Settings"), ShowIf("IsLlmModeOpenAI"), SerializeField, Tooltip("Clé API OpenAI. Ne pas exposer publiquement.")]
         private string _openAiApiKey;
 
-        [BoxGroup("LLM Settings"), ShowIf("_llmService", LlmService.Local), SerializeField, Tooltip("URL du serveur LLM local (ex: http://localhost:1234/v1).")]
+        [BoxGroup("LLM Settings"), ShowIf("IsLlmModeLocal"), SerializeField, Tooltip("URL du serveur LLM local (ex: http://localhost:1234/v1).")]
         private string _localLlmUrl = "http://localhost:1234/v1";
 
+        private bool IsLlmMode     => _recognizerMode == RecognizerMode.LLM;
+        private bool IsLlmModeOpenAI => IsLlmMode && _llmService == LlmService.OpenAI;
+        private bool IsLlmModeLocal  => IsLlmMode && _llmService == LlmService.Local;
+
         private static readonly HttpClient _httpClient = new();
+        private RuleBasedIntentRecognizer _ruleBasedRecognizer;
 
         // LLama-7b, qwen-3.5, mistral-nemo 
         // Le corps principal et statique du prompt est maintenant une constante.
@@ -425,27 +440,42 @@ Entrée utilisateur:
 
                 try
                 {
-                    Debug.Log($"[LLM] Sending sentence for analysis: \"{phrase.Text}\"");
+                    List<Command> commands;
 
-                    string commandJson = await GetValidatedCommandJsonFromLlmAsync(phrase);
-
-                    if (string.IsNullOrWhiteSpace(commandJson))
+                    if (_recognizerMode == RecognizerMode.RuleBased)
                     {
-                        Debug.LogWarning("[LLM] Received empty or null JSON from LLM after all attempts.");
-                        continue;
+                        Debug.Log($"[RuleBased] Analyse de la phrase : \"{phrase.Text}\"");
+                        await InitializeVocabulariesAsync();
+                        EnsureRuleBasedRecognizer();
+                        commands = _ruleBasedRecognizer.Recognize(phrase);
+                        if (commands == null || commands.Count == 0)
+                        {
+                            Debug.LogWarning("[RuleBased] Aucune commande produite pour cette phrase.");
+                            continue;
+                        }
+                        Debug.Log($"[RuleBased] {commands.Count} commande(s) produite(s).");
                     }
-
-                    Debug.Log($"[LLM] Received FINAL JSON: {commandJson}");
-                    List<Command> commands = DeserializeCommand(commandJson);
-                    if (commands == null) continue;
+                    else
+                    {
+                        Debug.Log($"[LLM] Sending sentence for analysis: \"{phrase.Text}\"");
+                        string commandJson = await GetValidatedCommandJsonFromLlmAsync(phrase);
+                        if (string.IsNullOrWhiteSpace(commandJson))
+                        {
+                            Debug.LogWarning("[LLM] Received empty or null JSON from LLM after all attempts.");
+                            continue;
+                        }
+                        Debug.Log($"[LLM] Received FINAL JSON: {commandJson}");
+                        commands = DeserializeCommand(commandJson);
+                        if (commands == null) continue;
+                    }
 
                     await CommandToGraphOutputCommandAsync(commands);
                     ResolveCommands(commands);
-                    Debug.Log("[LLM] Commands resolved successfully.");
+                    Debug.Log($"[{_recognizerMode}] Commands resolved successfully.");
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"[LLM] An error occurred during LLM processing: {e.Message}\n{e.StackTrace}");
+                    Debug.LogError($"[{_recognizerMode}] An error occurred during processing: {e.Message}\n{e.StackTrace}");
                 }
             }
         }
@@ -560,6 +590,38 @@ Entrée utilisateur:
             _availableCommandsString = CommandDescriptionAttribute.GetAvailableCommandsString();
 
             Debug.Log("[LLM] Vocabularies cached.");
+        }
+
+        /// <summary>
+        /// Crée le RuleBasedIntentRecognizer en utilisant les vocabulaires déjà chargés.
+        /// Doit être appelé après InitializeVocabulariesAsync().
+        /// </summary>
+        private void EnsureRuleBasedRecognizer()
+        {
+            if (_ruleBasedRecognizer != null) return;
+
+            List<string> annotationTypes = _annotationTypesString
+                .Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries)
+                .ToList();
+
+            List<string> availableColors = _availableColorsString
+                .Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries)
+                .ToList();
+
+            List<string> pointerDeictics = _pointerDeicticsString
+                .Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(d => d.Trim('\''))
+                .ToList();
+
+            _ruleBasedRecognizer = new RuleBasedIntentRecognizer(
+                annotationTypes,
+                availableColors,
+                pointerDeictics,
+                _pointerNamesString,
+                _cameraNamesString);
+
+            Debug.Log($"[RuleBased] Reconnaisseur initialisé — {annotationTypes.Count} annotations, " +
+                      $"{availableColors.Count} couleurs, {pointerDeictics.Count} déictiques.");
         }
 
         /// <summary>
