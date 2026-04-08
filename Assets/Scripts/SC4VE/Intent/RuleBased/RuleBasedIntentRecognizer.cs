@@ -122,18 +122,28 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             "devant", "derrière", "à droite", "à gauche"
         };
 
+        /// <summary>
+        /// Délai ajouté au timestamp du PointParameter de destination dans un MoveCommand.
+        /// Compense le fait que le pointeur n'est pas encore stabilisé au moment
+        /// où l'utilisateur prononce "ici" / "là". La position capturée correspond
+        /// alors à la fin de phrase + ce délai, quand le geste est terminé.
+        /// </summary>
+        private readonly int _movePointDelayMs;
+
         public RuleBasedIntentRecognizer(
             List<string> annotationTypes,
             List<string> availableColors,
             List<string> pointerDeictics,
             string pointerName,
-            string cameraName)
+            string cameraName,
+            int movePointDelayMs = 300)
         {
             _annotationTypes = annotationTypes ?? new List<string>();
             _availableColors = availableColors ?? new List<string>();
             _pointerDeictics = pointerDeictics ?? new List<string>();
             _pointerName = pointerName ?? "Pointeur";
             _cameraName = cameraName ?? "Caméra";
+            _movePointDelayMs = movePointDelayMs;
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -438,9 +448,11 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                             annotations, colors.Where(c => !c.IsTarget).ToList(),
                             deictics, hasCoreference, limit, useStartedAt: true);
 
-                        // Recherche du mot de destination (ici, là, etc.)
-                        string destWord = FindDestinationWord(text);
-                        DateTime destTs = GetWordTimestamp(words, destWord, useStartedAt: false);
+                        // Timestamp de destination = fin de phrase + délai configurable.
+                        // Le mot "ici"/"là" est prononcé PENDANT que le pointeur bouge encore ;
+                        // on attend que le geste soit terminé avant de lire la position.
+                        DateTime sentenceEnd = words.Count > 0 ? words[^1].EndedAt : DateTime.Now;
+                        DateTime destTs = sentenceEnd.AddMilliseconds(_movePointDelayMs);
 
                         var pointParam = new PointParameter
                         {

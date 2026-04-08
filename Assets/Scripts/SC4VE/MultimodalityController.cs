@@ -41,6 +41,11 @@ namespace Sc4ve.Multimodality
         [BoxGroup("Recognizer Settings"), SerializeField, Tooltip("LLM : utilise un modèle de langage (OpenAI ou local). RuleBased : utilise uniquement des algorithmes, sans LLM.")]
         private RecognizerMode _recognizerMode = RecognizerMode.LLM;
 
+        [BoxGroup("Recognizer Settings"), ShowIf("_recognizerMode", RecognizerMode.RuleBased), SerializeField,
+         Tooltip("Délai (ms) ajouté après la fin de phrase pour le timestamp de destination d'un MoveCommand. " +
+                 "Compense le fait que le pointeur n'est pas encore stabilisé au moment où 'ici'/'là' est prononcé.")]
+        private int _movePointDelayMs = 300;
+
         [BoxGroup("LLM Settings"), ShowIf("IsLlmMode"), SerializeField]
         private LlmService _llmService = LlmService.OpenAI;
 
@@ -620,7 +625,8 @@ Entrée utilisateur:
                 availableColors,
                 pointerDeictics,
                 _pointerNamesString,
-                _cameraNamesString);
+                _cameraNamesString,
+                _movePointDelayMs);
 
             Debug.Log($"[RuleBased] Reconnaisseur initialisé — {annotationTypes.Count} annotations, " +
                       $"{availableColors.Count} couleurs, {pointerDeictics.Count} déictiques.");
