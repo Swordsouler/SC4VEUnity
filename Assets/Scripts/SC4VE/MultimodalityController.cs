@@ -593,7 +593,9 @@ Entrée utilisateur:
         }
 
         /// <summary>
-        /// Crée le RuleBasedIntentRecognizer en utilisant les vocabulaires déjà chargés.
+        /// Crée le RuleBasedIntentRecognizer en utilisant les vocabulaires déjà chargés,
+        /// puis injecte ce vocabulaire dans Vosk comme grammaire pour restreindre la
+        /// reconnaissance aux mots du domaine (évite les fusions phonétiques).
         /// Doit être appelé après InitializeVocabulariesAsync().
         /// </summary>
         private void EnsureRuleBasedRecognizer()
@@ -622,6 +624,60 @@ Entrée utilisateur:
 
             Debug.Log($"[RuleBased] Reconnaisseur initialisé — {annotationTypes.Count} annotations, " +
                       $"{availableColors.Count} couleurs, {pointerDeictics.Count} déictiques.");
+
+            // Injecter le vocabulaire du domaine dans Vosk pour améliorer la précision STT.
+            // En mode grammaire, Vosk ne reconnaît que les mots de cette liste,
+            // ce qui empêche les fusions phonétiques (ex: "déplace ça" → "déplaça").
+            if (_voskSpeechToText != null)
+                _voskSpeechToText.SetGrammar(BuildVoskGrammar(annotationTypes, availableColors, pointerDeictics));
+        }
+
+        /// <summary>
+        /// Construit la liste de mots à fournir à Vosk comme vocabulaire de reconnaissance.
+        /// Inclut : verbes d'action, annotations, couleurs, déictiques, mots fonctionnels français.
+        /// Tous les mots sont en minuscules (exigence Vosk).
+        /// </summary>
+        private static List<string> BuildVoskGrammar(
+            List<string> annotationTypes,
+            List<string> availableColors,
+            List<string> pointerDeictics)
+        {
+            var vocab = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // ── Verbes d'action (toutes les formes des triggers) ──────────
+            foreach (var (triggers, _) in RuleBasedIntentRecognizer.ActionMappings)
+                foreach (string trigger in triggers)
+                    foreach (string word in trigger.ToLowerInvariant().Split(' '))
+                        vocab.Add(word);
+
+            // ── Annotations et couleurs (depuis l'ontologie) ──────────────
+            foreach (string a in annotationTypes) vocab.Add(a.ToLowerInvariant());
+            foreach (string c in availableColors)  vocab.Add(c.ToLowerInvariant());
+
+            // ── Déictiques ────────────────────────────────────────────────
+            foreach (string d in pointerDeictics)  vocab.Add(d.ToLowerInvariant());
+
+            // ── Mots fonctionnels français courants ───────────────────────
+            foreach (string w in new[]
+            {
+                "le", "la", "les", "l", "un", "une", "des",
+                "de", "du", "en", "à", "au", "aux",
+                "et", "ou", "mais", "donc",
+                "ici", "là", "là-bas", "là-haut",
+                "ce", "cet", "cette", "ces",
+                "ça", "cela", "ceci",
+                "plus", "moins", "très",
+                "tous", "toutes", "tout", "toute",
+                "il", "elle", "ils", "elles",
+                // Nombres
+                "un", "deux", "trois", "quatre", "cinq",
+                "six", "sept", "huit", "neuf", "dix"
+            })
+                vocab.Add(w);
+
+            var result = vocab.OrderBy(w => w).ToList();
+            Debug.Log($"[Vosk] Grammaire construite : {result.Count} mots.");
+            return result;
         }
 
         /// <summary>

@@ -43,7 +43,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
 
         // Verbes d'action → type de commande
         // Ordre : les déclencheurs multi-mots passent en premier (plus long → plus prioritaire)
-        private static readonly List<(string[] Triggers, string CommandType)> ActionMappings =
+        public static readonly List<(string[] Triggers, string CommandType)> ActionMappings =
             new()
             {
                 // ColorizeCopyCommand (avant Colorize pour éviter le sous-match)
@@ -61,7 +61,8 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 (new[] { "change la couleur", "met en couleur", "mets en couleur",
                           "colorie", "coloris", "colorise", "colorisez", "coloriez",
                           "peins", "peinez", "recolore", "recolorez",
-                          "colorier", "coloriser" },
+                          "colorier", "coloriser",
+                          "met", "mets", "mettre" },
                     "ColorizeCommand"),
                 // HideCommand
                 (new[] { "rend invisible", "rends invisible", "masque", "cache", "dissimule",
@@ -80,7 +81,10 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                           "réduit", "diminue", "rétrécis", "rétrécit", "rapetisser", "réduire",
                           "rétrécir" },
                     "ScaleDownCommand"),
-                // MoveCommand
+                // MoveCommand — "met … ici/là" en priorité sur ColorizeCommand
+                (new[] { "met ici", "mets ici", "met là", "mets là",
+                          "met là-bas", "mets là-bas", "met là-haut", "mets là-haut" },
+                    "MoveCommand"),
                 (new[] { "déplace", "déplacer", "bouge", "bouger", "amène", "amener",
                           "move", "repositionne", "repositionner", "transporte", "transporter" },
                     "MoveCommand"),

@@ -472,5 +472,44 @@ namespace Sc4ve.Voice
             _recognizer.SetWords(true);
             voskRecognizerCreateMarker.End();
         }
+
+        /// <summary>
+        /// Met à jour la grammaire Vosk avec la liste de mots fournie et recrée
+        /// le recognizer. À appeler après l'initialisation pour restreindre la
+        /// reconnaissance au vocabulaire du domaine (commandes, objets, couleurs…).
+        ///
+        /// Avantage : Vosk ne peut plus fusionner des mots qui ne font pas partie
+        /// du vocabulaire (ex: "déplace ça" ne peut plus devenir "déplaça").
+        /// </summary>
+        public void SetGrammar(List<string> words)
+        {
+            if (!_didInit)
+            {
+                // Stocker pour application à l'init
+                KeyPhrases = words;
+                return;
+            }
+
+            KeyPhrases = words;
+
+            bool wasRunning = _running;
+            if (wasRunning) _running = false;
+
+            if (_recognizer != null)
+            {
+                _recognizer.Dispose();
+                _recognizer = null;
+            }
+
+            CreateRecognizer();
+
+            if (wasRunning)
+            {
+                _running = true;
+                Task.Run(ThreadedWork).ConfigureAwait(false);
+            }
+
+            Debug.Log($"[Vosk] Grammaire mise à jour : {words.Count} mots.");
+        }
     }
 }
