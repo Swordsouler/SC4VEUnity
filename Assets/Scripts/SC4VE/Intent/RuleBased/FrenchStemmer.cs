@@ -108,7 +108,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             ("iiez",      3), ("iions",    3),
             ("aient",     3), ("iez",      3), ("ient",     3),
             ("iras",      3), ("iera",     3), ("irai",     3),
-            ("ier",       3), ("ies",      3), ("ie",       3),
+            ("ier",       3), ("ies",      3), ("ia",       3), ("ie",       3),
 
             // ── Terminaisons -er standard ─────────────────────────────────
             ("eraient",   3), ("erions",   3),
@@ -118,6 +118,12 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             ("ons",       3), ("ez",       3), ("ent",      3),
             ("ait",       3), ("ais",      3),
             ("er",        3),
+
+            // ── Passé simple -er (STT peut produire ces formes) ──────────
+            // ex: "déplaça" (STT de "déplace ça") → "deplaca" → strip "a" → "deplac"
+            ("ames",      4), ("ates",     4), ("erent",    4),
+            ("as",        4),
+            ("a",         4),
 
             // ── Groupe -ir ────────────────────────────────────────────────
             ("iraient",   3), ("irions",   3),
