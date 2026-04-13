@@ -775,6 +775,76 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6432426889305004569, guid: e49a6ee164574a04788905fe90ec8181, type: 3}
   m_PrefabInstance: {fileID: 2087325523}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1407167818
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1407167821}
+  - component: {fileID: 1407167820}
+  - component: {fileID: 1407167819}
+  m_Layer: 0
+  m_Name: Pointer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1407167819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1407167818}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 698fff3e7839a1c4aa059a40e7fdd9c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: com.nsaintl.sven::Sven.Context.Pointer
+  _debug: 1
+  <PointerIndex>k__BackingField: 0
+  <PointerDistance>k__BackingField: 20
+  <PointerConeAngle>k__BackingField: 0
+  <PointerPosition>k__BackingField: {x: 0, y: 0, z: 0}
+  <PointerDirection>k__BackingField: {x: 0, y: 0, z: 1}
+  <PointerHitPosition>k__BackingField: {x: 0, y: 0, z: 0}
+  <PointerHitDistance>k__BackingField: 0
+--- !u!114 &1407167820
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1407167818}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e518ae278ae889448712861370435c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: com.nsaintl.sven::Sven.Content.SemantizationCore
+  componentsToSemanticize:
+  - <Component>k__BackingField: {fileID: 1407167821}
+    <ProcessingMode>k__BackingField: 0
+  - <Component>k__BackingField: {fileID: 1407167819}
+    <ProcessingMode>k__BackingField: 0
+--- !u!4 &1407167821
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1407167818}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0, y: 0, z: -0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1622125153
 GameObject:
   m_ObjectHideFlags: 0
@@ -1212,3 +1282,4 @@ SceneRoots:
   - {fileID: 429158561}
   - {fileID: 810762054}
   - {fileID: 84020371}
+  - {fileID: 1407167821}

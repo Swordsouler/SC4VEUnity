@@ -1,3 +1,4 @@
+using Sven.Context;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -13,6 +14,8 @@ using UnityEngine.SceneManagement;
 [RequireComponent(typeof(Rigidbody))]
 public class MouseInteraction : MonoBehaviour, IPointerDownHandler
 {
+    [SerializeField] private Pointer _pointer;
+
     //The different interaction type that can be performed with the molecule
     private enum InteractionType { None, MoveAtom, RotateAtom, RotateConnection }
     private InteractionType type { get; set; } = InteractionType.None;
@@ -214,7 +217,7 @@ public class MouseInteraction : MonoBehaviour, IPointerDownHandler
         if (instance.tempParent != null)
         {
             //each child of tempParent
-            List<Transform> childrens = new List<Transform>();
+            List<Transform> childrens = new();
             foreach (Transform child in instance.tempParent.transform)
             {
                 childrens.Add(child);
