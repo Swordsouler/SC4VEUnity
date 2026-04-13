@@ -18,7 +18,7 @@ public class Atom : MonoBehaviour
     public string modelName { get; set; }
 
     // List of the connections of the atom
-    public List<Connection> connections = new List<Connection>();
+    public List<Connection> connections = new();
 
     // Representation mode of the atom
     private Representation.Type representation { get; set; } = Representation.Type.Normal;
@@ -249,12 +249,12 @@ public class Atom : MonoBehaviour
         if (GetComponent<Rigidbody>().isKinematic) yield break;
         // Lock physically the atom
         Rigidbody rb = GetComponent<Rigidbody>();
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
         rb.isKinematic = true;
         rb.maxAngularVelocity = 0f;
         rb.linearDamping = 0f;
         rb.angularDamping = 0f;
-        rb.linearVelocity = Vector3.zero;
-        rb.angularVelocity = Vector3.zero;
         // We need to wait 2 frames because, otherwise, molecule will make big movement on connection
         yield return new WaitForFixedUpdate();
         yield return new WaitForFixedUpdate();
