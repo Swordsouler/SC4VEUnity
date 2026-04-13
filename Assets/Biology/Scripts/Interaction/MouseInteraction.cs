@@ -49,6 +49,7 @@ public class MouseInteraction : MonoBehaviour, IPointerDownHandler
     private void Awake()
     {
         instance = this;
+        _pointer ??= GetComponent<Pointer>();
         GetComponent<Rigidbody>().maxAngularVelocity = 1000;
         GetComponent<Rigidbody>().angularDamping = 5f;
         GetComponent<Rigidbody>().linearDamping = 5f;
@@ -59,6 +60,8 @@ public class MouseInteraction : MonoBehaviour, IPointerDownHandler
 
     private void Update()
     {
+        SyncPointerTransform();
+
         // if you press R reload the scene
         if (Input.GetKeyDown(KeyCode.R))
         {
@@ -132,6 +135,7 @@ public class MouseInteraction : MonoBehaviour, IPointerDownHandler
 
     public void OnPointerDown(PointerEventData eventData)
     {
+        SyncPointerTransform();
         currentSelection = eventData.pointerCurrentRaycast.gameObject;
         switch (eventData.button)
         {
@@ -185,6 +189,38 @@ public class MouseInteraction : MonoBehaviour, IPointerDownHandler
         type = newType;
         Debug.Log("type = " + type.ToString());
         Cursor.visible = false;
+    }
+
+    private void SyncPointerTransform()
+    {
+        if (_pointer == null)
+        {
+            return;
+        }
+
+        Camera camera = Camera.main;
+        if (camera == null)
+        {
+            return;
+        }
+
+        Ray ray = camera.ScreenPointToRay(Input.mousePosition);
+        float distance = _pointer.PointerDistance;
+        Vector3 pointerPosition = Physics.Raycast(ray, out RaycastHit hit, distance) ? hit.point : ray.GetPoint(distance);
+
+        Transform pointerTransform = _pointer.transform;
+        if (pointerTransform.parent != null)
+        {
+            Vector3 localPosition = pointerTransform.parent.InverseTransformPoint(pointerPosition);
+            localPosition.z = pointerTransform.localPosition.z;
+            pointerTransform.localPosition = localPosition;
+        }
+        else
+        {
+            Vector3 worldPosition = pointerPosition;
+            worldPosition.z = pointerTransform.position.z;
+            pointerTransform.position = worldPosition;
+        }
     }
 
     // Setup the mouse offset between the mouse position and the molecule position
