@@ -11,8 +11,7 @@ GameObject:
   - component: {fileID: 3008421604161009131}
   - component: {fileID: 6136071286459933065}
   - component: {fileID: 8477690674199337746}
-  - component: {fileID: 8832597366193020850}
-  - component: {fileID: 5081942636851340398}
+  - component: {fileID: 1705866262993411447}
   m_Layer: 0
   m_Name: Tangible Atom
   m_TagString: Untagged
@@ -27,6 +26,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8173059858393486387}
+  serializedVersion: 2
   m_LocalRotation: {x: 0.00000011920929, y: -0.000000027474016, z: 3.3651215e-10, w: 1.0000001}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -34,7 +34,6 @@ Transform:
   m_Children:
   - {fileID: 5972297611259289967}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &6136071286459933065
 Rigidbody:
@@ -43,10 +42,21 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8173059858393486387}
-  serializedVersion: 2
+  serializedVersion: 5
   m_Mass: 0.1
-  m_Drag: 10
-  m_AngularDrag: 10
+  m_LinearDamping: 10
+  m_AngularDamping: 10
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
   m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -64,12 +74,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e6a87b1dd945155479071ae4bd616aa2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  visited: 0
   model: {fileID: 8877907989986543069}
   twinAtom: {fileID: 0}
   force: 0
   forceMode: 0
   scale: 0
---- !u!114 &8832597366193020850
+--- !u!114 &1705866262993411447
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -78,54 +89,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 8173059858393486387}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a98de877dee5fc341b4eb59dfdab266c, type: 3}
+  m_Script: {fileID: 11500000, guid: 7e518ae278ae889448712861370435c0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
-  autoConstraintSelection: 1
-  selectedConstraints: []
---- !u!114 &5081942636851340398
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8173059858393486387}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 181cd563a8349c34ea8978b0bc8d9c7e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  hostTransform: {fileID: 3008421604161009131}
-  manipulationType: 3
-  twoHandedManipulationType: 3
-  allowFarManipulation: 1
-  useForcesForNearManipulation: 1
-  oneHandRotationModeNear: 0
-  oneHandRotationModeFar: 0
-  releaseBehavior: 3
-  transformSmoothingLogicType:
-    reference: Microsoft.MixedReality.Toolkit.Utilities.DefaultTransformSmoothingLogic,
-      Microsoft.MixedReality.Toolkit.SDK
-  smoothingFar: 1
-  smoothingNear: 1
-  moveLerpTime: 0.001
-  rotateLerpTime: 0.001
-  scaleLerpTime: 0.001
-  enableConstraints: 1
-  constraintsManager: {fileID: 8832597366193020850}
-  elasticsManager: {fileID: 0}
-  onManipulationStarted:
-    m_PersistentCalls:
-      m_Calls: []
-  onManipulationEnded:
-    m_PersistentCalls:
-      m_Calls: []
-  onHoverEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  onHoverExited:
-    m_PersistentCalls:
-      m_Calls: []
+  m_EditorClassIdentifier: com.nsaintl.sven::Sven.Content.SemantizationCore
+  componentsToSemanticize:
+  - <Component>k__BackingField: {fileID: 3008421604161009131}
+    <ProcessingMode>k__BackingField: 0
+  - <Component>k__BackingField: {fileID: 6136071286459933065}
+    <ProcessingMode>k__BackingField: 0
 --- !u!1 &8877907989986543069
 GameObject:
   m_ObjectHideFlags: 0
@@ -138,8 +109,7 @@ GameObject:
   - component: {fileID: 582492569855856980}
   - component: {fileID: 1183952807205406324}
   - component: {fileID: 3583890114455034433}
-  - component: {fileID: 8751106883066496805}
-  - component: {fileID: 7274730684120667603}
+  - component: {fileID: 8136811332729666652}
   m_Layer: 0
   m_Name: Model
   m_TagString: Atom
@@ -154,13 +124,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8877907989986543069}
+  serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.0466, y: 0.0466, z: 0.0466}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3008421604161009131}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &582492569855856980
 MeshFilter:
@@ -178,9 +148,17 @@ SphereCollider:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8877907989986543069}
   m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
   m_IsTrigger: 1
+  m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
+  serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!23 &3583890114455034433
@@ -200,6 +178,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -221,11 +204,12 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &8751106883066496805
+--- !u!114 &8136811332729666652
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -234,23 +218,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 8877907989986543069}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5afd5316c63705643b3daba5a6e923bd, type: 3}
+  m_Script: {fileID: 11500000, guid: 7e518ae278ae889448712861370435c0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
-  ShowTetherWhenManipulating: 0
-  IsBoundsHandles: 0
---- !u!114 &7274730684120667603
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8877907989986543069}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9fb46146d16d717448d07960504a3cfb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  verticesAmount: 26
-  debugDrawPointCloud: 0
-  vertices: []
+  m_EditorClassIdentifier: com.nsaintl.sven::Sven.Content.SemantizationCore
+  componentsToSemanticize:
+  - <Component>k__BackingField: {fileID: 5972297611259289967}
+    <ProcessingMode>k__BackingField: 0
+  - <Component>k__BackingField: {fileID: 582492569855856980}
+    <ProcessingMode>k__BackingField: 0
+  - <Component>k__BackingField: {fileID: 3583890114455034433}
+    <ProcessingMode>k__BackingField: 0

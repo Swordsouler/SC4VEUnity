@@ -119,6 +119,50 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &84020369
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 84020371}
+  - component: {fileID: 84020370}
+  m_Layer: 0
+  m_Name: Graph Controller
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &84020370
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 84020369}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f76f747641578c40a97142e96baae7a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: com.nsaintl.sven::Sven.GraphManagement.GraphController
+--- !u!4 &84020371
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 84020369}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &279182430
 GameObject:
   m_ObjectHideFlags: 0
@@ -133,6 +177,8 @@ GameObject:
   - component: {fileID: 279182434}
   - component: {fileID: 279182435}
   - component: {fileID: 279182436}
+  - component: {fileID: 279182438}
+  - component: {fileID: 279182437}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -286,6 +332,37 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!114 &279182437
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 279182430}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7e518ae278ae889448712861370435c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: com.nsaintl.sven::Sven.Content.SemantizationCore
+  componentsToSemanticize:
+  - <Component>k__BackingField: {fileID: 279182432}
+    <ProcessingMode>k__BackingField: 0
+  - <Component>k__BackingField: {fileID: 279182433}
+    <ProcessingMode>k__BackingField: 0
+--- !u!114 &279182438
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 279182430}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc0275620122f9a43b37534676c6031c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: com.nsaintl.sven::Sven.Context.PointOfView
+  _debug: 1
+  cameraComponent: {fileID: 0}
 --- !u!1 &429158558
 GameObject:
   m_ObjectHideFlags: 0
@@ -1134,3 +1211,4 @@ SceneRoots:
   - {fileID: 536231840}
   - {fileID: 429158561}
   - {fileID: 810762054}
+  - {fileID: 84020371}

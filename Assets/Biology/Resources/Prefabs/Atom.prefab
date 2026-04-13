@@ -94,6 +94,8 @@ MonoBehaviour:
   componentsToSemanticize:
   - <Component>k__BackingField: {fileID: 6432426889305004569}
     <ProcessingMode>k__BackingField: 0
+  - <Component>k__BackingField: {fileID: 4778809976431253211}
+    <ProcessingMode>k__BackingField: 0
 --- !u!1 &842234604282882607
 GameObject:
   m_ObjectHideFlags: 0
@@ -136,7 +138,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 842234604282882607}
-  m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: 1148984207095053475, guid: 26b93cb76e4fbb54c8c8766aceb0e34d, type: 3}
 --- !u!135 &6983573807963089286
 SphereCollider:
   m_ObjectHideFlags: 0
