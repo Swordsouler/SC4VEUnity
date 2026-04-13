@@ -1,0 +1,25 @@
+{
+    "atomType": "C",
+    "modelType": "004",
+    "scale": 1,
+    "slots": [
+        {
+            "directionX": -1,
+            "directionY": 0,
+            "directionZ": 0,
+            "angle": 0
+        },
+        {
+            "directionX": 0.5,
+            "directionY": -0.87,
+            "directionZ": 0,
+            "angle": 0
+        },
+        {
+            "directionX": 0.5,
+            "directionY": 0.87,
+            "directionZ": 0,
+            "angle": 0
+        }
+    ]
+}

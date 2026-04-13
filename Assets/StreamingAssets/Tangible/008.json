@@ -1,0 +1,25 @@
+{
+    "atomType": "N",
+    "modelType": "008",
+    "scale": 1,
+    "slots": [
+        {
+            "directionX": -1,
+            "directionY": 0,
+            "directionZ": 0,
+            "angle": 0
+        },
+        {
+            "directionX": 0.37,
+            "directionY": 0.01,
+            "directionZ": 0.93,
+            "angle": 0
+        },
+        {
+            "directionX": 0.35,
+            "directionY": 0.75,
+            "directionZ": -0.55,
+            "angle": 0
+        }
+    ]
+}

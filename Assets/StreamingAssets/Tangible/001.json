@@ -1,0 +1,13 @@
+{
+    "atomType": "H",
+    "modelType": "001",
+    "scale": 0.93,
+    "slots": [
+        {
+            "directionX": -1,
+            "directionY": 0,
+            "directionZ": 0,
+            "angle": 0
+        }
+    ]
+}
