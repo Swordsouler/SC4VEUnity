@@ -1,7 +1,6 @@
-using UnityEngine;
-using System.Collections.Generic;
-using static Connection;
 using System.Collections;
+using UnityEngine;
+using static Connection;
 
 //We separate Bond and Connection
 //Bond is the visual representation of the connection
@@ -12,6 +11,7 @@ using System.Collections;
 [RequireComponent(typeof(MeshRenderer))]
 public class Bond : MonoBehaviour
 {
+    private const float CylinderRatio = 2f / 1.5f;
     // The connection between the two atoms
     public Connection connection;
     // The local scale of the bond
@@ -48,7 +48,7 @@ public class Bond : MonoBehaviour
         // a cylinder between the two atoms
         Vector3 dir = connection.atom2.transform.position - connection.atom1.transform.position;
         transform.localPosition = dir * 0.5f;
-        localScale = new Vector3(0.25f, dir.magnitude * 0.5f, 0.25f);
+        localScale = new Vector3(0.25f, dir.magnitude * 0.5f * CylinderRatio, 0.25f);
         transform.rotation = Quaternion.FromToRotation(Vector3.up, dir);
         UpdateRepresentation(Representation.data[representation]);
 
