@@ -1690,8 +1690,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 710671277}
-  - component: {fileID: 710671276}
   - component: {fileID: 710671278}
+  - component: {fileID: 710671276}
   m_Layer: 0
   m_Name: TextToSpeech
   m_TagString: Untagged
