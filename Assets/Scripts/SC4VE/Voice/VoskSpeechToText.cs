@@ -19,7 +19,7 @@ namespace Sc4ve.Voice
         English,
     }
 
-    public class VoskSpeechToText : MonoBehaviour
+    public class VoskSpeechToText : BaseSpeechToText
     {
         [BoxGroup("References"), SerializeField, Tooltip("Location of the model, relative to the Streaming Assets folder.")]
         private string _modelPath = "vosk-model-small-en-0.22.zip";
@@ -87,12 +87,6 @@ namespace Sc4ve.Voice
         //Holds all of the audio data until the user stops talking.
         private readonly List<short> _buffer = new();
 
-        //Called when the the state of the controller changes.
-        public Action<string> OnStatusUpdated;
-
-        //Called after the user is done speaking and vosk processes the audio.
-        public Action<string> OnTranscriptionResult;
-
         //The absolute path to the decompressed model folder.
         private string _decompressedModelPath;
 
@@ -123,7 +117,7 @@ namespace Sc4ve.Voice
         private bool _pttKeyActive = false;
 
         private DateTime _recognizerInitializedAt;
-        public DateTime RecognizerStartedAt => _recognizerInitializedAt;
+        public override DateTime RecognizerStartedAt { get { return _recognizerInitializedAt; } }
 
         private DateTime _recordingStoppedAt;
         private bool _isFirstRecording = true;
@@ -481,7 +475,7 @@ namespace Sc4ve.Voice
         /// Avantage : Vosk ne peut plus fusionner des mots qui ne font pas partie
         /// du vocabulaire (ex: "déplace ça" ne peut plus devenir "déplaça").
         /// </summary>
-        public void SetGrammar(List<string> words)
+        public override void SetGrammar(List<string> words)
         {
             if (!_didInit)
             {

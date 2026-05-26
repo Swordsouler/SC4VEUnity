@@ -76,3 +76,4 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/SparkTTS/*
 /[Aa]ssets/[Ss]treamingAssets/Models/*
 /[Aa]ssets/Models/*
+/[Aa]ssets/[Ss]treamingAssets/Whisper/*

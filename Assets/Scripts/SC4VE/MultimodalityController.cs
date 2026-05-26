@@ -35,7 +35,7 @@ namespace Sc4ve.Multimodality
 
     public class MultimodalityController : MonoBehaviour
     {
-        [BoxGroup("References"), SerializeField] private VoskSpeechToText _voskSpeechToText;
+        [BoxGroup("References"), SerializeField] private BaseSpeechToText _speechToText;
         [BoxGroup("References"), SerializeField] private Language _language = Language.English;
 
         [BoxGroup("Recognizer Settings"), SerializeField, Tooltip("LLM : utilise un modèle de langage (OpenAI ou local). RuleBased : utilise uniquement des algorithmes, sans LLM.")]
@@ -424,7 +424,7 @@ Entrée utilisateur:
         private void Awake()
         {
             UserData.Language = _language;
-            if (_voskSpeechToText != null) _voskSpeechToText.OnTranscriptionResult += OnTranscriptionResult;
+            if (_speechToText != null) _speechToText.OnTranscriptionResult += OnTranscriptionResult;
 
             //await TextToSpeechController.Initialize();
             //await TextToSpeechController.GenerateAndPlaySpeech("Ceci est un test pour vérifier que le système de synthèse vocale fonctionne correctement.");
@@ -432,7 +432,7 @@ Entrée utilisateur:
 
         private async void OnTranscriptionResult(string obj)
         {
-            var result = new RecognitionResult(obj, _voskSpeechToText.RecognizerStartedAt);
+            var result = new RecognitionResult(obj, _speechToText.RecognizerStartedAt);
             if (result.Phrases.Any(p => !string.IsNullOrWhiteSpace(p.Text)))
                 Debug.Log($"[LLM] Received transcription result: {obj}");
             for (int i = 0; i < result.Phrases.Length; i++)
@@ -632,10 +632,8 @@ Entrée utilisateur:
                       $"{availableColors.Count} couleurs, {pointerDeictics.Count} déictiques.");
 
             // Injecter le vocabulaire du domaine dans Vosk pour améliorer la précision STT.
-            // En mode grammaire, Vosk ne reconnaît que les mots de cette liste,
-            // ce qui empêche les fusions phonétiques (ex: "déplace ça" → "déplaça").
-            if (_voskSpeechToText != null)
-                _voskSpeechToText.SetGrammar(BuildVoskGrammar(annotationTypes, availableColors, pointerDeictics));
+            if (_speechToText != null)
+                _speechToText.SetGrammar(BuildVoskGrammar(annotationTypes, availableColors, pointerDeictics));
         }
 
         /// <summary>
