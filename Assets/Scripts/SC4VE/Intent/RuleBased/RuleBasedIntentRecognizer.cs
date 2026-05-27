@@ -246,6 +246,16 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 new[] { ' ', ',', '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
             string[] inputStems = System.Array.ConvertAll(inputTokens, FrenchStemmer.Stem);
 
+            // Pré-vérification : "met(s)/mettre" + mot de destination non-contigu → MoveCommand.
+            // Nécessaire quand un pronom ("ça", "le"…) s'intercale entre le verbe et la destination,
+            // ce qui empêche les triggers multi-mots ("mets ici", "mets là") de se déclencher.
+            string[] clearDestWords = { "ici", "la-bas", "la-haut", "dessus", "dessous", "devant", "derriere", "a droite", "a gauche" };
+            if (Regex.IsMatch(normalizedText, @"\b(mets|met|mettre)\b") &&
+                clearDestWords.Any(d => normalizedText.Contains(d, StringComparison.OrdinalIgnoreCase)))
+            {
+                return "MoveCommand";
+            }
+
             // Priorité aux déclencheurs les plus longs (multi-mots d'abord)
             var ordered = ActionMappings
                 .SelectMany(m => m.Triggers.Select(t => (Trigger: t, m.CommandType)))
