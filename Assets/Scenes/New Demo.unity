@@ -3931,6 +3931,8 @@ MonoBehaviour:
   _llmService: 1
   _openAiApiKey: ***CLE-RETIREE***
   _localLlmUrl: http://localhost:1234/v1
+  _fastModel: gpt-4o-mini
+  _preciseModel: gpt-4o
 --- !u!1 &1665784244 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2165139561939491485, guid: 58b2c0c357f61d84684e1b341852740c, type: 3}

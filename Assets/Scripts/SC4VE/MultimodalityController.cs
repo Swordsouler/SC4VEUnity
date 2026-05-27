@@ -1,5 +1,6 @@
 ﻿using NaughtyAttributes;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Sc4ve.Multimodality.Intent;
 using Sc4ve.Multimodality.Intent.RuleBased;
 using Sc4ve.Voice;
@@ -77,6 +78,24 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
   ]
 }}
 
+--- FORMAT DE SORTIE ---
+Ta réponse est UNIQUEMENT un tableau JSON. Structure exacte et obligatoire :
+[
+  {{
+    ""type"": ""NomDeLaCommande"",
+    ""parameters"": [
+      {{ ""type"": ""SelectionParameter"", ""filters"": [ ... ], ""limit"": ""1"" }},
+      {{ ""type"": ""PointParameter"",     ""value"": ""{pointerTerm}"", ""timestamp"": ""..."" }}
+    ]
+  }}
+]
+Erreurs de structure à ne JAMAIS commettre :
+- La clé de commande est TOUJOURS ""type"" (jamais ""Command"", ""command"", ""name"" ou autre).
+- Les paramètres sont TOUJOURS dans un tableau ""parameters"" ; chaque élément a sa propre clé ""type"".
+- Ne jamais mettre les paramètres comme propriétés directes de l'objet commande.
+- ""limit"" est TOUJOURS une chaîne : ""1"", ""-1"", ""3"" — JAMAIS un entier JSON.
+- Pour PointParameter : ""value"" = nom du composant pointeur (ex: ""{pointerTerm}"") — JAMAIS le mot déictique (""ici"", ""là"", ""ça"", etc.).
+
 --- ERREURS FRÉQUENTES À ÉVITER ---
 1.  RÈGLE D'OR (COLORIZECOMMAND) : Pour une commande 'ColorizeCommand', la distinction entre couleur SOURCE et CIBLE est cruciale.
 - La couleur CIBLE (ex: '... en rouge') va TOUJOURS et UNIQUEMENT dans le 'ColorParameter'.
@@ -98,6 +117,9 @@ L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots
 - Une quantité explicite (ex: 'trois', 'trois citrouilles') définit le nombre exact d'objets à sélectionner : `""limit"": ""3""`.
 - Sans quantité explicite ou avec des quantificateurs généraux (ex: 'les', 'les citrouilles'), utilise : `""limit"": ""-1""` (tous les objets).
 - La quantité s'applique UNIQUEMENT au 'SelectionParameter', JAMAIS au nombre de commandes générées (sauf pour l'enchaînement 'X fois').
+9.  DÉICTIQUE vs CORÉFÉRENCE — RÈGLE ABSOLUE : Le mot 'ça' (et tout autre mot déictique) combiné avec un mot de destination (ici, là, là-bas, là-haut, dessus, etc.) est TOUJOURS un déictique. Utilise un filtre 'Event' avec le StartedAt de 'ça'. Ne génère JAMAIS un filtre 'Coreference' dans ce cas.
+- 'ça' + destination spatiale → MoveCommand, filtre 'Event', timestamp = StartedAt de 'ça'.
+- 'Coreference' uniquement si 'ça' / 'les' / 'eux' désigne des objets d'une commande précédente, SANS mot de destination spatiale.
 
 --- COMMANDES DISPONIBLES ---
 {availableCommandsString}
@@ -413,6 +435,14 @@ Entrée utilisateur:
 --- FIN DES EXEMPLES ---
 ";
 
+        [BoxGroup("LLM Settings"), ShowIf("IsLlmModeOpenAI"), SerializeField,
+         Tooltip("Modèle rapide pour les requêtes simples. gpt-4o-mini est recommandé.")]
+        private string _fastModel = "gpt-4o-mini";
+
+        [BoxGroup("LLM Settings"), ShowIf("IsLlmModeOpenAI"), SerializeField,
+         Tooltip("Modèle précis utilisé en fallback si la validation échoue. gpt-4o est recommandé.")]
+        private string _preciseModel = "gpt-4o";
+
         private Task _initializationTask;
         private string _annotationTypesString;
         private string _availableColorsString;
@@ -420,6 +450,13 @@ Entrée utilisateur:
         private string _pointerNamesString;
         private string _pointerDeicticsString;
         private string _availableCommandsString;
+        // Prompt système compilé une seule fois après InitializeVocabularies.
+        // Évite de reconstruire la chaîne à chaque appel LLM et permet à OpenAI
+        // de mettre le prompt en cache (économie ~50 % du coût des tokens prompt).
+        private string _cachedSystemPrompt;
+        // Version allégée sans la section EXEMPLES (~3 500 tokens en moins).
+        // Utilisée pour les serveurs locaux dont le n_ctx est limité (4 096 par défaut).
+        private string _cachedSystemPromptLocal;
 
         private void Awake()
         {
@@ -503,59 +540,91 @@ Entrée utilisateur:
             }
 
             // --- Chemin OpenAI avec validation et bascule ---
-            // 1. Essai rapide avec GPT-3.5
-            Debug.Log("[LLM] Attempting fast path with gpt-3.5-turbo...");
-            string gpt35Response = await CallLlmApiAsync(sentence, "gpt-3.5-turbo");
+            // 1. Essai rapide avec le modèle léger
+            Debug.Log($"[LLM] Attempting fast path with {_fastModel}...");
+            string fastResponse = await CallLlmApiAsync(sentence, _fastModel);
 
-            if (string.IsNullOrWhiteSpace(gpt35Response))
+            if (string.IsNullOrWhiteSpace(fastResponse))
             {
-                Debug.LogError("[LLM] GPT-3.5 returned an empty response. No fallback will be attempted.");
+                Debug.LogError($"[LLM] {_fastModel} returned an empty response. No fallback will be attempted.");
                 return null;
             }
 
             // 2. Validation de la réponse
-            List<Command> commands = DeserializeCommand(gpt35Response);
+            List<Command> commands = DeserializeCommand(fastResponse);
             if (commands == null)
             {
-                Debug.LogWarning("[LLM] Failed to deserialize GPT-3.5 response. Retrying with gpt-4-turbo.");
-                return await CallLlmApiAsync(sentence, "gpt-4-turbo");
+                Debug.LogWarning($"[LLM] Failed to deserialize {_fastModel} response. Retrying with {_preciseModel}.");
+                return await CallLlmApiAsync(sentence, _preciseModel);
             }
 
             bool needsCorrection = false;
 
-            // Règle 1: Vérifier la présence incorrecte d'un filtre de couleur dans une ColorizeCommand
-            if (commands.Any(c => c is ColorizeCommand && (c.Parameters.OfType<SelectionParameter>().FirstOrDefault()?.Filters.Any(f => f.Condition?.Type == "Color") ?? false)))
+            // Règle 1 : ColorizeCommand ne doit pas contenir de filtre Color dans le SelectionParameter
+            // (la couleur cible va dans ColorParameter, pas dans les filtres de sélection).
+            if (commands.Any(c => c is ColorizeCommand &&
+                (c.Parameters?.OfType<SelectionParameter>().FirstOrDefault()
+                    ?.Filters.Any(f => !f.IsOperator && f.Condition?.Type == "Color") ?? false)))
             {
-                Debug.Log("[LLM] Validation failed: ColorizeCommand contains a 'Color' filter in SelectionParameter.");
+                Debug.Log("[LLM] Validation failed (R1): ColorizeCommand contains a 'Color' filter in SelectionParameter.");
                 needsCorrection = true;
             }
 
-            // Règle 2: Vérifier l'absence de filtre pointeur si un mot déictique est présent
+            // Règle 2 : Si un déictique est présent, au moins un SelectionParameter doit avoir un filtre Event.
             if (!needsCorrection)
             {
-                HashSet<string> deicticWords = new(_pointerDeicticsString.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim('\'').ToLower()));
-                bool sentenceHasDeictic = deicticWords.Any(word => sentence.Text.ToLower().Contains(word));
+                HashSet<string> deicticWords = new(
+                    _pointerDeicticsString.Split(new[] { ", " }, StringSplitOptions.RemoveEmptyEntries)
+                                         .Select(s => s.Trim('\'').ToLower()));
+                bool sentenceHasDeictic = deicticWords.Any(w => sentence.Text.ToLower().Contains(w));
 
                 if (sentenceHasDeictic)
                 {
-                    var allSelectionParams = commands.SelectMany(c => c.Parameters.OfType<SelectionParameter>());
-                    if (allSelectionParams.Any() && allSelectionParams.All(sp => !sp.Filters.Any(f => f.Condition?.Type == "Event" && f.Condition?.Value == _pointerNamesString)))
+                    var allSelectionParams = commands.SelectMany(c => c.Parameters?.OfType<SelectionParameter>()
+                                                                       ?? Enumerable.Empty<SelectionParameter>());
+                    if (allSelectionParams.Any() &&
+                        allSelectionParams.All(sp => !sp.Filters.Any(f => !f.IsOperator && f.Condition?.Type == "Event")))
                     {
-                        Debug.Log("[LLM] Validation failed: Deictic word found but pointer event filter is missing.");
+                        Debug.Log("[LLM] Validation failed (R2): Deictic word found but no Event filter in any SelectionParameter.");
                         needsCorrection = true;
                     }
                 }
             }
 
-            // 3. Si la validation échoue, on corrige avec GPT-4
-            if (needsCorrection)
+            // Règle 3 : Deux conditions adjacentes sans opérateur AND/OR entre elles.
+            // C'est l'erreur la plus fréquente des modèles légers sur ce format.
+            if (!needsCorrection)
             {
-                Debug.LogWarning("[LLM] GPT-3.5 response failed validation. Retrying with gpt-4-turbo for accuracy.");
-                return await CallLlmApiAsync(sentence, "gpt-4-turbo");
+                foreach (Command cmd in commands)
+                {
+                    foreach (SelectionParameter sp in cmd.Parameters?.OfType<SelectionParameter>()
+                                                        ?? Enumerable.Empty<SelectionParameter>())
+                    {
+                        if (sp.Filters == null) continue;
+                        for (int i = 0; i < sp.Filters.Count - 1; i++)
+                        {
+                            if (!sp.Filters[i].IsOperator && !sp.Filters[i + 1].IsOperator)
+                            {
+                                Debug.Log($"[LLM] Validation failed (R3): consecutive filter conditions at index {i} without AND/OR operator.");
+                                needsCorrection = true;
+                                break;
+                            }
+                        }
+                        if (needsCorrection) break;
+                    }
+                    if (needsCorrection) break;
+                }
             }
 
-            Debug.Log("[LLM] GPT-3.5 response passed validation. Using fast path result.");
-            return gpt35Response;
+            // 3. Si la validation échoue, on corrige avec le modèle précis
+            if (needsCorrection)
+            {
+                Debug.LogWarning($"[LLM] {_fastModel} response failed validation. Retrying with {_preciseModel}.");
+                return await CallLlmApiAsync(sentence, _preciseModel);
+            }
+
+            Debug.Log($"[LLM] {_fastModel} response passed validation. Using fast path result.");
+            return fastResponse;
         }
 
         private Task InitializeVocabulariesAsync()
@@ -592,7 +661,23 @@ Entrée utilisateur:
 
             _availableCommandsString = CommandDescriptionAttribute.GetAvailableCommandsString();
 
-            Debug.Log("[LLM] Vocabularies cached.");
+            // Compilation du prompt système définitif (fait une seule fois par session).
+            // Le résultat est identique entre tous les appels → OpenAI peut le mettre en
+            // cache côté serveur (prompt caching automatique pour les prompts > 1024 tokens).
+            _cachedSystemPrompt = SYSTEM_PROMPT_TEMPLATE
+                .Replace("{annotationTypesString}", _annotationTypesString)
+                .Replace("{availableColorsString}", _availableColorsString)
+                .Replace("{cameraTerm}", _cameraNamesString)
+                .Replace("{pointerTerm}", _pointerNamesString)
+                .Replace("{pointerDeicticsString}", _pointerDeicticsString)
+                .Replace("{availableCommandsString}", _availableCommandsString);
+
+            // Version locale : on retire la section EXEMPLES pour réduire la taille du prompt
+            // (~6 500 → ~3 000 tokens) et permettre de fonctionner avec n_ctx = 4 096.
+            _cachedSystemPromptLocal = TrimExamplesSection(_cachedSystemPrompt);
+
+            Debug.Log($"[LLM] Vocabularies cached. Prompt: {_cachedSystemPrompt.Length} chars (full), " +
+                      $"{_cachedSystemPromptLocal.Length} chars (local/no-examples).");
         }
 
         /// <summary>
@@ -691,25 +776,26 @@ Entrée utilisateur:
         {
             await InitializeVocabulariesAsync();
 
-            string finalSystemPrompt = SYSTEM_PROMPT_TEMPLATE
-                .Replace("{annotationTypesString}", _annotationTypesString)
-                .Replace("{availableColorsString}", _availableColorsString)
-                .Replace("{cameraTerm}", _cameraNamesString)
-                .Replace("{pointerTerm}", _pointerNamesString)
-                .Replace("{pointerDeicticsString}", _pointerDeicticsString)
-                .Replace("{availableCommandsString}", _availableCommandsString);
+            string finalSystemPrompt = _llmService == LlmService.Local
+                ? _cachedSystemPromptLocal
+                : _cachedSystemPrompt;
 
             var userInput = new { sentence.Text, sentence.Words };
-            var requestBody = new
+            var requestObject = new JObject
             {
-                model,
-                messages = new[]
-                {
-                    new { role = "system", content = finalSystemPrompt },
-                    new { role = "user", content = JsonConvert.SerializeObject(userInput) }
-                },
-                temperature = 0.1
+                ["model"]       = model,
+                ["messages"]    = new JArray(
+                    new JObject { ["role"] = "system", ["content"] = finalSystemPrompt },
+                    new JObject { ["role"] = "user",   ["content"] = JsonConvert.SerializeObject(userInput) }
+                ),
+                ["temperature"] = 0.0,
+                ["max_tokens"]  = 2048
             };
+            // json_object est supporté par OpenAI gpt-4o/mini mais pas par tous les serveurs locaux.
+            // On l'omet côté local pour éviter les erreurs de compatibilité ;
+            // StripMarkdownJson() gère le cas où le modèle emballe quand même en markdown.
+            if (_llmService == LlmService.OpenAI)
+                requestObject["response_format"] = new JObject { ["type"] = "json_object" };
             Debug.Log(JsonConvert.SerializeObject(userInput) + "\n\n" + finalSystemPrompt);
 
             HttpRequestMessage requestMessage;
@@ -739,7 +825,7 @@ Entrée utilisateur:
                 endpointUrlForLogging = localApiUrl;
             }
 
-            requestMessage.Content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+            requestMessage.Content = new StringContent(JsonConvert.SerializeObject(requestObject), Encoding.UTF8, "application/json");
 
             try
             {
@@ -761,13 +847,60 @@ Entrée utilisateur:
                     Debug.Log($"[LLM] Token Usage ({model}): Prompt={usage.PromptTokens}, Completion={usage.CompletionTokens}, Total={usage.TotalTokens}");
                 }
 
-                return openAiResponse?.Choices?[0]?.Message?.Content;
+                return StripMarkdownJson(openAiResponse?.Choices?[0]?.Message?.Content);
             }
             catch (HttpRequestException e)
             {
                 Debug.LogError($"[LLM] Network Error when calling {endpointUrlForLogging}: {e.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Remplace la section EXEMPLES complète par le seul EXEMPLE 11 (MoveCommand déictique).
+        /// EXEMPLE 11 illustre directement la règle 9 : "ça" → filtre Event + StartedAt.
+        /// Réduit le prompt de ~6 500 à ~3 200 tokens pour les serveurs locaux à n_ctx limité.
+        /// </summary>
+        private static string TrimExamplesSection(string prompt)
+        {
+            const string examplesMarker = "--- EXEMPLES ---";
+            int startIdx = prompt.IndexOf(examplesMarker, StringComparison.Ordinal);
+            if (startIdx < 0) return prompt;
+
+            // Supprimer le paragraphe "NOTE:" qui décrit les raccourcis propres aux exemples
+            string before = prompt[..startIdx];
+            const string notePrefix = "\nNOTE:";
+            int noteIdx = before.LastIndexOf(notePrefix, StringComparison.Ordinal);
+            if (noteIdx >= 0)
+                before = before[..noteIdx];
+
+            // Conserver uniquement EXEMPLE 11 (MoveCommand avec déictique 'ça' + 'ici').
+            // C'est l'exemple le plus critique : sans lui, les petits modèles confondent
+            // 'ça' déictique (→ filtre Event, StartedAt) avec 'ça' coréférentiel.
+            const string ex11Marker = "## EXEMPLE 11:";
+            const string ex12Marker = "## EXEMPLE 12:";
+            int ex11Idx = prompt.IndexOf(ex11Marker, StringComparison.Ordinal);
+            int ex12Idx = prompt.IndexOf(ex12Marker, StringComparison.Ordinal);
+
+            if (ex11Idx > 0 && ex12Idx > ex11Idx)
+            {
+                string example11 = prompt[ex11Idx..ex12Idx].TrimEnd();
+                return before.TrimEnd() + "\n\n--- EXEMPLE DE RÉFÉRENCE ---\n" + example11 + "\n";
+            }
+
+            return before.TrimEnd() + "\n";
+        }
+
+        /// <summary>
+        /// Retire les balises markdown (```json … ```) qu'OpenAI insère parfois autour du JSON.
+        /// </summary>
+        private static string StripMarkdownJson(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            var match = System.Text.RegularExpressions.Regex.Match(
+                text, @"```(?:json)?\s*([\s\S]*?)```",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            return match.Success ? match.Groups[1].Value.Trim() : text.Trim();
         }
 
         private List<Command> DeserializeCommand(string json)

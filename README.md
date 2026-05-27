@@ -13,6 +13,9 @@ Système de contrôle vocal multimodal pour Unity VR, basé sur le framework SVE
 3. [Text-To-Speech (TTS)](#text-to-speech-tts)
    - [Piper](#piper)
 4. [Reconnaissance d'intentions](#reconnaissance-dintentions)
+   - [Mode RuleBased](#mode-rulebased)
+   - [Mode LLM — OpenAI](#mode-llm--openai)
+   - [Mode LLM — Serveur local](#mode-llm--serveur-local)
 5. [Commandes disponibles](#commandes-disponibles)
 6. [Configuration Inspector](#configuration-inspector)
 7. [Structure StreamingAssets](#structure-streamingassets)
@@ -35,7 +38,7 @@ BaseSpeechToText
     │  OnTranscriptionResult (JSON Vosk-compatible)
     ▼
 MultimodalityController
- ├── [Mode LLM]        → OpenAI GPT-3.5 / GPT-4 ou serveur local
+ ├── [Mode LLM]        → OpenAI gpt-4o-mini / gpt-4o ou serveur local
  └── [Mode RuleBased]  → FrenchStemmer + regex + ActionMappings
     │
     ▼
@@ -213,25 +216,92 @@ tts.OnSpeechEnd   += () => Debug.Log("Fin de la parole");
 
 ## Reconnaissance d'intentions
 
-Le `MultimodalityController` supporte deux modes configurables dans l'Inspector :
+Le `MultimodalityController` supporte deux modes configurables dans l'Inspector (`Recognizer Mode`).
 
-### Mode LLM
-
-Utilise un modèle de langage pour parser la commande vocale :
-- **Fast path** : OpenAI GPT-3.5-turbo
-- **Fallback** : OpenAI GPT-4 si la validation échoue
-- **Serveur local** : configurable via l'URL du serveur
-
-Requiert une clé API OpenAI ou un serveur local compatible (ex: LM Studio, Ollama).
+---
 
 ### Mode RuleBased
 
-Entièrement offline, sans réseau :
-- Racinisation française (`FrenchStemmer`)
-- Expressions régulières sur les tokens
-- Table `ActionMappings` (CSV) associant mots → commandes
+Entièrement offline, sans réseau ni modèle externe :
+- Racinisation française (`FrenchStemmer`) + expressions régulières
+- Table `ActionMappings` associant mots-clés → types de commandes
+- Vocabulaire Vosk injecté dynamiquement depuis l'ontologie pour réduire les confusions phonétiques
 
-Recommandé en production pour un usage hors-ligne garanti.
+Recommandé pour un usage hors-ligne garanti et une latence minimale (< 50 ms).  
+→ Voir `COMMANDS.md` pour ajouter de nouvelles commandes.
+
+---
+
+### Mode LLM — OpenAI
+
+Utilise l'API OpenAI pour interpréter la commande vocale en JSON :
+
+- **Fast path** : `gpt-4o-mini` (rapide, peu coûteux)
+- **Fallback automatique** : `gpt-4o` si la validation échoue (mauvais JSON, filtre manquant, etc.)
+- Le prompt système est compilé **une seule fois** au démarrage et réutilisé à chaque appel → OpenAI le met en cache côté serveur (~50 % de coût prompt économisé)
+
+**Configuration Inspector :**
+
+| Champ | Valeur |
+|-------|--------|
+| **Llm Service** | `OpenAI` |
+| **Open Ai Api Key** | Clé API OpenAI (`sk-…`) |
+| **Fast Model** | `gpt-4o-mini` (défaut) |
+| **Precise Model** | `gpt-4o` (défaut) |
+
+---
+
+### Mode LLM — Serveur local
+
+Utilise un LLM tournant en local via une API compatible OpenAI (LM Studio, Ollama, llama.cpp).  
+Aucune clé API requise, tout reste hors-ligne.
+
+#### Choix du modèle
+
+| Modèle | VRAM (Q4_K_M) | Vitesse (RTX 4090) | Fiabilité JSON | Recommandation |
+|--------|--------------|-------------------|----------------|----------------|
+| **Qwen3-4B-Instruct** | ~3 Go | ~120 tok/s | ⭐⭐⭐⭐⭐ | **Premier choix** |
+| **Phi-4-mini-instruct** | ~3 Go | ~110 tok/s | ⭐⭐⭐⭐⭐ | Très bon alternatif |
+| **Llama-3.2-3B-Instruct** | ~2,5 Go | ~150 tok/s | ⭐⭐⭐⭐ | Si VRAM limitée |
+| Mistral-7B-Instruct-v0.3 | ~5 Go | ~70 tok/s | ⭐⭐⭐⭐ | Plus lent |
+| Mistral-Nemo-12B | ~8 Go | ~35 tok/s | ⭐⭐⭐⭐⭐ | Si VRAM suffisante |
+
+Tous les modèles ci-dessus sont à télécharger au format **GGUF Q4_K_M**.
+
+> **Note latence :** En mode local, les exemples sont automatiquement retirés du prompt (~3 000 tokens au lieu de ~6 500). Le premier appel inclut le prefill (~1-2 s). Les appels suivants réutilisent le KV cache → latence effective ~0,5-1 s avec Qwen3-4B sur RTX 4090.
+
+#### Configuration LM Studio (recommandé)
+
+1. Télécharger [LM Studio](https://lmstudio.ai/)
+2. Rechercher et charger `Qwen3-4B-Instruct` (format GGUF Q4_K_M)
+3. Réglages du modèle :
+
+   | Paramètre | Valeur |
+   |-----------|--------|
+   | **Context length** | `8192` minimum (le prompt système seul fait ~6 500 tokens avec les exemples) |
+   | **GPU layers** | `MAX` (tout sur GPU, pas de CPU offload) |
+   | **Flash Attention** | `ON` |
+   | **Keep model loaded** | `ON` (évite le rechargement entre les phrases) |
+
+4. Démarrer le serveur local dans LM Studio (onglet **Local Server**) → URL par défaut : `http://localhost:1234/v1`
+
+#### Configuration Inspector Unity
+
+| Champ | Valeur |
+|-------|--------|
+| **Llm Service** | `Local` |
+| **Local Llm Url** | `http://localhost:1234/v1` (LM Studio) ou `http://localhost:11434/v1` (Ollama) |
+
+#### Configuration Ollama (alternative)
+
+```bash
+# Installer le modèle
+ollama pull qwen3:4b
+
+# Le serveur démarre automatiquement, API disponible sur http://localhost:11434
+```
+
+Ollama expose une API compatible OpenAI sur `/v1` — aucune autre modification n'est nécessaire.
 
 ---
 
