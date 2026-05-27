@@ -1,0 +1,26 @@
+using Sven.Content;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+
+namespace Sc4ve.Multimodality.Intent
+{
+    [RuleBasedTriggers("inverse la sélection", "inverser la sélection", "inversion")]
+    [Serializable, CommandDescription("Inverse la sélection courante. Pas de paramètre.")]
+    public class InvertSelectionCommand : Command
+    {
+        public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
+            => new List<Parameter>();
+
+        public override List<SemantizationCore> Execute()
+        {
+            var currentIds = new HashSet<string>(LastObjectIds);
+            var inverted = UnityEngine.Object.FindObjectsByType<SemantizationCore>(FindObjectsSortMode.None)
+                .Where(o => !currentIds.Contains(o.GetUUID()))
+                .ToList();
+            Debug.Log($"[InvertSelection] {inverted.Count} objet(s) maintenant sélectionné(s).");
+            return inverted;
+        }
+    }
+}
