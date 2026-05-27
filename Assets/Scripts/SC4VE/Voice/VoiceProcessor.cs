@@ -423,7 +423,11 @@ namespace Sc4ve.Voice
                 }
 
                 // raise buffer event
-                if (OnFrameCaptured != null && _transmit)
+                // Note : on envoie toutes les frames _audioDetected (pas seulement _transmit).
+                // Les STT batch (Whisper) ont besoin de l'audio continu, silences inter-mots
+                // compris, pour que leurs timestamps relatifs correspondent à l'horloge murale.
+                // Les STT streaming (Vosk) ont leur propre VAD interne et gèrent les silences.
+                if (OnFrameCaptured != null)
                 {
                     // 10 first samples of the buffer
                     //Debug.Log("First 10 samples: " + string.Join(", ", new List<short>(pcmBuffer).GetRange(0, 10).ConvertAll(i => i.ToString()).ToArray()));

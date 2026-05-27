@@ -115,6 +115,10 @@ WHERE {{
                     objectsUri.Add(objUri);
                 }
             }
+            if (objectsUri.Count == 0)
+                Debug.LogWarning($"[SelectionParameter] RequÃªte retourne 0 objet. VÃ©rifier les timestamps des filtres.");
+            else
+                Debug.Log($"[SelectionParameter] {objectsUri.Count} objet(s) trouvÃ©(s).");
             return Task.FromResult(objectsUri);
         }
 
@@ -385,7 +389,7 @@ WHERE
             }
             else if (IsCoreference)
             {
-                // tolérance : also take objects in Command.LastObjectIds even if not in interval
+                // tolï¿½rance : also take objects in Command.LastObjectIds even if not in interval
                 return $@"";
             }
 
@@ -465,7 +469,7 @@ WHERE
                 }
                 else
                 {
-                    // tolérance : convertit en chaîne
+                    // tolï¿½rance : convertit en chaï¿½ne
                     list.Add(new FilterElement { IsOperator = true, Operator = token.ToString() });
                 }
             }

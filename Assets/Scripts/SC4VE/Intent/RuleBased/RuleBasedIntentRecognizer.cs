@@ -345,10 +345,17 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 string lower = deictic.ToLowerInvariant().Trim('\'');
                 if (ContainsPhrase(text, lower))
                 {
+                    // Pour un déictique de pointage ("ça", "ceci"…), l'utilisateur pointait
+                    // l'objet AVANT de commencer à parler. On utilise le début de la phrase
+                    // (words[0].StartedAt) plutôt que le EndedAt du mot déictique, plus robuste
+                    // aux imprécisions des timestamps Whisper.
+                    DateTime ts = words.Count > 0
+                        ? words[0].StartedAt
+                        : GetWordTimestamp(words, lower, useStartedAt: true);
                     result.Add(new AnnotationMatch
                     {
                         Value = _pointerName,
-                        Timestamp = GetWordTimestamp(words, lower, useStartedAt: false)
+                        Timestamp = ts
                     });
                     break; // un seul déictique suffit
                 }
