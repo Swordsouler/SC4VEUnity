@@ -90,52 +90,71 @@ namespace Sc4ve.Multimodality.Intent
 
 ---
 
-## 3. Étape 2 — Mode RuleBased : ajouter les déclencheurs
+## 3. Étape 2 — Mode RuleBased : déclarer les déclencheurs
 
-Deux modifications dans `Assets/Scripts/SC4VE/Intent/RuleBased/RuleBasedIntentRecognizer.cs`.
-
-### 3.1 — Ajouter les mots-déclencheurs à `ActionMappings`
+### 3.1 — Ajouter l'attribut `[RuleBasedTriggers]` sur la classe
 
 ```csharp
-// Dans la liste statique ActionMappings (après la liste existante, avant MoveCommand si
-// vos triggers pourraient être confondus avec "met"/"mets")
-(new[] { "tourne", "tourner", "pivote", "pivoter",
-          "fais tourner", "faire tourner", "fais pivoter", "faire pivoter" },
-    "RotateCommand"),
+[RuleBasedTriggers("tourne", "tourner", "pivote", "pivoter",
+                   "fais tourner", "faire tourner", "fais pivoter", "faire pivoter")]
+[Serializable, CommandDescription("...")]
+public class RotateCommand : Command { ... }
 ```
 
-**Règle de priorité :** les triggers sont ordonnés par longueur décroissante avant la comparaison — les phrases multi-mots passent donc toujours avant les mots courts. Placer une entrée **avant** une autre n'a pas d'importance si les triggers ne se chevauchent pas, mais c'est une bonne pratique pour la lisibilité.
+C'est **tout ce qui est nécessaire** pour une commande simple (SelectionParameter par défaut).  
+Le `RuleBasedIntentRecognizer` découvre automatiquement les triggers par réflexion via `RuleBasedTriggersAttribute.GetAllMappings()` — aucun enregistrement manuel dans un fichier central.
+
+**Règle de priorité :** tous les triggers de toutes les commandes sont triés par longueur décroissante avant la comparaison — les phrases multi-mots passent toujours avant les mots courts. Aucun ordre d'enregistrement à respecter.
 
 Le moteur tente d'abord une correspondance exacte de sous-chaîne (multi-mots), puis une comparaison de racines (stemming français) pour les mots seuls.
 
-### 3.2 — Ajouter le `case` dans `BuildCommands`
+### 3.2 — Surcharger `BuildRuleBasedParameters` (si nécessaire)
+
+Par défaut, `Command.BuildRuleBasedParameters` retourne un `SelectionParameter` standard. Il faut surcharger **uniquement** si la commande a besoin d'autres paramètres :
 
 ```csharp
-case "RotateCommand":
-{
-    SelectionParameter selParam = BuildSelectionParameter(
-        annotations,
-        colors.Where(c => !c.IsTarget).ToList(),
-        deictics,
-        hasCoreference,
-        limit,
-        useStartedAt: false);   // true uniquement pour MoveCommand (objet source)
+// Exemple : commande qui n'a pas besoin de SelectionParameter
+public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
+    => new List<Parameter>();
 
-    Command cmd = CreateCommand("RotateCommand");
-    cmd.Parameters = new List<Parameter> { selParam };
-    commands.Add(cmd);
-    break;
+// Exemple : MoveCommand — sélection source + point destination
+public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
+    => new List<Parameter>
+    {
+        ctx.BuildSelectionParameter(useStartedAt: true),
+        ctx.BuildDestinationParameter()
+    };
+
+// Exemple : ColorizeCommand — couleur cible + sélection filtrée par couleur source
+public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
+{
+    var ps = new List<Parameter>();
+    if (ctx.TargetColors.Count > 0)
+        ps.Add(new ColorParameter { Type = "ColorParameter",
+                                    Value = ctx.TargetColors[0].Value,
+                                    Timestamp = ctx.TargetColors[0].Timestamp });
+    ps.Add(ctx.BuildSelectionParameter());
+    return ps;
 }
 ```
+
+**Helpers disponibles dans `RuleBasedContext` :**
+
+| Méthode | Retourne | Usage |
+|---|---|---|
+| `BuildSelectionParameter(useStartedAt)` | `SelectionParameter` | Sélection standard (annotations, couleurs source, déictiques, coréférence) |
+| `BuildDestinationParameter()` | `PointParameter` | Point de destination (fin de phrase + délai) — pour MoveCommand |
+| `BuildGrabPointParameter()` | `PointParameter` | Timestamp du premier déictique ou fin de phrase — pour GrabCommand |
 
 **Modèles selon le type de commande :**
 
 | Commande | Paramètres à construire | Exemple existant |
 |----------|------------------------|------------------|
-| Action simple sur des objets | `SelectionParameter` | `ScaleUpCommand`, `HideCommand` |
+| Action simple sur des objets | *(défaut)* `SelectionParameter` | `ScaleUpCommand`, `HideCommand` |
 | Colorisation | `ColorParameter` + `SelectionParameter` | `ColorizeCommand` |
-| Déplacement | `SelectionParameter` (source, `useStartedAt: true`) + `PointParameter` (dest) | `MoveCommand` |
-| Clarification vocale | `SentenceParameter` (texte fixe) | `SpeechCommand` |
+| Déplacement | `SelectionParameter(useStartedAt: true)` + `BuildDestinationParameter()` | `MoveCommand` |
+| Saisie | `SelectionParameter` + `BuildGrabPointParameter()` | `GrabCommand` |
+| Sans paramètre | `new List<Parameter>()` | `UndoCommand`, `SelectAllCommand` |
 
 ---
 
