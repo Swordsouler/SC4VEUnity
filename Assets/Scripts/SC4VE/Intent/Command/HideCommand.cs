@@ -6,6 +6,8 @@ using UnityEngine;
 namespace Sc4ve.Multimodality.Intent
 {
     [Serializable, CommandDescription("Masque les objets. Paramètres: SelectionParameter.")]
+    [RuleBasedTriggers("rend invisible", "rends invisible", "masque", "cache", "dissimule",
+                       "masquer", "cacher", "dissumuler", "invisibilise", "invisibiliser")]
     public class HideCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

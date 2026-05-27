@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 namespace Sc4ve.Multimodality.Intent
 {
+    [RuleBasedTriggers("désélectionne", "désélectionner", "unselect", "démarque", "démarquer")]
     [Serializable]//, CommandDescription("Désélectionne des objets. Paramètres: SelectionParameter.")]
     public class UnselectCommand : Command
     {

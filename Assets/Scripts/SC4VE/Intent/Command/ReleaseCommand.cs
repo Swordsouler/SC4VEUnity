@@ -7,6 +7,7 @@ using UnityEngine;
 namespace Sc4ve.Multimodality.Intent
 {
     [Serializable, CommandDescription("Relâche les objets. Paramètres: SelectionParameter.")]
+    [RuleBasedTriggers("lâche", "lâcher", "pose", "poser", "release", "libère", "libérer", "dépose", "déposer")]
     public class ReleaseCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

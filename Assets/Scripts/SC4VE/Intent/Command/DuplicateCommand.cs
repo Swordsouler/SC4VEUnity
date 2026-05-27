@@ -6,6 +6,7 @@ using UnityEngine;
 namespace Sc4ve.Multimodality.Intent
 {
     [Serializable, CommandDescription("Duplique les objets sélectionnés. Paramètres: SelectionParameter.")]
+    [RuleBasedTriggers("duplique", "dupliquer", "clone", "cloner", "crée une copie", "créer une copie")]
     public class DuplicateCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

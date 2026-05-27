@@ -5,6 +5,8 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
+    [RuleBasedTriggers("rends plus sombre", "rend plus sombre", "assombris", "assombrit",
+                       "noircis", "noircit", "fonce", "foncer", "obscurcis", "obscurcit")]
     [Serializable, CommandDescription("Assombrit la couleur (/2). Paramètres: SelectionParameter.")]
     public class ColorizeDarkerCommand : Command
     {

@@ -6,6 +6,8 @@ using UnityEngine;
 namespace Sc4ve.Multimodality.Intent
 {
     [Serializable, CommandDescription("Affiche les objets. Paramètres: SelectionParameter.")]
+    [RuleBasedTriggers("rend visible", "rends visible", "montre", "affiche", "révèle",
+                       "démasque", "montrer", "afficher", "révéler", "démasquer")]
     public class ShowCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

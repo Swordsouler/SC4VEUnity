@@ -6,6 +6,8 @@ using UnityEngine;
 namespace Sc4ve.Multimodality.Intent
 {
     [Serializable, CommandDescription("Change la taille (agrandissement). Paramètres: SelectionParameter.")]
+    [RuleBasedTriggers("augmente la taille", "scale up", "grossis", "grossit", "agrandis",
+                       "agrandit", "grandit", "grandir", "grossir", "agrandir")]
     public class ScaleUpCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

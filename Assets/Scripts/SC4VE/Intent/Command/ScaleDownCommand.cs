@@ -6,6 +6,8 @@ using UnityEngine;
 namespace Sc4ve.Multimodality.Intent
 {
     [Serializable, CommandDescription("Change la taille (réduction). Paramètres: SelectionParameter.")]
+    [RuleBasedTriggers("diminue la taille", "scale down", "rapetisse", "rapetissit", "réduis",
+                       "réduit", "diminue", "rétrécis", "rétrécit", "rapetisser", "réduire", "rétrécir")]
     public class ScaleDownCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();

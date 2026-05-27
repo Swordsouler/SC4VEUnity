@@ -5,6 +5,8 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
+    [RuleBasedTriggers("rends plus clair", "rend plus clair", "éclaircis", "éclaircit",
+                       "clarifies", "illumine", "éclaire")]
     [Serializable, CommandDescription("Éclaircit la couleur (*2). Paramètres: SelectionParameter.")]
     public class ColorizeLighterCommand : Command
     {

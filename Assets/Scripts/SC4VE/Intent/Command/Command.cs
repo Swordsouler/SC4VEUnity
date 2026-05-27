@@ -74,6 +74,14 @@ namespace Sc4ve.Multimodality.Intent
             return commandNode;
         }
 
+        /// <summary>
+        /// Construit les paramètres de la commande depuis le contexte RuleBased.
+        /// Par défaut : un seul SelectionParameter standard.
+        /// Surcharger pour les commandes avec une logique spécifique (MoveCommand, ColorizeCommand…).
+        /// </summary>
+        public virtual List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
+            => new List<Parameter> { ctx.BuildSelectionParameter() };
+
         public abstract List<SemantizationCore> Execute();
 
         protected T GetParameter<T>(int element = 1) where T : Parameter

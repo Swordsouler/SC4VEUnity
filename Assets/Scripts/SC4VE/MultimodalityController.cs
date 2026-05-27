@@ -732,7 +732,7 @@ Entrée utilisateur:
             var vocab = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // ── Verbes d'action (toutes les formes des triggers) ──────────
-            foreach (var (triggers, _) in RuleBasedIntentRecognizer.ActionMappings)
+            foreach (var (triggers, _) in RuleBasedTriggersAttribute.GetAllMappings())
                 foreach (string trigger in triggers)
                     foreach (string word in trigger.ToLowerInvariant().Split(' '))
                         vocab.Add(word);

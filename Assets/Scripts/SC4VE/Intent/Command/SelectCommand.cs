@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 namespace Sc4ve.Multimodality.Intent
 {
+    [RuleBasedTriggers("sélectionne", "sélectionner", "select", "choisis", "choisir", "marque", "marquer")]
     [Serializable]//, CommandDescription("Sélectionne des objets. Paramètres: SelectionParameter.")]
     public class SelectCommand : Command
     {

@@ -13,6 +13,10 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
     /// sans LLM. Utilise les vocabulaires de l'ontologie (annotations, couleurs, déictiques)
     /// pour extraire l'intention et les entités d'une phrase, puis construit directement
     /// les objets Command correspondants.
+    ///
+    /// Les déclencheurs et la logique de construction des paramètres sont déclarés
+    /// directement sur chaque classe Command via [RuleBasedTriggers] et
+    /// BuildRuleBasedParameters — ce recognizer est un orchestrateur générique.
     /// </summary>
     public class RuleBasedIntentRecognizer
     {
@@ -40,79 +44,6 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 "celui-ci", "celle-ci", "ceux-ci", "celles-ci",
                 "celui-là", "celle-là", "ceux-là", "celles-là",
                 "ça", "cela", "ceci"
-            };
-
-        // Verbes d'action → type de commande
-        // Ordre : les déclencheurs multi-mots passent en premier (plus long → plus prioritaire)
-        public static readonly List<(string[] Triggers, string CommandType)> ActionMappings =
-            new()
-            {
-                // ColorizeCopyCommand (avant Colorize pour éviter le sous-match)
-                (new[] { "copie la couleur", "colorie comme", "même couleur que", "copier la couleur" },
-                    "ColorizeCopyCommand"),
-                // ColorizeDarkerCommand
-                (new[] { "rends plus sombre", "rend plus sombre", "assombris", "assombrit",
-                          "noircis", "noircit", "fonce", "foncer", "obscurcis", "obscurcit" },
-                    "ColorizeDarkerCommand"),
-                // ColorizeLighterCommand
-                (new[] { "rends plus clair", "rend plus clair", "éclaircis", "éclaircit",
-                          "clarifies", "illumine", "éclaire" },
-                    "ColorizeLighterCommand"),
-                // ColorizeCommand
-                (new[] { "change la couleur", "met en couleur", "mets en couleur",
-                          "colorie", "coloris", "colorise", "colorisez", "coloriez",
-                          "peins", "peinez", "recolore", "recolorez",
-                          "colorier", "coloriser",
-                          "met", "mets", "mettre" },
-                    "ColorizeCommand"),
-                // HideCommand
-                (new[] { "rend invisible", "rends invisible", "masque", "cache", "dissimule",
-                          "masquer", "cacher", "dissumuler", "invisibilise", "invisibiliser" },
-                    "HideCommand"),
-                // ShowCommand
-                (new[] { "rend visible", "rends visible", "montre", "affiche", "révèle",
-                          "démasque", "montrer", "afficher", "révéler", "démasquer" },
-                    "ShowCommand"),
-                // ScaleUpCommand
-                (new[] { "augmente la taille", "scale up", "grossis", "grossit", "agrandis",
-                          "agrandit", "grandit", "grandir", "grossir", "agrandir" },
-                    "ScaleUpCommand"),
-                // ScaleDownCommand
-                (new[] { "diminue la taille", "scale down", "rapetisse", "rapetissit", "réduis",
-                          "réduit", "diminue", "rétrécis", "rétrécit", "rapetisser", "réduire",
-                          "rétrécir" },
-                    "ScaleDownCommand"),
-                // MoveCommand — "met … ici/là" en priorité sur ColorizeCommand
-                (new[] { "met ici", "mets ici", "met là", "mets là",
-                          "met là-bas", "mets là-bas", "met là-haut", "mets là-haut" },
-                    "MoveCommand"),
-                (new[] { "déplace", "déplacer", "bouge", "bouger", "amène", "amener",
-                          "move", "repositionne", "repositionner", "transporte", "transporter" },
-                    "MoveCommand"),
-                // DuplicateCommand (avant Copy pour éviter "copie" → DuplicateCommand)
-                (new[] { "duplique", "dupliquer", "clone", "cloner", "crée une copie",
-                          "créer une copie" },
-                    "DuplicateCommand"),
-                // GrabCommand
-                (new[] { "attrape", "attraper", "prends", "prendre", "grab",
-                          "saisit", "saisir", "empare", "emparer" },
-                    "GrabCommand"),
-                // ReleaseCommand
-                (new[] { "lâche", "lâcher", "pose", "poser", "release",
-                          "libère", "libérer", "dépose", "déposer" },
-                    "ReleaseCommand"),
-                // UnselectCommand (avant Select pour éviter le sous-match)
-                (new[] { "désélectionne", "désélectionner", "unselect",
-                          "démarque", "démarquer" },
-                    "UnselectCommand"),
-                // SelectCommand
-                (new[] { "sélectionne", "sélectionner", "select",
-                          "choisis", "choisir", "marque", "marquer" },
-                    "SelectCommand"),
-                // MeasureCommand
-                (new[] { "mesure", "mesurer", "calcule la distance", "calculer la distance",
-                          "quelle est la distance" },
-                    "MeasureCommand"),
             };
 
         // Mots indiquant une destination (pour MoveCommand)
@@ -165,7 +96,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             text = CorrectHomophones(text);
             List<Word> words = sentence.Words ?? new List<Word>();
 
-            // 1. Détection du type de commande via les verbes d'action
+            // 1. Détection du type de commande via les attributs [RuleBasedTriggers]
             string commandType = DetectCommandType(text);
             if (commandType == null)
             {
@@ -176,15 +107,11 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             Debug.Log($"[RuleBased] Commande détectée : {commandType} | phrase : \"{sentence.Text}\"");
 
             // 2. Extraction des entités
-            List<AnnotationMatch> annotations = FindAnnotations(text, words);
-            List<ColorMatch> colors = FindColors(text, words);
-            List<AnnotationMatch> deictics = FindDeictics(text, words);
-            int limit = DetectLimit(text);
-
-            // Coréférence : uniquement si aucune annotation ET aucun déictique
-            bool hasCoreference = annotations.Count == 0
-                               && deictics.Count == 0
-                               && HasCoreference(text);
+            List<RuleBasedAnnotation> annotations = FindAnnotations(text, words);
+            List<RuleBasedColor>      colors      = FindColors(text, words);
+            List<RuleBasedAnnotation> deictics    = FindDeictics(text, words);
+            int  limit          = DetectLimit(text);
+            bool hasCoreference = annotations.Count == 0 && deictics.Count == 0 && HasCoreference(text);
 
             Debug.Log(
                 $"[RuleBased] Annotations : [{string.Join(", ", annotations.Select(a => a.Value))}] | " +
@@ -192,13 +119,26 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 $"Déictiques : [{string.Join(", ", deictics.Select(d => d.Value))}] | " +
                 $"Coréf : {hasCoreference} | Limite : {limit}");
 
-            // 3. Construction des commandes et sérialisation JSON
-            List<Command> commands = BuildCommands(commandType, annotations, colors, deictics,
-                                                   hasCoreference, limit, words, text);
-            if (commands == null || commands.Count == 0)
+            // 3. Construction de la commande via BuildRuleBasedParameters
+            var ctx = new RuleBasedContext
+            {
+                Text             = text,
+                Words            = words,
+                PointerName      = _pointerName,
+                MovePointDelayMs = _movePointDelayMs,
+                Annotations      = annotations,
+                Colors           = colors,
+                Deictics         = deictics,
+                HasCoreference   = hasCoreference,
+                Limit            = limit
+            };
+
+            Command cmd = CreateCommand(commandType);
+            cmd.Parameters = cmd.BuildRuleBasedParameters(ctx);
+            if (cmd.Parameters == null)
                 return null;
 
-            string json = JsonConvert.SerializeObject(commands, Formatting.Indented);
+            string json = JsonConvert.SerializeObject(new List<Command> { cmd }, Formatting.Indented);
             Debug.Log($"[RuleBased] JSON produit :\n{json}");
             return json;
         }
@@ -257,8 +197,8 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             }
 
             // Priorité aux déclencheurs les plus longs (multi-mots d'abord)
-            var ordered = ActionMappings
-                .SelectMany(m => m.Triggers.Select(t => (Trigger: t, m.CommandType)))
+            var ordered = RuleBasedTriggersAttribute.GetAllMappings()
+                .SelectMany(m => m.Triggers.Select(t => (Trigger: t, CommandType: m.CommandType)))
                 .OrderByDescending(x => x.Trigger.Length);
 
             foreach (var (trigger, commandType) in ordered)
@@ -292,9 +232,9 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         // Extraction des entités
         // ─────────────────────────────────────────────────────────────────────
 
-        private List<AnnotationMatch> FindAnnotations(string text, List<Word> words)
+        private List<RuleBasedAnnotation> FindAnnotations(string text, List<Word> words)
         {
-            var result = new List<AnnotationMatch>();
+            var result = new List<RuleBasedAnnotation>();
             foreach (string annotation in _annotationTypes)
             {
                 string lower = annotation.ToLowerInvariant();
@@ -302,9 +242,9 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 {
                     if (ContainsPhrase(text, form))
                     {
-                        result.Add(new AnnotationMatch
+                        result.Add(new RuleBasedAnnotation
                         {
-                            Value = annotation,
+                            Value     = annotation,
                             Timestamp = GetWordTimestamp(words, form, useStartedAt: false)
                         });
                         break; // une seule occurrence par annotation
@@ -314,9 +254,9 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             return result;
         }
 
-        private List<ColorMatch> FindColors(string text, List<Word> words)
+        private List<RuleBasedColor> FindColors(string text, List<Word> words)
         {
-            var result = new List<ColorMatch>();
+            var result = new List<RuleBasedColor>();
             foreach (string color in _availableColors)
             {
                 string lower = color.ToLowerInvariant();
@@ -324,11 +264,11 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 {
                     if (ContainsPhrase(text, form))
                     {
-                        result.Add(new ColorMatch
+                        result.Add(new RuleBasedColor
                         {
-                            Value = color,
+                            Value     = color,
                             Timestamp = GetWordTimestamp(words, form, useStartedAt: false),
-                            IsTarget = IsTargetColor(text, form)
+                            IsTarget  = IsTargetColor(text, form)
                         });
                         break;
                     }
@@ -337,9 +277,9 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             return result;
         }
 
-        private List<AnnotationMatch> FindDeictics(string text, List<Word> words)
+        private List<RuleBasedAnnotation> FindDeictics(string text, List<Word> words)
         {
-            var result = new List<AnnotationMatch>();
+            var result = new List<RuleBasedAnnotation>();
             foreach (string deictic in _pointerDeictics)
             {
                 string lower = deictic.ToLowerInvariant().Trim('\'');
@@ -352,9 +292,9 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                     DateTime ts = words.Count > 0
                         ? words[0].StartedAt
                         : GetWordTimestamp(words, lower, useStartedAt: true);
-                    result.Add(new AnnotationMatch
+                    result.Add(new RuleBasedAnnotation
                     {
-                        Value = _pointerName,
+                        Value     = _pointerName,
                         Timestamp = ts
                     });
                     break; // un seul déictique suffit
@@ -368,10 +308,11 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             string[] tokens = text.Split(
                 new[] { ' ', ',', '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
 
+            var allMappings = RuleBasedTriggersAttribute.GetAllMappings();
             foreach (string token in tokens)
             {
                 // Ignorer les verbes d'action déjà traités
-                bool isVerb = ActionMappings.Any(
+                bool isVerb = allMappings.Any(
                     m => m.Triggers.Any(t => t.Equals(token, StringComparison.OrdinalIgnoreCase)));
                 if (isVerb) continue;
 
@@ -398,221 +339,6 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             }
 
             return -1; // tous les objets
-        }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // Construction des commandes
-        // ─────────────────────────────────────────────────────────────────────
-
-        private List<Command> BuildCommands(
-            string commandType,
-            List<AnnotationMatch> annotations,
-            List<ColorMatch> colors,
-            List<AnnotationMatch> deictics,
-            bool hasCoreference,
-            int limit,
-            List<Word> words,
-            string text)
-        {
-            var commands = new List<Command>();
-
-            switch (commandType)
-            {
-                case "ColorizeCommand":
-                    {
-                        List<ColorMatch> targetColors = colors.Where(c => c.IsTarget).ToList();
-                        List<ColorMatch> sourceColors = colors.Where(c => !c.IsTarget).ToList();
-
-                        // La couleur cible va dans ColorParameter ; la couleur source filtre la sélection
-                        SelectionParameter selParam = BuildSelectionParameter(
-                            annotations, sourceColors, deictics, hasCoreference, limit, useStartedAt: false);
-
-                        Command cmd = CreateCommand("ColorizeCommand");
-                        cmd.Parameters = new List<Parameter>();
-
-                        if (targetColors.Count > 0)
-                        {
-                            cmd.Parameters.Add(new ColorParameter
-                            {
-                                Type = "ColorParameter",
-                                Value = targetColors[0].Value,
-                                Timestamp = targetColors[0].Timestamp
-                            });
-                        }
-                        cmd.Parameters.Add(selParam);
-                        commands.Add(cmd);
-                        break;
-                    }
-
-                case "ColorizeCopyCommand":
-                case "ColorizeDarkerCommand":
-                case "ColorizeLighterCommand":
-                    {
-                        SelectionParameter selParam = BuildSelectionParameter(
-                            annotations, colors.Where(c => !c.IsTarget).ToList(),
-                            deictics, hasCoreference, limit, useStartedAt: false);
-
-                        Command cmd = CreateCommand(commandType);
-                        cmd.Parameters = new List<Parameter> { selParam };
-                        commands.Add(cmd);
-                        break;
-                    }
-
-                case "MoveCommand":
-                    {
-                        // Pour MoveCommand, le sélecteur source utilise StartedAt du déictique
-                        SelectionParameter selParam = BuildSelectionParameter(
-                            annotations, colors.Where(c => !c.IsTarget).ToList(),
-                            deictics, hasCoreference, limit, useStartedAt: true);
-
-                        // Timestamp de destination = fin de phrase + délai configurable.
-                        // Le mot "ici"/"là" est prononcé PENDANT que le pointeur bouge encore ;
-                        // on attend que le geste soit terminé avant de lire la position.
-                        DateTime sentenceEnd = words.Count > 0 ? words[^1].EndedAt : DateTime.Now;
-                        DateTime destTs = sentenceEnd.AddMilliseconds(_movePointDelayMs);
-
-                        var pointParam = new PointParameter
-                        {
-                            Type = "PointParameter",
-                            Value = _pointerName,
-                            Timestamp = destTs
-                        };
-
-                        Command cmd = CreateCommand("MoveCommand");
-                        cmd.Parameters = new List<Parameter> { selParam, pointParam };
-                        commands.Add(cmd);
-                        break;
-                    }
-
-                case "GrabCommand":
-                    {
-                        SelectionParameter selParam = BuildSelectionParameter(
-                            annotations, colors.Where(c => !c.IsTarget).ToList(),
-                            deictics, hasCoreference, limit, useStartedAt: false);
-
-                        DateTime grabTs = deictics.Count > 0
-                            ? deictics[0].Timestamp
-                            : (words.Count > 0 ? words[^1].EndedAt : DateTime.Now);
-
-                        var pointParam = new PointParameter
-                        {
-                            Type = "PointParameter",
-                            Value = _pointerName,
-                            Timestamp = grabTs
-                        };
-
-                        Command cmd = CreateCommand("GrabCommand");
-                        cmd.Parameters = new List<Parameter> { selParam, pointParam };
-                        commands.Add(cmd);
-                        break;
-                    }
-
-                default:
-                    {
-                        // HideCommand, ShowCommand, ScaleUpCommand, ScaleDownCommand,
-                        // DuplicateCommand, ReleaseCommand, SelectCommand, UnselectCommand,
-                        // MeasureCommand
-                        SelectionParameter selParam = BuildSelectionParameter(
-                            annotations, colors.Where(c => !c.IsTarget).ToList(),
-                            deictics, hasCoreference, limit, useStartedAt: false);
-
-                        Command cmd = CreateCommand(commandType);
-                        cmd.Parameters = new List<Parameter> { selParam };
-                        commands.Add(cmd);
-                        break;
-                    }
-            }
-
-            return commands;
-        }
-
-        private SelectionParameter BuildSelectionParameter(
-            List<AnnotationMatch> annotations,
-            List<ColorMatch> sourceColors,
-            List<AnnotationMatch> deictics,
-            bool hasCoreference,
-            int limit,
-            bool useStartedAt)
-        {
-            var filters = new List<FilterElement>();
-
-            if (hasCoreference)
-            {
-                // Coréférence exclusive : aucun autre filtre
-                filters.Add(new FilterElement
-                {
-                    IsOperator = false,
-                    Condition = new Condition { Type = "Coreference" }
-                });
-            }
-            else
-            {
-                bool needsOperator = false;
-
-                // Filtres Event (déictiques)
-                foreach (AnnotationMatch deictic in deictics)
-                {
-                    if (needsOperator)
-                        filters.Add(new FilterElement { IsOperator = true, Operator = "AND" });
-
-                    filters.Add(new FilterElement
-                    {
-                        IsOperator = false,
-                        Condition = new Condition
-                        {
-                            Type = "Event",
-                            Value = deictic.Value,
-                            Timestamp = deictic.Timestamp
-                        }
-                    });
-                    needsOperator = true;
-                }
-
-                // Filtres Annotation
-                foreach (AnnotationMatch annotation in annotations)
-                {
-                    if (needsOperator)
-                        filters.Add(new FilterElement { IsOperator = true, Operator = "AND" });
-
-                    filters.Add(new FilterElement
-                    {
-                        IsOperator = false,
-                        Condition = new Condition
-                        {
-                            Type = "Annotation",
-                            Value = annotation.Value,
-                            Timestamp = annotation.Timestamp
-                        }
-                    });
-                    needsOperator = true;
-                }
-
-                // Filtres Color (couleur source)
-                foreach (ColorMatch color in sourceColors)
-                {
-                    if (needsOperator)
-                        filters.Add(new FilterElement { IsOperator = true, Operator = "AND" });
-
-                    filters.Add(new FilterElement
-                    {
-                        IsOperator = false,
-                        Condition = new Condition
-                        {
-                            Type = "Color",
-                            Value = color.Value,
-                            Timestamp = color.Timestamp
-                        }
-                    });
-                    needsOperator = true;
-                }
-            }
-
-            return new SelectionParameter
-            {
-                Type = "SelectionParameter",
-                Filters = filters,
-                Limit = limit
-            };
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -693,42 +419,11 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             return forms;
         }
 
-        /// <summary>
-        /// Cherche un mot de destination dans le texte (pour MoveCommand).
-        /// </summary>
-        private string FindDestinationWord(string text)
-        {
-            // Ordre : du plus long au plus court pour priorité
-            foreach (string dest in DestinationWords.OrderByDescending(d => d.Length))
-            {
-                if (text.Contains(dest, StringComparison.OrdinalIgnoreCase))
-                    return dest;
-            }
-            return "ici"; // valeur par défaut
-        }
-
         private static Command CreateCommand(string typeName)
         {
             Command cmd = CommandDescriptionAttribute.CreateCommandInstance(typeName);
             cmd.Type = typeName;
             return cmd;
-        }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // Structures de données internes
-        // ─────────────────────────────────────────────────────────────────────
-
-        private struct AnnotationMatch
-        {
-            public string Value;
-            public DateTime Timestamp;
-        }
-
-        private struct ColorMatch
-        {
-            public string Value;
-            public DateTime Timestamp;
-            public bool IsTarget; // true → ColorParameter ; false → filtre source
         }
     }
 }

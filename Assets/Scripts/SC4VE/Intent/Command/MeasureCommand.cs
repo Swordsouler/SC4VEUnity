@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
+    [RuleBasedTriggers("mesure", "mesurer", "calcule la distance", "calculer la distance", "quelle est la distance")]
     [Serializable, CommandDescription("Mesure une distance. Paramètres: multiples SelectionParameter et/ou PointParameter.")]
     public class MeasureCommand : Command
     {
