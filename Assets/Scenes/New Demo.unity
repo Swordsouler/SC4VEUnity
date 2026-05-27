@@ -3926,7 +3926,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Sc4ve.Multimodality.MultimodalityController
   _speechToText: {fileID: 1806090973}
   _language: 0
-  _recognizerMode: 1
+  _recognizerMode: 0
   _movePointDelayMs: 300
   _llmService: 1
   _openAiApiKey: ***CLE-RETIREE***

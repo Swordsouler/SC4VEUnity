@@ -426,8 +426,6 @@ Entrée utilisateur:
             UserData.Language = _language;
             if (_speechToText != null) _speechToText.OnTranscriptionResult += OnTranscriptionResult;
 
-            //await TextToSpeechController.Initialize();
-            //await TextToSpeechController.GenerateAndPlaySpeech("Ceci est un test pour vérifier que le système de synthèse vocale fonctionne correctement.");
         }
 
         private async void OnTranscriptionResult(string obj)
