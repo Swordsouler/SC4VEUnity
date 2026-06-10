@@ -13,10 +13,10 @@ namespace Sc4ve.Multimodality.Intent
     {
         private struct ObjectState
         {
-            public Vector3    Position;
-            public Quaternion Rotation;
-            public Vector3    Scale;
-            public Color?     Color;
+            public Vector3            Position;
+            public Quaternion         Rotation;
+            public Vector3            Scale;
+            public UnityEngine.Color? Color;
         }
 
         // Stocke aussi les références pour retrouver les objets désactivés (soft-delete).
@@ -46,7 +46,7 @@ namespace Sc4ve.Multimodality.Intent
 
         private static void CaptureInternal(SemantizationCore obj)
         {
-            Color? color = null;
+            UnityEngine.Color? color = null;
             if (obj.TryGetComponent(out Renderer r) && r.material != null)
                 color = r.material.color;
 

@@ -64,7 +64,7 @@ namespace Sc4ve.Multimodality.Intent
                 mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
                 mat.renderQueue = 3000;
             }
-            Color c = mat.color;
+            UnityEngine.Color c = mat.color;
             c.a = alpha;
             mat.color = c;
         }
@@ -82,7 +82,7 @@ namespace Sc4ve.Multimodality.Intent
                 mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
                 mat.renderQueue = -1;
             }
-            Color c = mat.color;
+            UnityEngine.Color c = mat.color;
             c.a = 1f;
             mat.color = c;
         }

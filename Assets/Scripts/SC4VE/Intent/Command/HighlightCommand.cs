@@ -11,7 +11,7 @@ namespace Sc4ve.Multimodality.Intent
     public class HighlightCommand : Command
     {
         private static readonly HashSet<string> _highlighted = new();
-        private static readonly Color HighlightColor = Color.yellow * 0.5f;
+        private static readonly UnityEngine.Color HighlightColor = UnityEngine.Color.yellow * 0.5f;
 
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
 
@@ -65,7 +65,7 @@ namespace Sc4ve.Multimodality.Intent
         private static void RemoveHighlight(Renderer renderer, string uuid)
         {
             renderer.material.DisableKeyword("_EMISSION");
-            renderer.material.SetColor("_EmissionColor", Color.black);
+            renderer.material.SetColor("_EmissionColor", UnityEngine.Color.black);
             _highlighted.Remove(uuid);
             Debug.Log($"[Highlight] {uuid} → OFF");
         }
