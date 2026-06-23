@@ -1824,7 +1824,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Sc4ve.Voice.PiperTextToSpeech
   _piperExePath: Piper/piper.exe
-  _frenchModelPath: Piper/models/fr_FR-mls-medium.onnx
+  _frenchModelPath: Piper/models/fr_FR-siwis-medium.onnx
   _englishModelPath: Piper/models/en-US-lessac-medium.onnx
   _language: 0
 --- !u!1 &717523663
