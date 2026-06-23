@@ -15,6 +15,9 @@ namespace Sc4ve.Multimodality.Intent
         {
             List<SemantizationCore> objects = SelectionParameter.Objects;
             Debug.Log($"[Count] {objects.Count} objet(s) trouvé(s).");
+            Speak(objects.Count > 1
+                ? $"{objects.Count} objets trouvés."
+                : $"{objects.Count} objet trouvé.");
             return objects;
         }
     }

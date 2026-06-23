@@ -15,19 +15,32 @@ namespace Sc4ve.Multimodality.Intent
         public override List<SemantizationCore> Execute()
         {
             List<SemantizationCore> objects = SelectionParameter.Objects;
+            var spoken = new List<string>();
             foreach (SemantizationCore obj in objects)
             {
-                string colorStr = obj.TryGetComponent(out Renderer r) && r.material != null
-                    ? r.material.color.ToString()
-                    : "N/A";
+                bool hasColor = obj.TryGetComponent(out Renderer r) && r.material != null;
+                string colorName = hasColor ? ColorParameter.GetNearestColorName(r.material.color) : null;
+                string colorStr  = hasColor ? r.material.color.ToString() : "N/A";
                 Debug.Log(
                     $"[Describe] UUID: {obj.GetUUID()}\n" +
                     $"  Position : {obj.transform.position}\n" +
                     $"  Rotation : {obj.transform.eulerAngles}\n" +
                     $"  Taille   : {obj.transform.localScale}\n" +
-                    $"  Couleur  : {colorStr}\n" +
+                    $"  Couleur  : {(colorName != null ? colorName + " " : "")}{colorStr}\n" +
                     $"  Actif    : {obj.gameObject.activeSelf}");
+
+                Vector3 p = obj.transform.position;
+                string colorPart = string.IsNullOrEmpty(colorName) ? "" : $"couleur {colorName}, ";
+                spoken.Add($"{obj.gameObject.name}, {colorPart}position {Mathf.RoundToInt(p.x)}, {Mathf.RoundToInt(p.y)}, {Mathf.RoundToInt(p.z)}");
             }
+
+            if (objects.Count == 0)
+                Speak("Aucun objet à décrire.");
+            else if (objects.Count > 5)
+                Speak($"{objects.Count} objets sélectionnés.");
+            else
+                Speak(string.Join(". ", spoken) + ".");
+
             return objects;
         }
     }

@@ -1824,8 +1824,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Sc4ve.Voice.PiperTextToSpeech
   _piperExePath: Piper/piper.exe
-  _frenchModelPath: Piper/models/fr-fr-mls-medium.onnx
-  _englishModelPath: Piper/models/en-us-lessac-medium.onnx
+  _frenchModelPath: Piper/models/fr_FR-mls-medium.onnx
+  _englishModelPath: Piper/models/en-US-lessac-medium.onnx
   _language: 0
 --- !u!1 &717523663
 GameObject:
@@ -3926,7 +3926,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Sc4ve.Multimodality.MultimodalityController
   _speechToText: {fileID: 1806090973}
   _language: 0
-  _recognizerMode: 0
+  _recognizerMode: 1
   _movePointDelayMs: 300
   _llmService: 1
   _openAiApiKey: ***CLE-RETIREE***

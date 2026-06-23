@@ -180,6 +180,11 @@ WHERE {{
         private static List<string> _availableColors;
         private static Language? _cachedLanguage;
 
+        // Palette (nom + composantes RGB) mise en cache en même temps que les noms de couleurs,
+        // pour permettre la résolution synchrone RGB → nom de couleur (cf. GetNearestColorName).
+        private struct ColorEntry { public string Name; public float R, G, B; }
+        private static List<ColorEntry> _palette;
+
         public static async Task<List<string>> GetAvailableColorsAsync()
         {
             if (_availableColors == null || _cachedLanguage != UserData.Language)
@@ -203,23 +208,68 @@ WHERE {{
             }
 
             string locale = UserData.Locale;
+            // On récupère le label ET les composantes RGB (en OPTIONAL pour ne pas exclure une
+            // couleur sans RGB : la liste des noms retournée reste identique à avant).
             string query = $@"
 PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-SELECT ?label
+SELECT ?label ?r ?g ?b
 WHERE {{
     ?color a sven:Color ;
            rdfs:label ?label .
+    OPTIONAL {{ ?color sven:r ?r ; sven:g ?g ; sven:b ?b . }}
     FILTER(langMatches(lang(?label), ""{locale}""))
 }}";
 
+            var names = new List<string>();
+            var palette = new List<ColorEntry>();
             if (graph.ExecuteQuery(query) is SparqlResultSet results)
             {
-                return results.Select(result => (result["label"] as ILiteralNode)?.Value).Where(label => label != null).ToList();
-            }
+                foreach (SparqlResult result in results.Cast<SparqlResult>())
+                {
+                    string name = (result["label"] as ILiteralNode)?.Value;
+                    if (name == null) continue;
+                    names.Add(name);
 
-            return new List<string>();
+                    if (TryParseComponent(result, "r", out float r) &&
+                        TryParseComponent(result, "g", out float g) &&
+                        TryParseComponent(result, "b", out float b))
+                    {
+                        palette.Add(new ColorEntry { Name = name, R = r, G = g, B = b });
+                    }
+                }
+            }
+            _palette = palette;
+            return names;
+        }
+
+        private static bool TryParseComponent(SparqlResult result, string variable, out float value)
+        {
+            value = 0f;
+            return result.HasBoundValue(variable)
+                && result[variable] is ILiteralNode node
+                && float.TryParse(node.Value, NumberStyles.Float | NumberStyles.AllowThousands,
+                                  CultureInfo.InvariantCulture, out value);
+        }
+
+        /// <summary>
+        /// Renvoie le nom de couleur du vocabulaire le plus proche (distance euclidienne RGB)
+        /// de la couleur donnée, ou null si la palette n'est pas encore chargée. La palette est
+        /// remplie par GetAllAvailableColors, appelé à l'initialisation des vocabulaires.
+        /// </summary>
+        public static string GetNearestColorName(UnityEngine.Color color)
+        {
+            if (_palette == null || _palette.Count == 0) return null;
+            string best = null;
+            float bestDist = float.MaxValue;
+            foreach (ColorEntry c in _palette)
+            {
+                float dr = color.r - c.R, dg = color.g - c.G, db = color.b - c.B;
+                float dist = dr * dr + dg * dg + db * db;
+                if (dist < bestDist) { bestDist = dist; best = c.Name; }
+            }
+            return best;
         }
     }
 }

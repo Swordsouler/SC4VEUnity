@@ -21,6 +21,7 @@ namespace Sc4ve.Multimodality.Intent
             }
             float distance = Vector3.Distance((Vector3)PointParameter1.Point, (Vector3)PointParameter2.Point);
             Debug.Log($"Distance: {distance} units");
+            Speak($"La distance est de {distance:0.0} mètres.");
             return new();
         }
     }

@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using Sc4ve.Voice;
 using Sven.Content;
 using System;
 using System.Collections.Generic;
@@ -87,6 +88,18 @@ namespace Sc4ve.Multimodality.Intent
         protected T GetParameter<T>(int element = 1) where T : Parameter
         {
             return Parameters?.OfType<T>().Skip(element - 1).FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Énonce un texte via la synthèse vocale (Piper) si un PiperTextToSpeech est présent
+        /// dans la scène. Sans effet (avertissement) sinon. La langue est gérée par le composant.
+        /// </summary>
+        protected static void Speak(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            PiperTextToSpeech tts = UnityEngine.Object.FindFirstObjectByType<PiperTextToSpeech>();
+            if (tts != null) tts.Speak(text);
+            else Debug.LogWarning("[TTS] Aucun PiperTextToSpeech dans la scène — texte non énoncé.");
         }
     }
 }

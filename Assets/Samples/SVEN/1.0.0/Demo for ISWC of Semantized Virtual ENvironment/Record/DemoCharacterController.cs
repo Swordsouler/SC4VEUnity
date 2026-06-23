@@ -228,22 +228,40 @@ namespace Sven.Demo
             Instance.DropObject();
         }
 
+        public static void PickupObjectStatic(GameObject obj)
+        {
+            if (Instance == null) return;
+            Instance.PickupObject(obj);
+        }
+
         private void TryPickupObject()
         {
             foreach (GameObject obj in _focusObjects.Keys)
             {
                 if (obj.CompareTag("Pickup"))
                 {
-                    heldObject = obj;
-                    heldObject.GetComponent<Rigidbody>().isKinematic = true;
-                    if (heldObject.name.Contains("Interactable"))
-                        heldObject.transform.SetParent(heldObject.name.Contains("Pumpkin") ? pumpkinHolder : fruitHolder);
-                    else if (heldObject.name.Contains("Spray"))
-                        heldObject.transform.SetParent(sprayCanHolder);
-                    heldObject.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+                    PickupObject(obj);
                     return;
                 }
             }
+        }
+
+        /// <summary>
+        /// Place <paramref name="obj"/> dans la main du joueur, exactement comme la touche F :
+        /// rend le Rigidbody kinematic, parente l'objet au bon holder selon son nom, puis remet
+        /// sa transform locale à zéro. Sans effet si l'objet n'a pas de Rigidbody.
+        /// </summary>
+        public void PickupObject(GameObject obj)
+        {
+            if (obj == null || !obj.TryGetComponent(out Rigidbody rb)) return;
+            if (heldObject != null) DropObject();   // une seule main : relâcher l'objet courant d'abord
+            heldObject = obj;
+            rb.isKinematic = true;
+            if (heldObject.name.Contains("Interactable"))
+                heldObject.transform.SetParent(heldObject.name.Contains("Pumpkin") ? pumpkinHolder : fruitHolder);
+            else if (heldObject.name.Contains("Spray"))
+                heldObject.transform.SetParent(sprayCanHolder);
+            heldObject.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
         }
 
         private void DropObject()

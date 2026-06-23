@@ -44,6 +44,7 @@ namespace Sc4ve.Voice
         public void Speak(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
+            UnityEngine.Debug.Log($"[Piper] Énoncé : \"{text}\"");
             _queue.Enqueue(text);
             if (!_isSpeaking) _ = ProcessQueueAsync();
         }
