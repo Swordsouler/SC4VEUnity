@@ -15,12 +15,14 @@ namespace Sc4ve.Multimodality.Intent
 
         public override List<SemantizationCore> Execute()
         {
-            var currentIds = new HashSet<string>(LastObjectIds);
+            var selectedIds = new HashSet<string>(SelectionManager.SelectedIds);
             var inverted = UnityEngine.Object.FindObjectsByType<SemantizationCore>(FindObjectsSortMode.None)
-                .Where(o => !currentIds.Contains(o.GetUUID()))
+                .Where(o => !selectedIds.Contains(o.GetUUID()))
                 .ToList();
+            SelectionManager.Clear();
+            SelectionManager.Select(inverted);
             Debug.Log($"[InvertSelection] {inverted.Count} objet(s) maintenant sélectionné(s).");
-            return inverted;
+            return SelectionManager.Selected.ToList();
         }
     }
 }

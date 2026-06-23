@@ -27,6 +27,14 @@ namespace Sc4ve.Voice
         private bool _isTranscribing;
         private bool _pttKeyActive;
 
+        // Prompt initial : amorce Whisper avec le style « commande vocale française » et des exemples.
+        // Whisper segmente bien mieux les mots liés (« colorie là » au lieu de « colorila ») quand il
+        // est amorcé par des phrases naturelles plutôt que par une simple liste de mots.
+        private const string CommandStylePrompt =
+            "Commandes vocales en français pour un environnement 3D. " +
+            "Exemples : colorie la pomme en rouge ; mets les citrouilles en bleu ; " +
+            "déplace ça ici ; agrandis ça là ; sélectionne tout ; masque la voiture rouge.";
+
         private void Start()
         {
             // Activer les timestamps au niveau du token (requis pour les horodatages mot à mot)
@@ -34,6 +42,10 @@ namespace Sc4ve.Voice
             {
                 _whisperManager.enableTokens = true;
                 _whisperManager.tokensTimestamps = true;
+                // Amorcer dès le départ (avant même le chargement du vocabulaire du domaine,
+                // et même en mode LLM où SetGrammar n'est pas appelé).
+                if (string.IsNullOrEmpty(_whisperManager.initialPrompt))
+                    _whisperManager.initialPrompt = CommandStylePrompt;
             }
 
             if (_autoStart)
@@ -81,8 +93,11 @@ namespace Sc4ve.Voice
         public override void SetGrammar(List<string> vocabulary)
         {
             if (_whisperManager == null) return;
-            _whisperManager.initialPrompt = string.Join(", ", vocabulary);
-            Debug.Log($"[Whisper] Initial prompt mis à jour : {vocabulary.Count} termes.");
+            // Vocabulaire d'abord, exemples en dernier : si Whisper tronque le prompt (limite ~224
+            // tokens), il garde la fin — donc les exemples (clés pour la segmentation) survivent.
+            _whisperManager.initialPrompt =
+                "Vocabulaire : " + string.Join(", ", vocabulary) + ". " + CommandStylePrompt;
+            Debug.Log($"[Whisper] Initial prompt mis à jour ({vocabulary.Count} termes).");
         }
 
         private void OnFrameCaptured(short[] samples)

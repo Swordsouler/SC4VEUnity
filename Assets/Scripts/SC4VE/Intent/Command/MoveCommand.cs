@@ -45,12 +45,23 @@ namespace Sc4ve.Multimodality.Intent
                 }
             }
 
+            var undoActions = new List<Action>();
+            var redoActions = new List<Action>();
             foreach (SemantizationCore semantizationCore in objects)
             {
                 if (destination == null) continue;
-                semantizationCore.transform.position = (Vector3)destination;
+                Transform t = semantizationCore.transform;
+                Vector3 prev = t.position;
+                Vector3 next = (Vector3)destination;
+                t.position = next;
+                undoActions.Add(() => { if (t != null) t.position = prev; });
+                redoActions.Add(() => { if (t != null) t.position = next; });
                 Debug.Log($"[MoveCommand] Objet {semantizationCore.GetUUID()} déplacé vers {destination}");
             }
+            if (undoActions.Count > 0)
+                CommandHistory.Push(
+                    () => undoActions.ForEach(a => a()),
+                    () => redoActions.ForEach(a => a()));
             return objects;
         }
     }

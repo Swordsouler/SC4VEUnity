@@ -1,4 +1,5 @@
 using Sven.Content;
+using Sven.Demo;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,8 +19,10 @@ namespace Sc4ve.Multimodality.Intent
             var spoken = new List<string>();
             foreach (SemantizationCore obj in objects)
             {
-                bool hasColor = obj.TryGetComponent(out Renderer r) && r.material != null;
-                UnityEngine.Color matColor = hasColor ? ReadColor(r.material) : default;
+                // Lire le vrai matériau, pas la surbrillance de focus appliquée au survol du pointeur.
+                Material mat = DemoCharacterController.GetUnhighlightedMaterial(obj.gameObject);
+                bool hasColor = mat != null;
+                UnityEngine.Color matColor = hasColor ? ReadColor(mat) : default;
                 string colorName = hasColor ? ColorParameter.GetColorName(matColor) : null;
                 string colorStr  = hasColor ? matColor.ToString() : "N/A";
                 Debug.Log(

@@ -177,11 +177,17 @@ WHERE
 
             /******************************************/
             List<string> objectsUri = await QueryObjects(sceneGraphCopy);
-            // if contains IsCoreference condition, also add coreferenced objects
+            // Filtre Coreference (« les », « ça »…) : on résout vers la sélection
+            // persistante si elle existe, sinon vers les derniers objets manipulés.
             if (HasCoreferenceCondition)
-                foreach (string objUri in Command.LastObjectIds)
-                    if (!objectsUri.Contains(objUri))
-                        objectsUri.Add(objUri);
+            {
+                IEnumerable<string> coreferenced = SelectionManager.HasSelection
+                    ? SelectionManager.SelectedIds
+                    : Command.LastObjectIds;
+                foreach (string objId in coreferenced)
+                    if (!objectsUri.Contains(objId))
+                        objectsUri.Add(objId);
+            }
             ObjectsUri ??= objectsUri;
 
             foreach (string objectUri in ObjectsUri)

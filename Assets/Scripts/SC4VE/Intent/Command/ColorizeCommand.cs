@@ -40,12 +40,23 @@ namespace Sc4ve.Multimodality.Intent
             }
             List<SemantizationCore> objects = SelectionParameter.Objects;
             Debug.Log($"Executing ColorizeCommand on {objects.Count} object(s).");
+            UnityEngine.Color target = ColorParameter.Color.Value;
+            var undoActions = new List<Action>();
+            var redoActions = new List<Action>();
             foreach (SemantizationCore semantizationCore in objects)
             {
                 if (!semantizationCore.TryGetComponent(out Renderer renderer) || renderer.material == null) continue;
-                renderer.material.color = ColorParameter.Color.Value;
-                Debug.Log($"Colorizing object {semantizationCore.GetUUID()} with color {ColorParameter.Color.Value}");
+                Renderer captured = renderer;
+                UnityEngine.Color prev = renderer.material.color;
+                renderer.material.color = target;
+                undoActions.Add(() => { if (captured != null && captured.material != null) captured.material.color = prev; });
+                redoActions.Add(() => { if (captured != null && captured.material != null) captured.material.color = target; });
+                Debug.Log($"Colorizing object {semantizationCore.GetUUID()} with color {target}");
             }
+            if (undoActions.Count > 0)
+                CommandHistory.Push(
+                    () => undoActions.ForEach(a => a()),
+                    () => redoActions.ForEach(a => a()));
             return objects;
         }
     }

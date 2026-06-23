@@ -18,8 +18,10 @@ namespace Sc4ve.Multimodality.Intent
         {
             var all = UnityEngine.Object.FindObjectsByType<SemantizationCore>(FindObjectsSortMode.None)
                 .ToList();
+            SelectionManager.Clear();
+            SelectionManager.Select(all);
             Debug.Log($"[SelectAll] {all.Count} objet(s) sélectionné(s).");
-            return all;
+            return SelectionManager.Selected.ToList();
         }
     }
 }

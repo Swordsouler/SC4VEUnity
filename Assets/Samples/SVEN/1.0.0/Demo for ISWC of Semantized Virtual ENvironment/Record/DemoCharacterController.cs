@@ -234,6 +234,19 @@ namespace Sven.Demo
             Instance.PickupObject(obj);
         }
 
+        /// <summary>
+        /// Renvoie le matériau "réel" de l'objet, en ignorant la surbrillance temporaire : quand
+        /// le pointeur survole un objet, son matériau est remplacé par _focusMaterial et l'original
+        /// est conservé dans _focusObjects. Hors surbrillance, renvoie le matériau courant.
+        /// </summary>
+        public static Material GetUnhighlightedMaterial(GameObject obj)
+        {
+            if (obj == null) return null;
+            if (Instance != null && Instance._focusObjects.TryGetValue(obj, out Material original) && original != null)
+                return original;
+            return obj.TryGetComponent(out Renderer r) ? r.material : null;
+        }
+
         private void TryPickupObject()
         {
             foreach (GameObject obj in _focusObjects.Keys)
