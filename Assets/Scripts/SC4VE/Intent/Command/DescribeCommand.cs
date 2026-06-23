@@ -19,14 +19,15 @@ namespace Sc4ve.Multimodality.Intent
             foreach (SemantizationCore obj in objects)
             {
                 bool hasColor = obj.TryGetComponent(out Renderer r) && r.material != null;
-                string colorName = hasColor ? ColorParameter.GetNearestColorName(r.material.color) : null;
-                string colorStr  = hasColor ? r.material.color.ToString() : "N/A";
+                UnityEngine.Color matColor = hasColor ? ReadColor(r.material) : default;
+                string colorName = hasColor ? ColorParameter.GetColorName(matColor) : null;
+                string colorStr  = hasColor ? matColor.ToString() : "N/A";
                 Debug.Log(
                     $"[Describe] UUID: {obj.GetUUID()}\n" +
                     $"  Position : {obj.transform.position}\n" +
                     $"  Rotation : {obj.transform.eulerAngles}\n" +
                     $"  Taille   : {obj.transform.localScale}\n" +
-                    $"  Couleur  : {(colorName != null ? colorName + " " : "")}{colorStr}\n" +
+                    $"  Couleur  : {colorName ?? "(non reconnue)"} {colorStr}\n" +
                     $"  Actif    : {obj.gameObject.activeSelf}");
 
                 Vector3 p = obj.transform.position;
@@ -42,6 +43,15 @@ namespace Sc4ve.Multimodality.Intent
                 Speak(string.Join(". ", spoken) + ".");
 
             return objects;
+        }
+
+        // En URP/HDRP la couleur visible est dans "_BaseColor" ; material.color ne lit que "_Color"
+        // et renvoie du blanc si la propriété est absente. On lit donc _BaseColor en priorité.
+        private static UnityEngine.Color ReadColor(Material m)
+        {
+            if (m.HasProperty("_BaseColor")) return m.GetColor("_BaseColor");
+            if (m.HasProperty("_Color"))     return m.GetColor("_Color");
+            return m.color;
         }
     }
 }

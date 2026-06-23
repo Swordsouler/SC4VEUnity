@@ -181,8 +181,8 @@ WHERE {{
         private static Language? _cachedLanguage;
 
         // Palette (nom + composantes RGB) mise en cache en même temps que les noms de couleurs,
-        // pour permettre la résolution synchrone RGB → nom de couleur (cf. GetNearestColorName).
-        private struct ColorEntry { public string Name; public float R, G, B; }
+        // pour permettre la résolution synchrone RGB → nom de couleur (cf. GetColorName).
+        private struct ColorEntry { public string Name; public float R, G, B, Tolerance; }
         private static List<ColorEntry> _palette;
 
         public static async Task<List<string>> GetAvailableColorsAsync()
@@ -212,13 +212,14 @@ WHERE {{
             // couleur sans RGB : la liste des noms retournée reste identique à avant).
             string query = $@"
 PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
+PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-SELECT ?label ?r ?g ?b
+SELECT ?label ?r ?g ?b ?t
 WHERE {{
     ?color a sven:Color ;
            rdfs:label ?label .
-    OPTIONAL {{ ?color sven:r ?r ; sven:g ?g ; sven:b ?b . }}
+    OPTIONAL {{ ?color sven:r ?r ; sven:g ?g ; sven:b ?b ; sc4ve:tolerance ?t . }}
     FILTER(langMatches(lang(?label), ""{locale}""))
 }}";
 
@@ -236,7 +237,8 @@ WHERE {{
                         TryParseComponent(result, "g", out float g) &&
                         TryParseComponent(result, "b", out float b))
                     {
-                        palette.Add(new ColorEntry { Name = name, R = r, G = g, B = b });
+                        float tol = TryParseComponent(result, "t", out float t) ? t : 0.2f;
+                        palette.Add(new ColorEntry { Name = name, R = r, G = g, B = b, Tolerance = tol });
                     }
                 }
             }
@@ -254,17 +256,22 @@ WHERE {{
         }
 
         /// <summary>
-        /// Renvoie le nom de couleur du vocabulaire le plus proche (distance euclidienne RGB)
-        /// de la couleur donnée, ou null si la palette n'est pas encore chargée. La palette est
-        /// remplie par GetAllAvailableColors, appelé à l'initialisation des vocabulaires.
+        /// Renvoie le nom de la couleur du vocabulaire qui correspond à la couleur donnée
+        /// (chaque composante R/G/B dans [valeur ± tolérance], même logique que le filtre SPARQL),
+        /// ou null si aucune ne correspond. On ne renvoie JAMAIS la couleur « la plus proche » :
+        /// un objet hors palette (blanc, gris…) ne doit pas être nommé à tort (ex: « cyan »).
+        /// En cas de chevauchement de plusieurs boîtes, on retient la plus proche.
         /// </summary>
-        public static string GetNearestColorName(UnityEngine.Color color)
+        public static string GetColorName(UnityEngine.Color color)
         {
             if (_palette == null || _palette.Count == 0) return null;
             string best = null;
             float bestDist = float.MaxValue;
             foreach (ColorEntry c in _palette)
             {
+                if (Mathf.Abs(color.r - c.R) > c.Tolerance) continue;
+                if (Mathf.Abs(color.g - c.G) > c.Tolerance) continue;
+                if (Mathf.Abs(color.b - c.B) > c.Tolerance) continue;
                 float dr = color.r - c.R, dg = color.g - c.G, db = color.b - c.B;
                 float dist = dr * dr + dg * dg + db * db;
                 if (dist < bestDist) { bestDist = dist; best = c.Name; }

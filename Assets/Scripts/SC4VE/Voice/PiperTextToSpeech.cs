@@ -16,12 +16,13 @@ namespace Sc4ve.Voice
         private string _piperExePath = "Piper/piper.exe";
 
         [BoxGroup("Modèles"), SerializeField,
-         Tooltip("Modèle .onnx utilisé pour le français (ex: fr-fr-mls_1840-medium.onnx).")]
-        private string _frenchModelPath = "Piper/models/fr-fr-mls_1840-medium.onnx";
+         Tooltip("Modèle .onnx mono-locuteur pour le français (ex: fr_FR-siwis-medium.onnx). " +
+                 "Éviter fr_FR-mls (125 locuteurs) : le locuteur par défaut est peu intelligible.")]
+        private string _frenchModelPath = "Piper/models/fr_FR-siwis-medium.onnx";
 
         [BoxGroup("Modèles"), SerializeField,
-         Tooltip("Modèle .onnx utilisé pour l'anglais (ex: en-us-lessac-medium.onnx).")]
-        private string _englishModelPath = "Piper/models/en-us-lessac-medium.onnx";
+         Tooltip("Modèle .onnx utilisé pour l'anglais (ex: en_US-lessac-medium.onnx).")]
+        private string _englishModelPath = "Piper/models/en_US-lessac-medium.onnx";
 
         [BoxGroup("Modèles"), SerializeField]
         private Language _language = Language.French;
@@ -129,7 +130,11 @@ namespace Sc4ve.Voice
             using Process process = Process.Start(psi);
             if (process == null) return false;
 
-            process.StandardInput.Write(text);
+            // Envoyer le texte en UTF-8 sur stdin : l'encodage par défaut de StandardInput (ANSI
+            // sous Windows) écorche les caractères accentués ('é', 'à', 'ç'…) avant Piper.
+            byte[] utf8 = System.Text.Encoding.UTF8.GetBytes(text);
+            process.StandardInput.BaseStream.Write(utf8, 0, utf8.Length);
+            process.StandardInput.BaseStream.Flush();
             process.StandardInput.Close();
 
             bool finished = process.WaitForExit(10_000); // timeout 10 s
