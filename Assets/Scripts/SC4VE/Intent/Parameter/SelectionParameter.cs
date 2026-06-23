@@ -331,7 +331,7 @@ WHERE
                        sven:annotation ?annotation .
             ?annotation sven:value ?componentType ;
                         sven:hasTemporalExtent ?interval{index} .
-            ?componentType rdfs:label ""{Value}""@{locale}
+            ?componentType rdfs:label ""{EscapeSparqlLiteral(Value)}""@{locale}
         }} LIMIT 10000
     }}";
             }
@@ -354,7 +354,7 @@ WHERE
             }}
             {{
                 ?color a sven:Color ;
-                        rdfs:label ""{Value}""@fr ;
+                        rdfs:label ""{EscapeSparqlLiteral(Value)}""@fr ;
                         sven:r ?tr{index} ;
                         sven:g ?tg{index} ;
                         sven:b ?tb{index} ;
@@ -383,19 +383,26 @@ WHERE
                     sven:receiver ?object .
             ?sender sven:component ?component .
             ?component a ?componentType .
-            ?componentType rdfs:label ""{Value}""@{locale}
+            ?componentType rdfs:label ""{EscapeSparqlLiteral(Value)}""@{locale}
         }} LIMIT 10000
     }}";
             }
             else if (IsCoreference)
             {
-                // tol�rance : also take objects in Command.LastObjectIds even if not in interval
+                // tolérance : also take objects in Command.LastObjectIds even if not in interval
                 return $@"";
             }
 
             Debug.LogWarning($"Condition.Sparql: Unknown condition type '{Type}'");
             return "";
         }
+
+        /// <summary>
+        /// Échappe une valeur pour un littéral de chaîne SPARQL (antislash et guillemets).
+        /// Les valeurs viennent d'un vocabulaire contrôlé, mais on échappe par robustesse.
+        /// </summary>
+        private static string EscapeSparqlLiteral(string value)
+            => value?.Replace("\\", "\\\\").Replace("\"", "\\\"") ?? string.Empty;
     }
 
     public class FilterElement
@@ -469,7 +476,7 @@ WHERE
                 }
                 else
                 {
-                    // tol�rance : convertit en cha�ne
+                    // tolérance : convertit en chaîne
                     list.Add(new FilterElement { IsOperator = true, Operator = token.ToString() });
                 }
             }

@@ -47,7 +47,7 @@ namespace Sc4ve.Multimodality.Intent
             set => _tolerance = value;
         }
         [JsonIgnore]
-        public UnityEngine.Color Value => new(MaxRed, MaxGreen, MaxBlue, Alpha);
+        public UnityEngine.Color Value => new(Red, Green, Blue, Alpha);
 
         public float MinRed => Mathf.Clamp(Red - Tolerance, 0f, 1f);
         public float MaxRed => Mathf.Clamp(Red + Tolerance, 0f, 1f);
@@ -83,6 +83,13 @@ namespace Sc4ve.Multimodality.Intent
             set => _color = value;
         }
 
+        /// <summary>
+        /// Échappe une valeur pour un littéral de chaîne SPARQL (antislash et guillemets).
+        /// Les valeurs viennent d'un vocabulaire contrôlé, mais on échappe par robustesse.
+        /// </summary>
+        private static string EscapeSparqlLiteral(string value)
+            => value?.Replace("\\", "\\\\").Replace("\"", "\\\"") ?? string.Empty;
+
         public Task<Color> QueryColor(Graph queryGraph)
         {
             string locale = UserData.Locale;
@@ -95,7 +102,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT ?r ?g ?b ?a ?t
 WHERE {{
     ?color a sven:Color ;
-           rdfs:label ""{Value}""@{locale} ;
+           rdfs:label ""{EscapeSparqlLiteral(Value)}""@{locale} ;
            sven:r ?r ;
            sven:g ?g ;
            sven:b ?b ;
@@ -160,7 +167,7 @@ WHERE {{
                 IUriNode b = graph.CreateUriNode("sven:b");
                 IUriNode a = graph.CreateUriNode("sven:a");
                 IUriNode tolerance = graph.CreateUriNode("sc4ve:tolerance");
-                // insert triples for color components (0 to 1) � use InvariantCulture so ToString uses '.'
+                // insert triples for color components (0 to 1) — use InvariantCulture so ToString uses '.'
                 graph.Assert(new Triple(parameterNode, r, graph.CreateLiteralNode(Color.Red.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
                 graph.Assert(new Triple(parameterNode, g, graph.CreateLiteralNode(Color.Green.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
                 graph.Assert(new Triple(parameterNode, b, graph.CreateLiteralNode(Color.Blue.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));

@@ -228,14 +228,14 @@ namespace Sc4ve.Voice
                     _audioClip = null;
                     _didDetect = false;
 
-                    if (_recordCoroutine != null) StopCoroutine(RecordMicrophoneData());
+                    if (_recordCoroutine != null) StopCoroutine(_recordCoroutine);
                     break;
                 case RecordingMode.AudioFile:
                     Microphone.End(null);
                     _audioClip = null;
                     _didDetect = false;
 
-                    if (_recordCoroutine != null) StopCoroutine(RecordAudioFileData());
+                    if (_recordCoroutine != null) StopCoroutine(_recordCoroutine);
                     break;
             }
         }

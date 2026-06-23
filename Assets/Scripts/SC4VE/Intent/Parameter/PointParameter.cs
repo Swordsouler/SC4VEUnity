@@ -115,7 +115,7 @@ WHERE {{
                 IUriNode x = graph.CreateUriNode("sven:x");
                 IUriNode y = graph.CreateUriNode("sven:y");
                 IUriNode z = graph.CreateUriNode("sven:z");
-                // insert triples for color components (0 to 1) — use InvariantCulture so ToString uses '.'
+                // insert triples for color components (0 to 1) â€” use InvariantCulture so ToString uses '.'
                 graph.Assert(new Triple(parameterNode, x, graph.CreateLiteralNode(((Vector3)Point).x.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
                 graph.Assert(new Triple(parameterNode, y, graph.CreateLiteralNode(((Vector3)Point).y.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));
                 graph.Assert(new Triple(parameterNode, z, graph.CreateLiteralNode(((Vector3)Point).z.ToString(CultureInfo.InvariantCulture), graph.CreateUriNode("xsd:float").Uri)));

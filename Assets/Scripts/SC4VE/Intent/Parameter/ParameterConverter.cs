@@ -72,7 +72,7 @@ namespace Sc4ve.Multimodality.Intent
 
             var jo = JObject.FromObject(value, tempSerializer);
 
-            // …vite l'ArgumentException si la propriÈtÈ "type" existe dÈj‡ :
+            // √âvite l'ArgumentException si la propri√©t√© "type" existe d√©j√† :
             var existingTypeProp = jo.Property("type");
             if (existingTypeProp != null)
             {

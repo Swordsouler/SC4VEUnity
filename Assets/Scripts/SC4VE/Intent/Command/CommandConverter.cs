@@ -39,10 +39,10 @@ namespace Sc4ve.Multimodality.Intent
                 return;
             }
 
-            // Evite la récursion due au JsonConverter appliqué par attribut sur Command.
-            // On crée un serializer temporaire qui réutilise la configuration courante
-            // mais remplace le ContractResolver pour neutraliser les converters définis
-            // par attributs sur les types dérivés de Command et on évite les boucles.
+            // Evite la rÃ©cursion due au JsonConverter appliquÃ© par attribut sur Command.
+            // On crÃ©e un serializer temporaire qui rÃ©utilise la configuration courante
+            // mais remplace le ContractResolver pour neutraliser les converters dÃ©finis
+            // par attributs sur les types dÃ©rivÃ©s de Command et on Ã©vite les boucles.
             var innerResolver = serializer.ContractResolver ?? new DefaultContractResolver();
             var tempSerializer = new JsonSerializer
             {
@@ -59,7 +59,7 @@ namespace Sc4ve.Multimodality.Intent
                 ReferenceLoopHandling = ReferenceLoopHandling.Ignore
             };
 
-            // Copie les autres converters sauf celui-ci pour être sûr.
+            // Copie les autres converters sauf celui-ci pour Ãªtre sÃ»r.
             foreach (var conv in serializer.Converters)
             {
                 if (conv != null && conv.GetType() != typeof(CommandConverter))
@@ -82,7 +82,7 @@ namespace Sc4ve.Multimodality.Intent
         }
     }
 
-    // Résout le contrat en neutralisant les JsonConverter pour les types dérivés de Command.
+    // RÃ©sout le contrat en neutralisant les JsonConverter pour les types dÃ©rivÃ©s de Command.
     internal class CommandIgnoringContractResolver : IContractResolver
     {
         private readonly IContractResolver _inner;
@@ -97,7 +97,7 @@ namespace Sc4ve.Multimodality.Intent
             var contract = _inner.ResolveContract(type);
             if (typeof(Command).IsAssignableFrom(type))
             {
-                // Retirer tout converter appliqué par attribut ou par contrat pour éviter récursion
+                // Retirer tout converter appliquÃ© par attribut ou par contrat pour Ã©viter rÃ©cursion
                 contract.Converter = null;
             }
             return contract;

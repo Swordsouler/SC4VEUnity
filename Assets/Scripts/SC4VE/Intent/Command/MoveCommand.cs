@@ -9,7 +9,7 @@ namespace Sc4ve.Multimodality.Intent
     [RuleBasedTriggers(
         "met ici", "mets ici", "met là", "mets là", "met là-bas", "mets là-bas",
         "met là-haut", "mets là-haut",
-        "déplace", "déplacer", "bouge", "bouger", "amène", "amener",
+        "déplace", "déplacer", "bouge", "bouger", "amène", "amener", "place", "placer",
         "move", "repositionne", "repositionner", "transporte", "transporter")]
     [Serializable, CommandDescription("Déplace des objets. Paramètres: SelectionParameter (source), et soit PointParameter (destination) soit SelectionParameter (destination).")]
     public class MoveCommand : Command

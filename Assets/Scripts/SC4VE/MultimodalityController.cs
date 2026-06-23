@@ -60,7 +60,7 @@ namespace Sc4ve.Multimodality
         private bool IsLlmModeOpenAI => IsLlmMode && _llmService == LlmService.OpenAI;
         private bool IsLlmModeLocal  => IsLlmMode && _llmService == LlmService.Local;
 
-        private static readonly HttpClient _httpClient = new();
+        private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(60) };
         private RuleBasedIntentRecognizer _ruleBasedRecognizer;
 
         // LLama-7b, qwen-3.5, mistral-nemo 
@@ -393,7 +393,8 @@ JSON Attendu:
 
 ## EXEMPLE 17: Enchaînement de commandes (répétition multiple)
 Entrée utilisateur:
-{{""Text"":""assombris trois fois les légumes"",""Words"":[{{""Text"":""assombris"",""EndedAt"":""2026-03-05T14:20:01.000Z""}},{{""Text"":""trois"",""EndedAt"":""2026-03-05T14:20:01.500Z""}},{{""Text"":""fois"",""EndedAt"":""2026-03-05T14:20:01.800Z""}},{{""Text"":""les"",""EndedAt"":""2026-03-05T14:20:02.000Z""}},{{""Text"":""légumes"",""EndedAt"":""2026-03-05T14:20:02.500Z""}}]}}</details><details><summary>JSON Attendu
+{{""Text"":""assombris trois fois les légumes"",""Words"":[{{""Text"":""assombris"",""EndedAt"":""2026-03-05T14:20:01.000Z""}},{{""Text"":""trois"",""EndedAt"":""2026-03-05T14:20:01.500Z""}},{{""Text"":""fois"",""EndedAt"":""2026-03-05T14:20:01.800Z""}},{{""Text"":""les"",""EndedAt"":""2026-03-05T14:20:02.000Z""}},{{""Text"":""légumes"",""EndedAt"":""2026-03-05T14:20:02.500Z""}}]}}
+JSON Attendu:
 [
   {
     ""type"": ""ColorizeDarkerCommand"",
@@ -665,6 +666,12 @@ Entrée utilisateur:
             // Le résultat est identique entre tous les appels → OpenAI peut le mettre en
             // cache côté serveur (prompt caching automatique pour les prompts > 1024 tokens).
             _cachedSystemPrompt = SYSTEM_PROMPT_TEMPLATE
+                // Les exemples JSON du template utilisent des accolades doublées ({{ }}),
+                // vestige d'un ancien usage de string.Format. On les normalise en accolades
+                // simples (JSON valide) AVANT d'injecter les vocabulaires, pour ne jamais
+                // altérer les valeurs substituées (qui ne contiennent pas d'accolades).
+                .Replace("{{", "{")
+                .Replace("}}", "}")
                 .Replace("{annotationTypesString}", _annotationTypesString)
                 .Replace("{availableColorsString}", _availableColorsString)
                 .Replace("{cameraTerm}", _cameraNamesString)
@@ -1112,10 +1119,20 @@ Entrée utilisateur:
                 thereParameter = null;
                 if (_isResolvingCommand) return;
                 _isResolvingCommand = true;
-                await CommandToGraphOutputCommandAsync(commands);
-                ResolveCommands(commands);
-                Debug.Log(JsonConvert.SerializeObject(commands));
-                _isResolvingCommand = false;
+                try
+                {
+                    await CommandToGraphOutputCommandAsync(commands);
+                    ResolveCommands(commands);
+                    Debug.Log(JsonConvert.SerializeObject(commands));
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[Pointer] MoveCommand failed: {e.Message}\n{e.StackTrace}");
+                }
+                finally
+                {
+                    _isResolvingCommand = false;
+                }
             }
         }
 
