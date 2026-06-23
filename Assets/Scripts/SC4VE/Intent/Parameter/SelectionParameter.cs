@@ -193,7 +193,13 @@ WHERE
             foreach (string objectUri in ObjectsUri)
             {
                 IUriNode hasObject = graph.CreateUriNode("sven:value");
-                IUriNode objectNode = graph.CreateUriNode(UriFactory.Create(objectUri));
+                // Les résultats SPARQL sont des URI complètes (« https://…/uuid ») ; la
+                // coréférence ajoute des UUID nus (Command.LastObjectIds /
+                // SelectionManager.SelectedIds). On construit le nœud selon la forme pour
+                // éviter UriFactory.Create sur un UUID nu (qui lève « Invalid URI »).
+                IUriNode objectNode = objectUri.Contains("://")
+                    ? graph.CreateUriNode(UriFactory.Create(objectUri))
+                    : graph.CreateUriNode(":" + objectUri);
                 graph.Assert(new Triple(parameterNode, hasObject, objectNode));
             }
             return parameterNode;

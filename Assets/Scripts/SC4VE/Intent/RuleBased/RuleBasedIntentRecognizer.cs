@@ -96,8 +96,21 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             text = CorrectHomophones(text);
             List<Word> words = sentence.Words ?? new List<Word>();
 
+            // Référence explicite à la sélection courante : « les objets (actuellement)
+            // sélectionnés », « la sélection ». Le participe « sélectionné(e)(s) » (accent
+            // final) et le nom « sélection » sont distingués du verbe « sélectionne(r) » par
+            // l'accent et la frontière de mot. On retire ces mots du texte de détection de
+            // commande (sinon « sélectionné » déclenche SelectCommand, car NormalizeAccents
+            // confond « sélectionné » et « sélectionne »), et on force la coréférence.
+            bool referencesSelection =
+                Regex.IsMatch(text, @"\bsélectionné(e|s|es)?\b") ||
+                Regex.IsMatch(text, @"\bsélection\b");
+            string commandText = referencesSelection
+                ? Regex.Replace(text, @"\b(sélectionné(e|s|es)?|sélection)\b", " ")
+                : text;
+
             // 1. Détection du type de commande via les attributs [RuleBasedTriggers]
-            string commandType = DetectCommandType(text);
+            string commandType = DetectCommandType(commandText);
             if (commandType == null)
             {
                 Debug.LogWarning($"[RuleBased] Aucune commande reconnue pour : \"{sentence.Text}\"");
@@ -111,7 +124,10 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             List<RuleBasedColor>      colors      = FindColors(text, words);
             List<RuleBasedAnnotation> deictics    = FindDeictics(text, words);
             int  limit          = DetectLimit(text);
-            bool hasCoreference = annotations.Count == 0 && deictics.Count == 0 && HasCoreference(text);
+            // Une référence explicite à la sélection (« …sélectionnés », « la sélection »)
+            // force la coréférence vers la sélection courante.
+            bool hasCoreference = referencesSelection
+                || (annotations.Count == 0 && deictics.Count == 0 && HasCoreference(text));
 
             Debug.Log(
                 $"[RuleBased] Annotations : [{string.Join(", ", annotations.Select(a => a.Value))}] | " +
@@ -309,15 +325,22 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 new[] { ' ', ',', '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
 
             var allMappings = RuleBasedTriggersAttribute.GetAllMappings();
+            bool IsVerb(string w) => allMappings.Any(
+                m => m.Triggers.Any(t => t.Equals(w, StringComparison.OrdinalIgnoreCase)));
+
             foreach (string token in tokens)
             {
-                // Ignorer les verbes d'action déjà traités
-                bool isVerb = allMappings.Any(
-                    m => m.Triggers.Any(t => t.Equals(token, StringComparison.OrdinalIgnoreCase)));
-                if (isVerb) continue;
-
-                if (CoreferencePronouns.Contains(token))
+                // Token entier : gère les pronoms composés (« celui-ci »…) et simples (« les », « ça »).
+                if (!IsVerb(token) && CoreferencePronouns.Contains(token))
                     return true;
+
+                // Pronom enclitique accolé à l'impératif : « mets-les », « colorie-le », « cache-la ».
+                // Le STT (Whisper) rend « mets-les » en un seul token ; on découpe sur le trait
+                // d'union et on teste chaque partie (le verbe est ignoré).
+                if (token.Contains('-'))
+                    foreach (string part in token.Split('-'))
+                        if (!IsVerb(part) && CoreferencePronouns.Contains(part))
+                            return true;
             }
             return false;
         }

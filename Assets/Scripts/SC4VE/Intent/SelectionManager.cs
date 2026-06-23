@@ -58,15 +58,23 @@ namespace Sc4ve.Multimodality.Intent
         private static void SetOutline(SemantizationCore obj, bool on)
         {
             if (obj == null) return;
-            if (!obj.TryGetComponent(out Outline outline))
+            try
             {
-                if (!on) return; // rien à retirer
-                outline = obj.gameObject.AddComponent<Outline>();
-                outline.OutlineMode = Outline.Mode.OutlineAll;
-                outline.OutlineColor = OutlineColor;
-                outline.OutlineWidth = OutlineWidth;
+                if (!obj.TryGetComponent(out Outline outline))
+                {
+                    if (!on) return; // rien à retirer
+                    outline = obj.gameObject.AddComponent<Outline>();
+                    outline.OutlineMode = Outline.Mode.OutlineAll;
+                    outline.OutlineColor = OutlineColor;
+                    outline.OutlineWidth = OutlineWidth;
+                }
+                outline.enabled = on;
             }
-            outline.enabled = on;
+            catch (UnityEngine.MissingReferenceException)
+            {
+                // L'objet ou son Renderer a été détruit entre-temps (QuickOutline accède au
+                // Renderer mis en cache dans OnEnable/OnDisable). Plus de contour à gérer.
+            }
         }
     }
 }
