@@ -17,16 +17,16 @@ namespace Sc4ve.Multimodality.Intent
             bool hasFilter = SelectionParameter?.Filters != null && SelectionParameter.Filters.Count > 0;
             if (!hasFilter)
             {
-                SelectionManager.Clear();
                 Debug.Log("[Unselect] Sélection vidée.");
+                return new(); // → ResolveCommands applique une sélection vide
             }
-            else
-            {
-                List<SemantizationCore> objects = SelectionParameter.Objects ?? new();
-                SelectionManager.Deselect(objects);
-                Debug.Log($"[Unselect] -{objects.Count} → {SelectionManager.Selected.Count} restant(s).");
-            }
-            return SelectionManager.Selected.ToList();
+
+            var toRemove = new HashSet<string>((SelectionParameter.Objects ?? new()).Select(o => o.GetUUID()));
+            List<SemantizationCore> result = SelectionManager.Selected
+                .Where(o => !toRemove.Contains(o.GetUUID()))
+                .ToList();
+            Debug.Log($"[Unselect] -{toRemove.Count} → {result.Count} restant(s).");
+            return result;
         }
     }
 }

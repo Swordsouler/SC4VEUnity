@@ -946,12 +946,24 @@ JSON Attendu:
 
         public void ResolveCommands(List<Command> commands)
         {
+            int undoBefore = CommandHistory.UndoCount;
+
             List<SemantizationCore> lastObjects = new();
             foreach (Command command in commands)
             {
                 lastObjects.AddRange(command.Execute());
             }
             Command.LastObjects = lastObjects;
+
+            // La sélection (et son contour) suit toujours les objets de la dernière commande.
+            List<SemantizationCore> selection = Command.LastObjects;
+
+            // Si cette phrase a produit une action annulable, on mémorise les objets affectés
+            // pour pouvoir les re-sélectionner lors d'un undo/redo.
+            if (CommandHistory.UndoCount > undoBefore)
+                CommandHistory.SetLastAffected(selection);
+
+            SelectionManager.SetSelection(selection);
         }
 
         // Classes d'aide pour désérialiser la réponse d'OpenAI

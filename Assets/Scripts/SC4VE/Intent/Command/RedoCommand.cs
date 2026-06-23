@@ -11,10 +11,8 @@ namespace Sc4ve.Multimodality.Intent
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
             => new List<Parameter>();
 
+        // Retourne les objets affectés par l'action rétablie → ResolveCommands les re-sélectionne.
         public override List<SemantizationCore> Execute()
-        {
-            CommandHistory.Redo();
-            return new List<SemantizationCore>();
-        }
+            => CommandHistory.Redo();
     }
 }

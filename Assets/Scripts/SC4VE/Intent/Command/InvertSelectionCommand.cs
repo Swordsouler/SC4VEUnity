@@ -19,10 +19,8 @@ namespace Sc4ve.Multimodality.Intent
             var inverted = UnityEngine.Object.FindObjectsByType<SemantizationCore>(FindObjectsSortMode.None)
                 .Where(o => !selectedIds.Contains(o.GetUUID()))
                 .ToList();
-            SelectionManager.Clear();
-            SelectionManager.Select(inverted);
             Debug.Log($"[InvertSelection] {inverted.Count} objet(s) maintenant sélectionné(s).");
-            return SelectionManager.Selected.ToList();
+            return inverted;
         }
     }
 }

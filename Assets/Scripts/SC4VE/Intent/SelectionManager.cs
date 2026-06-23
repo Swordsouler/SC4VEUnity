@@ -1,16 +1,15 @@
 using Sven.Content;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
     /// <summary>
     /// État de sélection persistant et son retour visuel (contour QuickOutline).
-    /// La sélection survit aux actions : elle n'est modifiée que par les commandes
-    /// Select / Unselect / SelectAll / InvertSelection. Le filtre Coreference
-    /// (« les », « ça »…) la résout en priorité sur Command.LastObjects
-    /// (cf. SelectionParameter.Semanticize).
+    /// La sélection est pilotée par <see cref="SetSelection"/>, appelé par
+    /// MultimodalityController.ResolveCommands après chaque phrase : elle suit donc
+    /// toujours les objets de la dernière commande. Le filtre Coreference
+    /// (« les », « ça »…) la résout (cf. SelectionParameter.Semanticize).
     /// </summary>
     public static class SelectionManager
     {
@@ -26,37 +25,30 @@ namespace Sc4ve.Multimodality.Intent
         public static IEnumerable<string> SelectedIds => _selected.Keys.ToList();
         public static bool HasSelection => _selected.Count > 0;
 
-        public static void Select(IEnumerable<SemantizationCore> objects)
+        /// <summary>
+        /// Remplace la sélection courante par l'ensemble donné, en ne modifiant que
+        /// le contour des objets qui changent d'état (évite le clignotement).
+        /// </summary>
+        public static void SetSelection(IEnumerable<SemantizationCore> objects)
         {
-            if (objects == null) return;
-            foreach (SemantizationCore obj in objects.ToList()) Select(obj);
-        }
+            Dictionary<string, SemantizationCore> next = (objects ?? Enumerable.Empty<SemantizationCore>())
+                .Where(o => o != null)
+                .GroupBy(o => o.GetUUID())
+                .ToDictionary(g => g.Key, g => g.First());
 
-        public static void Select(SemantizationCore obj)
-        {
-            if (obj == null) return;
-            _selected[obj.GetUUID()] = obj;
-            SetOutline(obj, true);
-        }
+            // Retirer le contour des objets qui sortent de la sélection.
+            foreach (KeyValuePair<string, SemantizationCore> kv in _selected.ToList())
+                if (!next.ContainsKey(kv.Key))
+                    SetOutline(kv.Value, false);
 
-        public static void Deselect(IEnumerable<SemantizationCore> objects)
-        {
-            if (objects == null) return;
-            foreach (SemantizationCore obj in objects.ToList()) Deselect(obj);
-        }
+            // Ajouter le contour aux nouveaux entrants.
+            foreach (KeyValuePair<string, SemantizationCore> kv in next)
+                if (!_selected.ContainsKey(kv.Key))
+                    SetOutline(kv.Value, true);
 
-        public static void Deselect(SemantizationCore obj)
-        {
-            if (obj == null) return;
-            _selected.Remove(obj.GetUUID());
-            SetOutline(obj, false);
-        }
-
-        public static void Clear()
-        {
-            foreach (SemantizationCore obj in _selected.Values.ToList())
-                SetOutline(obj, false);
             _selected.Clear();
+            foreach (KeyValuePair<string, SemantizationCore> kv in next)
+                _selected[kv.Key] = kv.Value;
         }
 
         /// <summary>
