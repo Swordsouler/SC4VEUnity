@@ -56,7 +56,7 @@ Grenoble pour CARE/CASE, LIMSI/Paris-Saclay pour TYCOON — lignée dont SC4VE/L
 | **Coutaz, Nigay, Salber et al. (1995)** — *CARE properties* | Caractérise la *relation* entre modalités pour une commande donnée. |
 | **Martin (1998)** — *TYCOON* | 6 types de **coopération** entre modalités (vue complémentaire de CARE). |
 | **Oviatt (1999)** — *Ten myths* | Désambiguïsation mutuelle ; les modalités ne sont pas redondantes mais complémentaires. |
-| **Bernsen (1994/2008)** — *Modality Theory* | Taxonomie des modalités d'entrée/sortie (inventaire de l'axe « largeur modale »). |
+| **Bernsen (2008)** — *Multimodality Theory* | Taxonomie des modalités d'entrée/sortie (inventaire de l'axe « largeur modale »). |
 | **Dumas, Lalanne & Oviatt (2009)** — *Survey* | Niveaux de fusion (lexical / syntaxique / sémantique ; early vs late). |
 | **Reeves et al. (2004)** | Lignes directrices de conception (cadrage « bonnes pratiques »). |
 
@@ -340,12 +340,12 @@ Un EV = un fichier `profil-<nom>.md` réutilisant ces sections. La taxonomie (§
 
 ## 9. Références
 
-- Bolt, R. A. (1980). *Put-that-there: Voice and gesture at the graphics interface.* ACM SIGGRAPH Computer Graphics, 14(3), 262–270.
+- Bolt, R. A. (1980). *Put-that-there: Voice and gesture at the graphics interface.* ACM SIGGRAPH Computer Graphics, 14(3), 262–270. <https://doi.org/10.1145/965105.807503>
 - Nigay, L., & Coutaz, J. (1993). *A design space for multimodal systems: concurrent processing and data fusion.* Proc. INTERCHI '93, 172–178. <https://doi.org/10.1145/169059.169143>
 - Coutaz, J., Nigay, L., Salber, D., Blandford, A., May, J., & Young, R. M. (1995). *Four easy pieces for assessing the usability of multimodal interaction: the CARE properties.* Proc. INTERACT '95, 115–120. <http://iihm.imag.fr/publs/1995/Interact95_CARE.pdf>
 - Martin, J.-C. (1998). *TYCOON: Theoretical framework and software tools for multimodal interfaces.* In J. Lee (Ed.), Intelligence and Multimodality in Multimedia Interfaces. AAAI Press.
-- Oviatt, S. (1999). *Ten myths of multimodal interaction.* Communications of the ACM, 42(11), 74–81.
-- Bernsen, N. O. (2008). *Multimodality theory.* In D. Tzovaras (Ed.), Multimodal User Interfaces, 5–29. Springer. (Voir aussi Bernsen, 1994, Interacting with Computers.)
-- Reeves, L. M., et al. (2004). *Guidelines for multimodal user interface design.* Communications of the ACM, 47(1), 57–59.
-- Dumas, B., Lalanne, D., & Oviatt, S. (2009). *Multimodal interfaces: A survey of principles, models and frameworks.* In Human Machine Interaction, LNCS 5440, 3–26. Springer.
-- Lalanne, D., Nigay, L., Palanque, P., Robinson, P., Vanderdonckt, J., & Ladry, J.-F. (2009). *Fusion engines for multimodal input: a survey.* Proc. ICMI-MLMI '09, 153–160.
+- Oviatt, S. (1999). *Ten myths of multimodal interaction.* Communications of the ACM, 42(11), 74–81. <https://doi.org/10.1145/319382.319398>
+- Bernsen, N. O. (2008). *Multimodality theory.* In D. Tzovaras (Ed.), Multimodal User Interfaces: From Signals to Interaction, 5–29. Springer. <https://doi.org/10.1007/978-3-540-78345-9_2>
+- Reeves, L. M., Lai, J., Larson, J. A., Oviatt, S., Balaji, T. S., Buisine, S., et al. (2004). *Guidelines for multimodal user interface design.* Communications of the ACM, 47(1), 57–59. <https://doi.org/10.1145/962081.962106>
+- Dumas, B., Lalanne, D., & Oviatt, S. (2009). *Multimodal interfaces: A survey of principles, models and frameworks.* In Human Machine Interaction, LNCS 5440, 3–26. Springer. <https://doi.org/10.1007/978-3-642-00437-7_1>
+- Lalanne, D., Nigay, L., Palanque, P., Robinson, P., Vanderdonckt, J., & Ladry, J.-F. (2009). *Fusion engines for multimodal input: a survey.* Proc. ICMI-MLMI '09, 153–160. <https://doi.org/10.1145/1647314.1647343> · PDF libre : <http://iihm.imag.fr/publs/2009/FinalSurvey.pdf>

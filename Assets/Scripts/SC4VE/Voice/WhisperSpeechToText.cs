@@ -1,4 +1,5 @@
 using NaughtyAttributes;
+using Sc4ve.Multimodality;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -27,13 +28,23 @@ namespace Sc4ve.Voice
         private bool _isTranscribing;
         private bool _pttKeyActive;
 
-        // Prompt initial : amorce Whisper avec le style « commande vocale française » et des exemples.
-        // Whisper segmente bien mieux les mots liés (« colorie là » au lieu de « colorila ») quand il
-        // est amorcé par des phrases naturelles plutôt que par une simple liste de mots.
-        private const string CommandStylePrompt =
+        // Prompt initial : amorce Whisper avec des exemples de commandes. Whisper segmente bien
+        // mieux les mots liés (« colorie là » au lieu de « colorila ») quand il est amorcé par
+        // des phrases naturelles. Localisé : biaise aussi Whisper vers la bonne langue.
+        private const string CommandStylePromptFr =
             "Commandes vocales en français pour un environnement 3D. " +
             "Exemples : colorie la pomme en rouge ; mets les citrouilles en bleu ; " +
             "déplace ça ici ; agrandis ça là ; sélectionne tout ; masque la voiture rouge.";
+        private const string CommandStylePromptEn =
+            "Voice commands in English for a 3D environment. " +
+            "Examples: color the apple red; make the pumpkins blue; " +
+            "move that here; enlarge that there; select all; hide the red car.";
+
+        // Choix du prompt selon la locale de l'application (UserData.Locale).
+        private static string CommandStylePrompt =>
+            !string.IsNullOrEmpty(UserData.Locale) && UserData.Locale.StartsWith("en")
+                ? CommandStylePromptEn
+                : CommandStylePromptFr;
 
         private void Start()
         {
@@ -42,6 +53,10 @@ namespace Sc4ve.Voice
             {
                 _whisperManager.enableTokens = true;
                 _whisperManager.tokensTimestamps = true;
+                // Langue de reconnaissance = locale de l'application (Whisper est multilingue ;
+                // sans ça il garde son défaut « en » et transcrirait le français en anglais).
+                if (!string.IsNullOrEmpty(UserData.Locale))
+                    _whisperManager.language = UserData.Locale;
                 // Amorcer dès le départ (avant même le chargement du vocabulaire du domaine,
                 // et même en mode LLM où SetGrammar n'est pas appelé).
                 if (string.IsNullOrEmpty(_whisperManager.initialPrompt))

@@ -65,8 +65,10 @@ namespace Sc4ve.Multimodality.Intent
 
         private static string BuildCommandsDescription(Graph graph, string locale)
         {
-            // Description LLM = rdfs:comment localisé ; repli sur l'attribut C# si absent.
+            // Description LLM = rdfs:comment localisé (repli attribut C#) + paramètres requis
+            // déduits des restrictions OWL (source unique, pas de duplication).
             Dictionary<string, List<string>> onto = QueryByCommand(graph, "rdfs:comment", locale);
+            Dictionary<string, List<string>> required = QueryRequiredParams(graph);
             Dictionary<string, string> attr = CommandDescriptionAttribute.GetAllCommandDescriptions();
 
             var lines = new List<string>();
@@ -74,9 +76,38 @@ namespace Sc4ve.Multimodality.Intent
             {
                 string desc = onto.TryGetValue(cmd, out var c) && c.Count > 0 ? c[0]
                             : attr.TryGetValue(cmd, out var a) ? a : null;
-                if (desc != null) lines.Add($"- {cmd}: {desc}");
+                if (desc == null) continue;
+
+                // Ajoute les paramètres (depuis les restrictions) si la description ne les mentionne pas déjà.
+                if (!desc.Contains("Paramètres") && required.TryGetValue(cmd, out var ps) && ps.Count > 0)
+                    desc += " Paramètres: " + string.Join(", ", ps) + ".";
+
+                lines.Add($"- {cmd}: {desc}");
             }
             return string.Join("\n", lines);
+        }
+
+        private static Dictionary<string, List<string>> QueryRequiredParams(Graph graph)
+        {
+            var result = new Dictionary<string, List<string>>();
+            const string query = @"
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
+SELECT ?cmd ?param WHERE {
+    ?cmd rdfs:subClassOf sc4ve:Command .
+    ?cmd rdfs:subClassOf ?r .
+    ?r owl:onProperty sc4ve:hasParameter ; owl:onClass ?param .
+}";
+            if (graph.ExecuteQuery(query) is SparqlResultSet results)
+                foreach (SparqlResult row in results.Cast<SparqlResult>())
+                {
+                    string cmd = LocalName(row["cmd"].ToString());
+                    string param = LocalName(row["param"].ToString());
+                    if (!result.TryGetValue(cmd, out var list)) result[cmd] = list = new List<string>();
+                    if (!list.Contains(param)) list.Add(param);
+                }
+            return result;
         }
 
         /// <summary>Valeurs d'une propriété (localisées) regroupées par commande (nom local).</summary>

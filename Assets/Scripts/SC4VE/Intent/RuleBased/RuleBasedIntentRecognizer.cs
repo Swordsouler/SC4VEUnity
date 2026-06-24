@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Sc4ve.Voice;
+using Sven.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -192,6 +193,14 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         // Détection du type de commande
         // ─────────────────────────────────────────────────────────────────────
 
+        // Stemming dépendant de la locale : le stemmer français n'est appliqué qu'en français.
+        // Pour les autres langues on garde le token normalisé (correspondance exacte), car
+        // FrenchStemmer produirait des racines erronées hors français. Défaut = français.
+        private static bool UseFrenchStemming =>
+            string.IsNullOrEmpty(UserData.Locale) || UserData.Locale.StartsWith("fr");
+        private static string Stem(string normalized) =>
+            UseFrenchStemming ? FrenchStemmer.Stem(normalized) : normalized;
+
         private string DetectCommandType(string text)
         {
             // Normalisation des accents pour la comparaison
@@ -200,7 +209,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // Stems de chaque token du texte d'entrée (pour la comparaison stemmer)
             string[] inputTokens = normalizedText.Split(
                 new[] { ' ', ',', '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
-            string[] inputStems = System.Array.ConvertAll(inputTokens, FrenchStemmer.Stem);
+            string[] inputStems = System.Array.ConvertAll(inputTokens, Stem);
 
             // Pré-vérification : "met(s)/mettre" + mot de destination non-contigu → MoveCommand.
             // Nécessaire quand un pronom ("ça", "le"…) s'intercale entre le verbe et la destination,
@@ -229,7 +238,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 //    stem("coloris") == stem("colorie") == "color" → match
                 if (!trigger.Contains(' '))
                 {
-                    string triggerStem = FrenchStemmer.Stem(normalizedTrigger);
+                    string triggerStem = Stem(normalizedTrigger);
                     foreach (string inputStem in inputStems)
                     {
                         if (inputStem == triggerStem)

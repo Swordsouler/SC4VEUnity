@@ -501,4 +501,160 @@ sc4ve:ColorizeCommand sc4ve:trigger
     "colorize"@en , "colour"@en , "color"@en , "paint"@en , "recolor"@en .
 
 
+sc4ve:SelectAllCommand sc4ve:trigger
+    "sélectionne tout"@fr , "sélectionner tout"@fr , "tout sélectionner"@fr , "sélectionne tous"@fr , "sélectionne toutes"@fr ,
+    "select all"@en , "select everything"@en , "select them all"@en .
+
+sc4ve:UnselectCommand sc4ve:trigger
+    "désélectionne"@fr , "désélectionner"@fr , "démarque"@fr , "démarquer"@fr ,
+    "unselect"@en , "deselect"@en , "unmark"@en , "clear selection"@en .
+
+sc4ve:InvertSelectionCommand sc4ve:trigger
+    "inverse la sélection"@fr , "inverser la sélection"@fr , "inversion"@fr ,
+    "invert selection"@en , "invert the selection"@en , "inverse selection"@en .
+
+sc4ve:DeleteCommand sc4ve:trigger
+    "supprime"@fr , "supprimer"@fr , "efface"@fr , "effacer"@fr , "détruis"@fr , "détruire"@fr , "enlève"@fr , "enlever"@fr , "retire"@fr , "retirer"@fr ,
+    "delete"@en , "deletes"@en , "remove"@en , "erase"@en , "destroy"@en .
+
+sc4ve:DuplicateCommand sc4ve:trigger
+    "duplique"@fr , "dupliquer"@fr , "clone"@fr , "cloner"@fr , "crée une copie"@fr , "créer une copie"@fr , "copie"@fr , "copier"@fr ,
+    "duplicate"@en , "clone"@en , "copy"@en , "make a copy"@en .
+
+sc4ve:GrabCommand sc4ve:trigger
+    "attrape"@fr , "attraper"@fr , "prends"@fr , "prendre"@fr , "saisit"@fr , "saisir"@fr , "empare"@fr , "emparer"@fr ,
+    "grab"@en , "take"@en , "pick up"@en , "grasp"@en .
+
+sc4ve:ReleaseCommand sc4ve:trigger
+    "lâche"@fr , "lâcher"@fr , "pose"@fr , "poser"@fr , "libère"@fr , "libérer"@fr , "dépose"@fr , "déposer"@fr ,
+    "release"@en , "drop"@en , "let go"@en , "put down"@en .
+
+sc4ve:MoveCommand sc4ve:trigger
+    "déplace"@fr , "déplacer"@fr , "bouge"@fr , "bouger"@fr , "amène"@fr , "amener"@fr , "place"@fr , "placer"@fr , "repositionne"@fr , "transporte"@fr , "mets ici"@fr , "mets là"@fr , "mets là-bas"@fr ,
+    "move"@en , "put here"@en , "put there"@en , "place"@en , "relocate"@en , "bring here"@en .
+
+sc4ve:RotateLeftCommand sc4ve:trigger
+    "tourne à gauche"@fr , "pivote à gauche"@fr , "rotation gauche"@fr , "tourne gauche"@fr ,
+    "rotate left"@en , "turn left"@en , "rotate to the left"@en .
+
+sc4ve:RotateRightCommand sc4ve:trigger
+    "tourne à droite"@fr , "pivote à droite"@fr , "rotation droite"@fr , "tourne droite"@fr , "tourne"@fr , "pivote"@fr , "faire pivoter"@fr , "rotation"@fr ,
+    "rotate right"@en , "turn right"@en , "rotate to the right"@en , "rotate"@en , "turn"@en .
+
+sc4ve:FlipCommand sc4ve:trigger
+    "retourne"@fr , "retourner"@fr , "inverse"@fr , "inverser"@fr , "miroir"@fr , "flip"@fr ,
+    "flip"@en , "mirror"@en , "turn over"@en .
+
+sc4ve:ScaleUpCommand sc4ve:trigger
+    "augmente la taille"@fr , "grossis"@fr , "grossit"@fr , "agrandis"@fr , "agrandit"@fr , "grandit"@fr , "grandir"@fr , "grossir"@fr , "agrandir"@fr ,
+    "scale up"@en , "grow"@en , "bigger"@en , "enlarge"@en , "make bigger"@en .
+
+sc4ve:ScaleDownCommand sc4ve:trigger
+    "diminue la taille"@fr , "rapetisse"@fr , "réduis"@fr , "réduit"@fr , "diminue"@fr , "rétrécis"@fr , "rétrécit"@fr , "rapetisser"@fr , "réduire"@fr , "rétrécir"@fr ,
+    "scale down"@en , "shrink"@en , "smaller"@en , "reduce"@en , "make smaller"@en .
+
+sc4ve:AlignCommand sc4ve:trigger
+    "aligne"@fr , "aligner"@fr , "même hauteur"@fr , "à la même hauteur"@fr ,
+    "align"@en , "aligns"@en , "same height"@en , "level"@en .
+
+sc4ve:SnapToGroundCommand sc4ve:trigger
+    "pose au sol"@fr , "met au sol"@fr , "mets au sol"@fr , "aligne au sol"@fr , "snap au sol"@fr , "au sol"@fr ,
+    "snap to ground"@en , "put on the ground"@en , "drop to floor"@en , "on the ground"@en .
+
+sc4ve:FocusCommand sc4ve:trigger
+    "focus sur"@fr , "focalise sur"@fr , "regarde"@fr , "zoom sur"@fr , "centre sur"@fr , "focus"@fr , "focalise"@fr , "zoome"@fr ,
+    "focus on"@en , "look at"@en , "zoom on"@en , "center on"@en , "focus"@en .
+
+sc4ve:HighlightCommand sc4ve:trigger
+    "surligne"@fr , "souligne"@fr , "met en évidence"@fr , "mets en évidence"@fr , "illumine"@fr , "illuminer"@fr ,
+    "highlight"@en , "emphasize"@en , "outline"@en .
+
+sc4ve:SetTransparentCommand sc4ve:trigger
+    "rends transparent"@fr , "rend transparent"@fr , "transparence"@fr , "semi-transparent"@fr , "rends semi-transparent"@fr ,
+    "make transparent"@en , "transparent"@en , "semi-transparent"@en , "transparency"@en .
+
+sc4ve:SetOpaqueCommand sc4ve:trigger
+    "rends opaque"@fr , "rend opaque"@fr , "opaque"@fr , "enlève la transparence"@fr , "retire la transparence"@fr ,
+    "make opaque"@en , "opaque"@en , "remove transparency"@en .
+
+sc4ve:ColorizeDarkerCommand sc4ve:trigger
+    "rends plus sombre"@fr , "rend plus sombre"@fr , "assombris"@fr , "assombrit"@fr , "noircis"@fr , "noircit"@fr , "fonce"@fr , "foncer"@fr , "obscurcis"@fr , "obscurcit"@fr ,
+    "darken"@en , "darker"@en , "make darker"@en .
+
+sc4ve:ColorizeLighterCommand sc4ve:trigger
+    "rends plus clair"@fr , "rend plus clair"@fr , "éclaircis"@fr , "éclaircit"@fr , "illumine"@fr , "éclaire"@fr ,
+    "lighten"@en , "lighter"@en , "brighten"@en , "make lighter"@en .
+
+sc4ve:ColorizeCopyCommand sc4ve:trigger
+    "copie la couleur"@fr , "copier la couleur"@fr , "colorie comme"@fr , "même couleur que"@fr ,
+    "copy the color"@en , "copy color"@en , "same color as"@en , "match color"@en .
+
+sc4ve:ResetColorCommand sc4ve:trigger
+    "couleur d'origine"@fr , "couleur originale"@fr , "couleur par défaut"@fr , "réinitialise la couleur"@fr , "reset la couleur"@fr , "restaure la couleur"@fr ,
+    "original color"@en , "default color"@en , "reset color"@en , "restore color"@en .
+
+sc4ve:ResetScaleCommand sc4ve:trigger
+    "taille normale"@fr , "taille originale"@fr , "taille par défaut"@fr , "réinitialise la taille"@fr , "reset la taille"@fr ,
+    "normal size"@en , "original size"@en , "default size"@en , "reset size"@en , "reset scale"@en .
+
+sc4ve:ResetTransformCommand sc4ve:trigger
+    "réinitialise"@fr , "réinitialiser"@fr , "remet en place"@fr , "position d'origine"@fr , "état d'origine"@fr , "restaure la position"@fr ,
+    "reset transform"@en , "original position"@en , "put back"@en , "reset position"@en .
+
+sc4ve:ResetSceneCommand sc4ve:trigger
+    "réinitialise la scène"@fr , "remet la scène"@fr , "reset la scène"@fr , "tout réinitialiser"@fr , "remet tout"@fr , "restaure la scène"@fr ,
+    "reset the scene"@en , "reset scene"@en , "reset everything"@en , "restore the scene"@en .
+
+sc4ve:CountCommand sc4ve:trigger
+    "combien"@fr , "compte les"@fr , "compter"@fr , "nombre de"@fr ,
+    "how many"@en , "count"@en , "number of"@en .
+
+sc4ve:DescribeCommand sc4ve:trigger
+    "décris"@fr , "décrire"@fr , "infos"@fr , "informations"@fr , "propriétés"@fr , "qu'est-ce que c'est"@fr , "c'est quoi"@fr ,
+    "describe"@en , "info"@en , "information"@en , "properties"@en , "what is it"@en , "what is this"@en .
+
+sc4ve:MeasureCommand sc4ve:trigger
+    "mesure"@fr , "mesurer"@fr , "calcule la distance"@fr , "calculer la distance"@fr , "quelle est la distance"@fr ,
+    "measure"@en , "distance"@en , "how far"@en , "compute the distance"@en .
+
+sc4ve:UndoCommand sc4ve:trigger
+    "annule"@fr , "annuler"@fr , "défais"@fr , "défaire"@fr ,
+    "undo"@en , "undoes"@en , "cancel"@en .
+
+sc4ve:RedoCommand sc4ve:trigger
+    "rétablis"@fr , "rétablir"@fr , "refais"@fr , "refaire"@fr ,
+    "redo"@en , "redoes"@en .
+
+
+#################################################################
+#    Descriptions LLM bilingues des commandes complémentaires
+#    (les 11 commandes d'origine ont déjà leur rdfs:comment plus haut)
+#################################################################
+
+sc4ve:AlignCommand rdfs:comment "Aligne les objets à la même hauteur (Y) que le premier sélectionné."@fr , "Aligns objects to the same height (Y) as the first selected one."@en .
+sc4ve:ColorizeCopyCommand rdfs:comment "Applique la couleur d'un objet (source) à d'autres (cible)."@fr , "Applies the color of one object (source) to others (target)."@en .
+sc4ve:ColorizeDarkerCommand rdfs:comment "Assombrit la couleur des objets."@fr , "Darkens the objects' color."@en .
+sc4ve:ColorizeLighterCommand rdfs:comment "Éclaircit la couleur des objets."@fr , "Lightens the objects' color."@en .
+sc4ve:CountCommand rdfs:comment "Compte les objets correspondant au filtre et l'énonce."@fr , "Counts the objects matching the filter and announces the result."@en .
+sc4ve:DeleteCommand rdfs:comment "Supprime (désactive) les objets sélectionnés ; annulable."@fr , "Deletes (disables) the selected objects; undoable."@en .
+sc4ve:DescribeCommand rdfs:comment "Décrit les propriétés des objets (position, couleur…)."@fr , "Describes the objects' properties (position, color…)."@en .
+sc4ve:DuplicateCommand rdfs:comment "Duplique les objets ; avec une destination, instancie la copie à cet endroit."@fr , "Duplicates objects; with a destination, instantiates the copy there."@en .
+sc4ve:FlipCommand rdfs:comment "Retourne les objets de 180° (axe Y)."@fr , "Flips objects by 180° (Y axis)."@en .
+sc4ve:FocusCommand rdfs:comment "Oriente la caméra principale vers les objets."@fr , "Points the main camera toward the objects."@en .
+sc4ve:HighlightCommand rdfs:comment "Active ou désactive la mise en évidence des objets."@fr , "Toggles highlighting of the objects."@en .
+sc4ve:ResetColorCommand rdfs:comment "Remet les objets à leur couleur d'origine."@fr , "Restores the objects' original color."@en .
+sc4ve:ResetScaleCommand rdfs:comment "Remet la taille des objets à (1,1,1)."@fr , "Resets the objects' scale to (1,1,1)."@en .
+sc4ve:ResetTransformCommand rdfs:comment "Remet position, rotation et taille des objets à leur valeur d'origine."@fr , "Resets the objects' position, rotation and scale to their original values."@en .
+sc4ve:RotateLeftCommand rdfs:comment "Fait pivoter les objets de 45° vers la gauche (axe Y)."@fr , "Rotates objects 45° to the left (Y axis)."@en .
+sc4ve:RotateRightCommand rdfs:comment "Fait pivoter les objets de 45° vers la droite (axe Y)."@fr , "Rotates objects 45° to the right (Y axis)."@en .
+sc4ve:SetOpaqueCommand rdfs:comment "Rend les objets entièrement opaques."@fr , "Makes the objects fully opaque."@en .
+sc4ve:SetTransparentCommand rdfs:comment "Rend les objets semi-transparents."@fr , "Makes the objects semi-transparent."@en .
+sc4ve:SnapToGroundCommand rdfs:comment "Pose les objets sur le sol (raycast vers le bas)."@fr , "Drops the objects onto the ground (downward raycast)."@en .
+sc4ve:InvertSelectionCommand rdfs:comment "Inverse la sélection courante."@fr , "Inverts the current selection."@en .
+sc4ve:SelectAllCommand rdfs:comment "Sélectionne tous les objets actifs de la scène."@fr , "Selects all active objects in the scene."@en .
+sc4ve:ResetSceneCommand rdfs:comment "Remet tous les objets à leur état initial."@fr , "Resets all objects to their initial state."@en .
+sc4ve:UndoCommand rdfs:comment "Annule la dernière action."@fr , "Undoes the last action."@en .
+sc4ve:RedoCommand rdfs:comment "Rétablit la dernière action annulée."@fr , "Redoes the last undone action."@en .
+
+
 ###  Generated by the OWL API (version 4.5.26.2023-07-17T20:34:13Z) https://github.com/owlcs/owlapi
