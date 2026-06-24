@@ -206,29 +206,39 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // Correction des homophones STT
+        // Correction des confusions STT — PAR LANGUE
         // ─────────────────────────────────────────────────────────────────────
         //
-        // Le STT peut confondre des homophones : "mets" (/mɛ/) → "mais".
-        // La grammaire Vosk réduit ces erreurs, mais pas pour les premières
-        // phrases arrivant avant que la grammaire soit appliquée.
-        // Ce dictionnaire corrige les homophones token par token.
+        // Le STT confond certains mots (Whisper : « déplace » → « dépasse » ; Vosk : « mets »
+        // → « mais »…). On corrige token par token AVANT la détection. Ces corrections sont
+        // PROPRES À CHAQUE LANGUE : les appliquer à une autre langue corromprait l'entrée
+        // (ex: l'anglais « on » deviendrait le français « ont »). La table suit la locale active.
 
-        private static readonly Dictionary<string, string> CommandHomophones =
+        private static readonly Dictionary<string, string> HomophonesFr =
             new(StringComparer.OrdinalIgnoreCase)
             {
                 { "mais",  "mets"   },   // /mɛ/  : "mais" (conj.) → "mets" (mettre)
                 { "est",   "et"     },   // /ɛ/   : "est" (être)   → "et"   (conj.) — rare
                 { "ses",   "ces"    },   // /se/  : "ses" (poss.)  → "ces"  (dém.)
-                { "on",    "ont"    },   // /ɔ̃/  : "on" → "ont" — contextuel, désactivé par défaut
+                { "on",    "ont"    },   // /ɔ̃/  : "on" → "ont"
+                { "dépasse",  "déplace"  },   // Whisper confond /deplas/ (déplace) et /depas/ (dépasse)
+                { "dépasser", "déplacer" },
+                { "dépassé",  "déplacé"  },
             };
+
+        // Confusions propres à l'anglais — à compléter au fil des tests (vide = aucune correction).
+        private static readonly Dictionary<string, string> HomophonesEn =
+            new(StringComparer.OrdinalIgnoreCase) { };
+
+        // Table de correction de la langue active.
+        private static Dictionary<string, string> ActiveHomophones => IsFrench ? HomophonesFr : HomophonesEn;
 
         private static string CorrectHomophones(string text)
         {
             string[] tokens = text.Split(' ');
             for (int i = 0; i < tokens.Length; i++)
             {
-                if (CommandHomophones.TryGetValue(tokens[i], out string correction))
+                if (ActiveHomophones.TryGetValue(tokens[i], out string correction))
                     tokens[i] = correction;
             }
             return string.Join(" ", tokens);
@@ -241,10 +251,12 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         // Stemming dépendant de la locale : le stemmer français n'est appliqué qu'en français.
         // Pour les autres langues on garde le token normalisé (correspondance exacte), car
         // FrenchStemmer produirait des racines erronées hors français. Défaut = français.
-        private static bool UseFrenchStemming =>
+        // Vrai si la locale active est le français (défaut). Sert au stemming ET au choix de
+        // la table de corrections STT.
+        private static bool IsFrench =>
             string.IsNullOrEmpty(UserData.Locale) || UserData.Locale.StartsWith("fr");
         private static string Stem(string normalized) =>
-            UseFrenchStemming ? FrenchStemmer.Stem(normalized) : normalized;
+            IsFrench ? FrenchStemmer.Stem(normalized) : normalized;
 
         private string DetectCommandType(string text)
         {
