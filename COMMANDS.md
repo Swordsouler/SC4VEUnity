@@ -10,8 +10,9 @@ Ce guide explique comment ajouter une nouvelle commande vocale au système SC4VE
 2. [Étape 1 — Créer la classe Command](#2-étape-1--créer-la-classe-command)
 3. [Étape 2 — Mode RuleBased : ajouter les déclencheurs](#3-étape-2--mode-rulebased--ajouter-les-déclencheurs)
 4. [Étape 3 — Mode LLM : rien à faire](#4-étape-3--mode-llm--rien-à-faire)
-5. [Référence des paramètres](#5-référence-des-paramètres)
-6. [Exemple complet : RotateCommand](#6-exemple-complet--rotatecommand)
+5. [Étape 4 — Mettre à jour l'ontologie sc4ve](#5-étape-4--mettre-à-jour-lontologie-sc4ve)
+6. [Référence des paramètres](#6-référence-des-paramètres)
+7. [Exemple complet : RotateCommand](#7-exemple-complet--rotatecommand)
 
 ---
 
@@ -178,7 +179,64 @@ Le prompt système injecte cette liste automatiquement. La seule chose qui compt
 
 ---
 
-## 5. Référence des paramètres
+## 5. Étape 4 — Mettre à jour l'ontologie sc4ve
+
+**Fichier :** `Assets/StreamingAssets/Ontologies/sc4ve.ttl`
+
+L'ontologie est la **source de vérité** des exigences de paramètres et des messages de
+clarification (bilingues). `ClarificationVocabulary` la lit au démarrage. **Si une commande
+n'y figure pas avec ses restrictions, elle ne déclenchera jamais de clarification « manque de
+paramètre »** (elle s'exécutera sur 0 objet en silence, comme avant).
+
+### 5.1 — Déclarer la classe de commande
+
+Le nom local DOIT être **identique** au nom du type C# (ex: `sc4ve:RotateLeftCommand` ↔ `RotateLeftCommand`).
+Toujours fournir les labels `@fr` **ET** `@en`.
+
+```turtle
+sc4ve:YourCommand rdf:type owl:Class ;
+    rdfs:subClassOf sc4ve:Command ;
+    rdfs:label "Your Command"@en , "Votre Commande"@fr .
+```
+
+### 5.2 — Déclarer les paramètres REQUIS (restrictions OWL)
+
+Pour chaque paramètre **obligatoire**, ajoute une restriction. C'est ce qui permet de détecter
+un manque de paramètre et de poser la bonne question (le message vient de la classe de paramètre).
+
+```turtle
+sc4ve:YourCommand rdf:type owl:Class ;
+    rdfs:subClassOf sc4ve:Command ,
+        [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ;
+          owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Your Command"@en , "Votre Commande"@fr .
+```
+
+Règles :
+- **Cardinalité** = nombre d'instances requises (`MeasureCommand` : `2` `PointParameter` ; `ColorizeCopyCommand` : `2` `SelectionParameter`). Une restriction par type de paramètre.
+- **Paramètre optionnel → PAS de restriction** (ex: la destination de `DuplicateCommand`). Sinon la commande réclamerait une clarification à tort.
+- **Aucun paramètre requis → aucune restriction** (`UndoCommand`, `SelectAllCommand`, `ResetSceneCommand`, `InvertSelectionCommand`…).
+- Un `SelectionParameter` n'est compté « fourni » que s'il porte au moins un filtre (annotation, couleur, pointage ou coréférence) ; un SelectionParameter vide = cible absente → clarification « Sur quels objets ? ».
+
+### 5.3 — Nouveau TYPE de paramètre uniquement
+
+Les messages des paramètres existants (`SelectionParameter`, `ColorParameter`, `PointParameter`)
+sont déjà définis et **réutilisés** par toutes les commandes — rien à refaire. Si tu introduis
+un **nouveau** type de paramètre, déclare-le et ajoute son message bilingue :
+
+```turtle
+sc4ve:YourParameter rdf:type owl:Class ; rdfs:subClassOf sc4ve:Parameter ;
+    rdfs:label "Your Parameter"@en , "Votre Paramètre"@fr .
+sc4ve:YourParameter sc4ve:clarification "Question ?"@fr , "Question?"@en .
+```
+
+> ⚠️ **Bilingue obligatoire** : chaque `rdfs:label` / `rdfs:comment` / `sc4ve:clarification` doit avoir `@fr` **et** `@en`. Sans le label dans la locale active, le message correspondant sera muet.
+>
+> ⚠️ **Syntaxe Turtle** : une erreur dans `sc4ve.ttl` fait échouer le chargement de **tous** les vocabulaires (couleurs, annotations, clarifications). Vérifie au premier lancement qu'il n'y a pas d'erreur de parsing.
+
+---
+
+## 6. Référence des paramètres
 
 ### Types de paramètres disponibles
 
@@ -224,7 +282,7 @@ Les filtres peuvent être combinés avec les opérateurs `"AND"` et `"OR"` dans 
 
 ---
 
-## 6. Exemple complet : RotateCommand
+## 7. Exemple complet : RotateCommand
 
 Fait pivoter de 45° les objets sélectionnés autour de l'axe Y.
 
@@ -305,7 +363,10 @@ case "RotateCommand":
 
 - [ ] Fichier `YourCommand.cs` dans `Assets/Scripts/SC4VE/Intent/Command/`
 - [ ] `[Serializable]` sur la classe
-- [ ] `[CommandDescription("...")]` avec description des paramètres
+- [ ] `[CommandDescription("...")]` avec description des paramètres (mode LLM)
+- [ ] `[RuleBasedTriggers("...")]` avec les déclencheurs (mode RuleBased)
+- [ ] `BuildRuleBasedParameters` surchargé **si** la commande a d'autres paramètres que le `SelectionParameter` par défaut
 - [ ] `Execute()` retourne la liste des objets affectés
-- [ ] (Mode RuleBased) Entrée dans `ActionMappings`
-- [ ] (Mode RuleBased) `case "YourCommand":` dans `BuildCommands`
+- [ ] **Ontologie `sc4ve.ttl`** : classe `sc4ve:YourCommand` avec labels `@fr` **et** `@en`
+- [ ] **Ontologie** : restrictions OWL pour chaque paramètre **requis** (sinon pas de clarification « manque de paramètre »)
+- [ ] **Ontologie** : si nouveau type de paramètre → message `sc4ve:clarification` bilingue

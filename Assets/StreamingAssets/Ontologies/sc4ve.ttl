@@ -290,14 +290,9 @@ sc4ve:ShowCommand rdf:type owl:Class ;
 
 ###  https://sc4ve.lisn.upsaclay.fr/ontology#UnselectCommand
 sc4ve:UnselectCommand rdf:type owl:Class ;
-                      rdfs:subClassOf sc4ve:Command ,
-                                      [ rdf:type owl:Restriction ;
-                                        owl:onProperty sc4ve:hasParameter ;
-                                        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
-                                        owl:onClass sc4ve:SelectionParameter
-                                      ] ;
-                      rdfs:comment "A command to unselect objects."@en ,
-                                   "Une commande pour désélectionner des objets."@fr ;
+                      rdfs:subClassOf sc4ve:Command ;
+                      rdfs:comment "A command to unselect objects (optionally all of them)."@en ,
+                                   "Une commande pour désélectionner des objets (éventuellement tous)."@fr ;
                       rdfs:label "Commande de Désélection"@fr ,
                                  "Unselect Command"@en .
 
@@ -325,6 +320,151 @@ sven:Primitive rdf:type owl:Class .
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Vector2
 sven:Vector2 rdf:type owl:Class .
+
+
+#################################################################
+#    Gestion d'ambiguïté — messages bilingues
+#################################################################
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#clarification
+sc4ve:clarification rdf:type owl:DatatypeProperty ;
+                    rdfs:domain sc4ve:Parameter ;
+                    rdfs:range xsd:string ;
+                    rdfs:comment "Question posée à l'utilisateur lorsqu'un paramètre requis de ce type est manquant."@fr ,
+                                 "Question asked to the user when a required parameter of this type is missing."@en ;
+                    rdfs:label "clarification"@en ,
+                               "clarification"@fr .
+
+
+###  Messages de clarification par type de paramètre manquant (manque de paramètre)
+sc4ve:SelectionParameter sc4ve:clarification "Sur quels objets ?"@fr ,
+                                             "On which objects?"@en .
+
+sc4ve:ColorParameter sc4ve:clarification "En quelle couleur ?"@fr ,
+                                         "In which color?"@en .
+
+sc4ve:PointParameter sc4ve:clarification "À quel endroit ?"@fr ,
+                                         "To which location?"@en .
+
+
+###  https://sc4ve.lisn.upsaclay.fr/ontology#notUnderstood
+###  Message générique énoncé quand aucune intention n'est reconnue (manque de sens).
+sc4ve:notUnderstood rdf:type owl:NamedIndividual ;
+                    rdfs:comment "Énoncé quand aucune intention n'est reconnue."@fr ,
+                                 "Spoken when no intent is recognized."@en ;
+                    rdfs:label "Je n'ai pas compris, peux-tu reformuler ?"@fr ,
+                               "I didn't understand, could you rephrase?"@en .
+
+
+#################################################################
+#    Commandes — exigences de paramètres (lues par ClarificationVocabulary)
+#
+#    AJOUTER UNE COMMANDE (voir COMMANDS.md, Étape 4) :
+#    1. Déclarer une classe sous sc4ve:Command, avec labels @fr ET @en.
+#       Le nom local DOIT être identique au type C# (ex: sc4ve:RotateLeftCommand
+#       <-> RotateLeftCommand).
+#    2. Pour chaque paramètre REQUIS, ajouter une restriction OWL :
+#         [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ;
+#           owl:qualifiedCardinality "N"^^xsd:nonNegativeInteger ;
+#           owl:onClass sc4ve:XParameter ]
+#       - paramètre optionnel -> PAS de restriction (sinon clarification a tort)
+#       - aucun paramètre requis -> aucune restriction
+#    3. Nouveau type de paramètre -> ajouter sa classe + sc4ve:clarification (@fr/@en).
+#################################################################
+
+###  Commandes agissant sur une sélection (1 SelectionParameter requis)
+sc4ve:AlignCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Align Command"@en , "Commande d'Alignement"@fr .
+
+sc4ve:ColorizeDarkerCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Darken Command"@en , "Commande d'Assombrissement"@fr .
+
+sc4ve:ColorizeLighterCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Lighten Command"@en , "Commande d'Éclaircissement"@fr .
+
+sc4ve:CountCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Count Command"@en , "Commande de Comptage"@fr .
+
+sc4ve:DeleteCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Delete Command"@en , "Commande de Suppression"@fr .
+
+sc4ve:DescribeCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Describe Command"@en , "Commande de Description"@fr .
+
+sc4ve:DuplicateCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Duplicate Command"@en , "Commande de Duplication"@fr .
+
+sc4ve:FlipCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Flip Command"@en , "Commande de Retournement"@fr .
+
+sc4ve:FocusCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Focus Command"@en , "Commande de Focalisation"@fr .
+
+sc4ve:HighlightCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Highlight Command"@en , "Commande de Mise en Évidence"@fr .
+
+sc4ve:ResetColorCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Reset Color Command"@en , "Commande de Réinitialisation de Couleur"@fr .
+
+sc4ve:ResetScaleCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Reset Scale Command"@en , "Commande de Réinitialisation de Taille"@fr .
+
+sc4ve:ResetTransformCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Reset Transform Command"@en , "Commande de Réinitialisation de Transformation"@fr .
+
+sc4ve:RotateLeftCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Rotate Left Command"@en , "Commande de Rotation Gauche"@fr .
+
+sc4ve:RotateRightCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Rotate Right Command"@en , "Commande de Rotation Droite"@fr .
+
+sc4ve:SetOpaqueCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Set Opaque Command"@en , "Commande d'Opacité"@fr .
+
+sc4ve:SetTransparentCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Set Transparent Command"@en , "Commande de Transparence"@fr .
+
+sc4ve:SnapToGroundCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Snap To Ground Command"@en , "Commande de Pose au Sol"@fr .
+
+###  Copie de couleur : 2 SelectionParameter (cible + source)
+sc4ve:ColorizeCopyCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "2"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Copy Color Command"@en , "Commande de Copie de Couleur"@fr .
+
+###  Commandes sans paramètre requis (aucune restriction → aucune clarification)
+sc4ve:InvertSelectionCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ;
+    rdfs:label "Invert Selection Command"@en , "Commande d'Inversion de Sélection"@fr .
+
+sc4ve:SelectAllCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ;
+    rdfs:label "Select All Command"@en , "Commande de Sélection Totale"@fr .
+
+sc4ve:ResetSceneCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ;
+    rdfs:label "Reset Scene Command"@en , "Commande de Réinitialisation de Scène"@fr .
+
+sc4ve:UndoCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ;
+    rdfs:label "Undo Command"@en , "Commande d'Annulation"@fr .
+
+sc4ve:RedoCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ;
+    rdfs:label "Redo Command"@en , "Commande de Rétablissement"@fr .
 
 
 ###  Generated by the OWL API (version 4.5.26.2023-07-17T20:34:13Z) https://github.com/owlcs/owlapi

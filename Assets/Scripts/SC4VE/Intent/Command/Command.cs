@@ -94,7 +94,7 @@ namespace Sc4ve.Multimodality.Intent
         /// Énonce un texte via la synthèse vocale (Piper) si un PiperTextToSpeech est présent
         /// dans la scène. Sans effet (avertissement) sinon. La langue est gérée par le composant.
         /// </summary>
-        protected static void Speak(string text)
+        public static void Speak(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             PiperTextToSpeech tts = UnityEngine.Object.FindFirstObjectByType<PiperTextToSpeech>();

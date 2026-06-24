@@ -492,6 +492,7 @@ JSON Attendu:
                         if (string.IsNullOrWhiteSpace(commandJson))
                         {
                             Debug.LogWarning("[RuleBased] Aucune commande produite pour cette phrase.");
+                            Command.Speak(ClarificationVocabulary.NotUnderstood); // manque de sens
                             continue;
                         }
                     }
@@ -502,13 +503,18 @@ JSON Attendu:
                         if (string.IsNullOrWhiteSpace(commandJson))
                         {
                             Debug.LogWarning("[LLM] Received empty or null JSON from LLM after all attempts.");
+                            Command.Speak(ClarificationVocabulary.NotUnderstood); // manque de sens
                             continue;
                         }
                         Debug.Log($"[LLM] Received FINAL JSON: {commandJson}");
                     }
 
                     List<Command> commands = DeserializeCommand(commandJson);
-                    if (commands == null) continue;
+                    if (commands == null || commands.Count == 0 || commands.Any(c => c is UnknownCommand))
+                    {
+                        Command.Speak(ClarificationVocabulary.NotUnderstood); // manque de sens
+                        continue;
+                    }
 
                     await CommandToGraphOutputCommandAsync(commands);
                     ResolveCommands(commands);
@@ -661,6 +667,9 @@ JSON Attendu:
             _cameraNamesString = string.Join(", ", cameraNames.Select(n => $"{n}"));
 
             _availableCommandsString = CommandDescriptionAttribute.GetAvailableCommandsString();
+
+            // Exigences de paramètres + messages de clarification (bilingues) depuis l'ontologie.
+            await ClarificationVocabulary.InitializeAsync();
 
             // Compilation du prompt système définitif (fait une seule fois par session).
             // Le résultat est identique entre tous les appels → OpenAI peut le mettre en
@@ -946,6 +955,20 @@ JSON Attendu:
 
         public void ResolveCommands(List<Command> commands)
         {
+            // Manque de paramètre : si une commande a un paramètre requis manquant (d'après
+            // les restrictions OWL de l'ontologie), on pose la question de clarification
+            // (bilingue, depuis le graphe) et on n'exécute rien — la sélection reste inchangée.
+            foreach (Command command in commands)
+            {
+                string clarification = ClarificationVocabulary.GetMissingParameterPrompt(command);
+                if (clarification != null)
+                {
+                    Debug.Log($"[Clarification] {command.Type} : paramètre manquant → « {clarification} »");
+                    Command.Speak(clarification);
+                    return;
+                }
+            }
+
             int undoBefore = CommandHistory.UndoCount;
 
             List<SemantizationCore> lastObjects = new();
