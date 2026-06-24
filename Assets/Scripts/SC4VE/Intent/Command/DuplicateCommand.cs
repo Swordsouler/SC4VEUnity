@@ -11,21 +11,12 @@ namespace Sc4ve.Multimodality.Intent
     [RuleBasedTriggers("duplique", "dupliquer", "clone", "cloner", "crée une copie", "créer une copie", "copie", "copier")]
     public class DuplicateCommand : Command
     {
-        // Mots de destination déclenchant un placement au pointeur (« copie cet objet ici »).
-        // Reflète la liste DestinationWords du RuleBasedIntentRecognizer.
-        private static readonly string[] DestinationWords =
-        {
-            "ici", "là-bas", "là-haut", "là", "dessus", "dessous",
-            "devant", "derrière", "à droite", "à gauche"
-        };
-
         // Comme MoveCommand : sélection source pointée avant de parler, + destination
-        // optionnelle (uniquement si la phrase contient un mot de destination).
+        // optionnelle (uniquement si la phrase indique un endroit, « copie cet objet ici »).
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
         {
             var ps = new List<Parameter> { ctx.BuildSelectionParameter(useStartedAt: true) };
-            if (DestinationWords.Any(w => ctx.Text.Contains(w, StringComparison.OrdinalIgnoreCase)))
-                ps.Add(ctx.BuildDestinationParameter());
+            if (ctx.HasDestination) ps.Add(ctx.BuildDestinationParameter());
             return ps;
         }
 

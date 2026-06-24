@@ -160,6 +160,51 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             return json;
         }
 
+        /// <summary>
+        /// Tente de compléter une commande en attente de clarification avec le paramètre fourni
+        /// par cette phrase-réponse (« en bleu » → couleur ; « là-bas » → destination).
+        /// Retourne le JSON de la commande complétée, ou null si la phrase n'apporte pas le
+        /// paramètre manquant. Permet le dialogue : « Colorie cette banane » → « En bleu ».
+        /// </summary>
+        public string CompletePending(Sentence sentence, Command pending)
+        {
+            if (sentence == null || string.IsNullOrWhiteSpace(sentence.Text) || pending == null)
+                return null;
+
+            string text = CorrectHomophones(sentence.Text.ToLowerInvariant().Trim());
+            List<Word> words = sentence.Words ?? new List<Word>();
+            var ps = new List<Parameter>(pending.Parameters ?? new List<Parameter>());
+            bool filled = false;
+
+            // Réponse de type couleur (ex: ColorizeCommand en attente → « en bleu »).
+            if (ps.OfType<ColorParameter>().FirstOrDefault() == null)
+            {
+                RuleBasedColor color = FindColors(text, words).FirstOrDefault();
+                if (color.Value != null)
+                {
+                    ps.Insert(0, new ColorParameter { Type = "ColorParameter", Value = color.Value, Timestamp = color.Timestamp });
+                    filled = true;
+                }
+            }
+
+            // Réponse de type destination (ex: MoveCommand en attente → « là-bas » / pointage).
+            if (!filled && ps.OfType<PointParameter>().FirstOrDefault() == null &&
+                DestinationWords.Any(w => text.Contains(w, StringComparison.OrdinalIgnoreCase)))
+            {
+                DateTime end = words.Count > 0 ? words[^1].EndedAt : DateTime.Now;
+                ps.Add(new PointParameter { Type = "PointParameter", Value = _pointerName,
+                                            Timestamp = end.AddMilliseconds(_movePointDelayMs) });
+                filled = true;
+            }
+
+            if (!filled) return null;
+
+            pending.Parameters = ps;
+            string completed = JsonConvert.SerializeObject(new List<Command> { pending }, Formatting.Indented);
+            Debug.Log($"[RuleBased] Complétion de {pending.Type} :\n{completed}");
+            return completed;
+        }
+
         // ─────────────────────────────────────────────────────────────────────
         // Correction des homophones STT
         // ─────────────────────────────────────────────────────────────────────

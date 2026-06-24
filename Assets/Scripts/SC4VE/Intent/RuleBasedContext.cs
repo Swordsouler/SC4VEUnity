@@ -31,6 +31,17 @@ namespace Sc4ve.Multimodality.Intent
         // Helpers
         // ──────────────────────────────────────────────────────────────────
 
+        // Mots indiquant une destination spatiale (« mets ça ici », « déplace-le là-bas »).
+        private static readonly string[] DestinationWords =
+        {
+            "ici", "là-bas", "là-haut", "là", "dessus", "dessous",
+            "devant", "derrière", "à droite", "à gauche"
+        };
+
+        /// <summary>Vrai si la phrase indique une destination spatiale (pour Move/Duplicate).</summary>
+        public bool HasDestination =>
+            Text != null && DestinationWords.Any(w => Text.Contains(w, StringComparison.OrdinalIgnoreCase));
+
         /// <summary>
         /// Construit le SelectionParameter standard à partir des entités extraites.
         /// <paramref name="useStartedAt"/> = true pour MoveCommand (source pointée avant de parler).

@@ -16,9 +16,10 @@ fournir une base réutilisable, ancrée dans la littérature HCI, que l'on éten
 4. [Typologie : patterns d'interaction et catalogue de commandes](#4-typologie--patterns-dinteraction-et-catalogue-de-commandes)
 5. [Grille du « degré de multimodalité » d'un EV](#5-grille-du--degré-de-multimodalité--dun-ev)
 6. [Application : profil de SC4VE](#6-application--profil-de-sc4ve)
-7. [Protocole d'extension à un nouvel EV](#7-protocole-dextension-à-un-nouvel-ev)
-8. [Limites & travaux futurs](#8-limites--travaux-futurs)
-9. [Références](#9-références)
+7. [Espace d'extension — commandes non couvertes](#7-espace-dextension--commandes-non-couvertes)
+8. [Protocole d'extension à un nouvel EV](#8-protocole-dextension-à-un-nouvel-ev)
+9. [Limites & travaux futurs](#9-limites--travaux-futurs)
+10. [Références](#10-références)
 
 ---
 
@@ -255,11 +256,11 @@ patterns.
 
 ## 5. Grille du « degré de multimodalité » d'un EV
 
-Objectif : produire, pour tout EV, **(a)** un *profil* à 7 axes (radar) et **(b)** un *niveau de
+Objectif : produire, pour tout EV, **(a)** un *profil* à 8 axes (radar) et **(b)** un *niveau de
 maturité* synthétique (N0–N4). On note ce que l'EV **sait réellement traiter** (commandes ×
 moteur de résolution), pas ce qu'il déclare.
 
-### 5.1 Les 7 axes (chacun noté 0–3)
+### 5.1 Les 8 axes (chacun noté 0–3)
 
 | Axe | 0 | 1 | 2 | 3 |
 |-----|---|---|---|---|
@@ -270,8 +271,9 @@ moteur de résolution), pas ce qu'il déclare.
 | **REF** — richesse référentielle (D3) | 1 type | 2 types | 3 types | 4 types (Desc+Déic+Ana+Quant) |
 | **CARE** — souplesse combinatoire (D4) | Assignment seul | + Equivalence | + Complementarity | + Redundancy |
 | **OUT** — bidirectionnalité / fission | aucun retour | retour visuel | + retour vocal (TTS) | + dialogue de réparation/clarification |
+| **PAR** — modulation paramétrique de l'action (§7) | aucune (incréments fixes) | grandeur discrète (« de 90° », « ×2 ») | + graduable (« un peu », « beaucoup ») | + relative à un référent (« deux fois plus que ça ») |
 
-**Index agrégé** (optionnel) : `DMI = Σ(axes) / 21` ∈ [0, 1].
+**Index agrégé** (optionnel) : `DMI = Σ(axes) / 24` ∈ [0, 1].
 
 ### 5.2 Niveaux de maturité (synthèse ordinale)
 
@@ -298,32 +300,96 @@ Déterminés en priorité par CASE + FUS + TMP (les axes qui « font » la fusio
 | **REF** | **3** | Descriptive (annotation/couleur) + déictique (pointeur/regard) + anaphorique (coréférence) + quantifiée/ordinale (`limit`, « les 3 plus petites »). |
 | **CARE** | **2** | Equivalence (plusieurs façons de désigner une cible) + Complementarity (voix+pointage). Redundancy non exploitée. |
 | **OUT** | **3** | Retour visuel (contour de sélection) + vocal (TTS) + **dialogue de clarification** piloté par l'ontologie (« Sur quels objets ? »). |
+| **PAR** | **0** | Transforms à incréments fixes (rotation 45°, facteur d'échelle constant) ; la quantité n'agit que sur la sélection (`limit`), jamais sur l'amplitude de l'action. |
 
-**DMI = 20 / 21 ≈ 0.95** · **Niveau = N4** (synergique avancé : P6 désambiguïsation + P8 clarification présents).
+**DMI = 20 / 24 ≈ 0.83** · **Niveau = N4** (synergique avancé : P6 désambiguïsation + P8 clarification présents).
 
-> Lecture : SC4VE est un EV multimodal *mûr*. Le seul axe non saturé est **CARE** (pas de
-> redondance exploitée — on ne combine pas « la pomme rouge » **et** un pointage simultané comme
-> confirmation mutuelle). C'est une piste d'extension concrète et un point de comparaison utile
-> pour d'autres EV.
+> Lecture : SC4VE est un EV multimodal *mûr*. Les axes non saturés sont **CARE** (2/3 — pas de
+> redondance/confirmation mutuelle : on ne combine pas « la pomme rouge » **et** un pointage
+> simultané) et **PAR** (0/3 — transforms à incréments fixes). Ce sont les deux pistes d'extension
+> les plus concrètes (cf. §7, manques #10 et #4) et des points de comparaison utiles entre EV.
 
 ---
 
-## 7. Protocole d'extension à un nouvel EV
+## 7. Espace d'extension — commandes non couvertes
+
+Cartographier ce qu'un EV *pourrait* faire situe sa couverture réelle. En projetant SC4VE sur les
+**cinq tâches universelles de l'interaction 3D** (Bowman et al.), deux tâches entières manquent et
+plusieurs **modes de référence** restent inexploités.
+
+### 7.1 Couverture des tâches universelles (Bowman et al.)
+
+| Tâche universelle | Couverture SC4VE |
+|-------------------|------------------|
+| Sélection | ✓✓ riche (Desc, Déic, Ana, Quant) |
+| Manipulation | ✓ position/rotation/échelle — **incréments fixes**, pas de composite |
+| Contrôle système | ✓ undo/redo/reset/select-all |
+| **Navigation / déplacement du point de vue** | ✗ quasi absent (seul `FocusCommand` oriente la caméra) |
+| **Entrée symbolique / création** | ✗ absent (`DuplicateCommand` copie l'existant, n'instancie pas) |
+
+### 7.2 Catalogue des manques
+
+Chaque manque indique l'**axe de la grille (§5)** qu'il ferait progresser et son ancrage.
+
+| # | Manque | Énoncé exemple | Axe impacté | Ancrage |
+|---|--------|----------------|-------------|---------|
+| 1 | Navigation / téléportation déictique | « emmène-moi **ici** », « tourne autour de **ça** », « zoome », « vue de dessus » | MOD (cible : point de vue égocentrique) | Bowman |
+| 2 | Référence relationnelle / topologique | « la pomme **à côté de** la voiture », « celle **entre** les deux », « mets-le **derrière** la citrouille » | REF (5ᵉ type → relève le plafond) | Levinson |
+| 3 | Cadre spatial relatif / égocentrique | « pousse-le **un peu à gauche** », « **vers moi** », « tourne-le **face à la caméra** » | REF (cadre de référence) | Levinson, Bowman |
+| 4 | Modulation paramétrique vocale | « tourne-le **de 90°** », « **deux fois** plus grand », « un **tout petit peu** » | **PAR (nouvel axe, §5.1)** | Cohen et al. (QuickSet) |
+| 5 | Désignation par région (geste continu) | « tout **dans cette zone** » ⟨lasso⟩, « **d'ici à là** » | MOD/REF (geste surfacique) | Bowman |
+| 6 | Geste iconique / mimétique | « tourne-le **comme ça** » ⟨geste⟩, « grand **comme ça** » ⟨écart des mains⟩ | MOD (geste dépictif ≠ déictique) | McNeill |
+| 7 | Création / authoring & étiquetage | « **crée un cube ici** », « ajoute une pomme là », « **appelle ça** une chaise » | CASE/FUS (instanciation synergique, écriture du graphe) | Cohen et al., Bolt |
+| 8 | Requêtes spatiales / déixis inverse | « **où est** la pomme rouge ? » (le système la désigne), « lequel est le plus grand, **ça** ou **ça** ? » | OUT (le système désigne en retour) | Dumas et al. (fission) |
+| 9 | Groupement & agencement | « **groupe** ceux-là », « aligne-les **en cercle** », « **empile**-les », « mets ça **sur** ça » | — (manipulation composite, niveau commande) | Bowman |
+| 10 | Désignation redondante (robustesse) | « la pomme rouge » ⟨**+ pointe la même**⟩ | **CARE** (Redundancy → 3/3) | Oviatt ; Kaiser et al. |
+
+### 7.3 Patterns d'extension (prolongent §4.1)
+
+| Pattern | Énoncé type | Modalités | Référence | CARE | CASE | Fusion | Manque |
+|---------|-------------|-----------|-----------|------|------|--------|--------|
+| **P9** Navigation déictique | « emmène-moi ici » | V + P/R | Déic | Complementarity | Synergistic | sémantique | 1 |
+| **P10** Référence relationnelle | « celle entre les deux » | V (+P) | Relationnelle | Complementarity / Assignment | Exclusive→Synergistic | sémantique | 2, 3 |
+| **P11** Modulation paramétrique | « tourne-le de 90° » | V | — | Assignment | Exclusive | sémantique | 4 |
+| **P12** Désignation surfacique | « tout dans cette zone » ⟨lasso⟩ | V + geste | Déic (région) | Complementarity | Synergistic | sémantique | 5 |
+| **P13** Geste iconique | « comme ça » ⟨geste⟩ | V + geste | dépictive | Complementarity | Synergistic | sémantique | 6 |
+| **P14** Création / authoring | « crée un cube ici » | V + P | Déic + contenu | Complementarity | Synergistic | sémantique | 7 |
+| **P15** Déixis inverse (sortie) | « où est X ? » → le système pointe | V → sortie | — | — | — | — (fission) | 8 |
+| **P16** Désignation redondante | « la pomme rouge » + pointage | V + P | Desc ⊕ Déic | **Redundancy** | Synergistic | sémantique | 10 |
+
+### 7.4 Les trois manques les plus structurants
+
+1. **Navigation (P9)** — une des cinq tâches universelles, absente. « Emmène-moi ici » est le
+   pendant *navigation* de « déplace ça ici » (même fusion voix + déixis, appliquée au point de
+   vue). Ajoute une cible modale entière.
+2. **Création / authoring (P14)** — l'archétype de QuickSet (« crée un X ici »), avec un gain
+   mesuré ×9 sur le temps de création vs GUI. SC4VE copie et supprime, mais n'instancie ni ne nomme.
+3. **Référence relationnelle (P10)** — « à côté de / entre / derrière » : le mode de référence
+   manquant face aux quatre gérés, et le plus exigeant en raisonnement spatial qualitatif.
+
+> **Impact sur la grille (§5).** Ces manques ne sont pas tous capturés par les 7 axes initiaux :
+> le #4 (magnitude) a justifié l'ajout de l'axe **PAR** ; le #2 étend le plafond de **REF** (5ᵉ
+> type) ; le #1 ajoute une cible à **MOD** ; le #8 enrichit **OUT** ; le #10 sature **CARE**.
+> L'analyse des manques sert donc aussi de test de robustesse au rubric lui-même.
+
+---
+
+## 8. Protocole d'extension à un nouvel EV
 
 1. **Inventorier les commandes** → remplir un catalogue au format §4.3 (une ligne par commande :
    modalités, type de référence, CASE max, paramètres requis).
-2. **Mapper chaque commande aux patterns** P0–P8 (§4.1).
-3. **Noter les 7 axes** (§5.1) d'après ce que le moteur traite *réellement* (tester un énoncé par
+2. **Mapper chaque commande aux patterns** P0–P16 (§4.1, §7.3).
+3. **Noter les 8 axes** (§5.1) d'après ce que le moteur traite *réellement* (tester un énoncé par
    pattern suffit à prouver la capacité).
 4. **Calculer** le profil radar, le DMI et le niveau N0–N4.
-5. **Comparer** les EV sur le profil à 7 axes (plus informatif que le seul scalaire DMI).
+5. **Comparer** les EV sur le profil à 8 axes (plus informatif que le seul scalaire DMI).
 
 Un EV = un fichier `profil-<nom>.md` réutilisant ces sections. La taxonomie (§3–4) et la grille
 (§5) restent inchangées : c'est ce qui rend les EV comparables.
 
 ---
 
-## 8. Limites & travaux futurs
+## 9. Limites & travaux futurs
 
 - **Validité de la grille** : les pondérations (axes égaux) sont un choix par défaut ; à valider
   empiriquement (corrélation avec l'efficacité/satisfaction utilisateur).
@@ -338,7 +404,7 @@ Un EV = un fichier `profil-<nom>.md` réutilisant ces sections. La taxonomie (§
 
 ---
 
-## 9. Références
+## 10. Références
 
 - Bolt, R. A. (1980). *Put-that-there: Voice and gesture at the graphics interface.* ACM SIGGRAPH Computer Graphics, 14(3), 262–270. <https://doi.org/10.1145/965105.807503>
 - Nigay, L., & Coutaz, J. (1993). *A design space for multimodal systems: concurrent processing and data fusion.* Proc. INTERCHI '93, 172–178. <https://doi.org/10.1145/169059.169143>
@@ -349,3 +415,11 @@ Un EV = un fichier `profil-<nom>.md` réutilisant ces sections. La taxonomie (§
 - Reeves, L. M., Lai, J., Larson, J. A., Oviatt, S., Balaji, T. S., Buisine, S., et al. (2004). *Guidelines for multimodal user interface design.* Communications of the ACM, 47(1), 57–59. <https://doi.org/10.1145/962081.962106>
 - Dumas, B., Lalanne, D., & Oviatt, S. (2009). *Multimodal interfaces: A survey of principles, models and frameworks.* In Human Machine Interaction, LNCS 5440, 3–26. Springer. <https://doi.org/10.1007/978-3-642-00437-7_1>
 - Lalanne, D., Nigay, L., Palanque, P., Robinson, P., Vanderdonckt, J., & Ladry, J.-F. (2009). *Fusion engines for multimodal input: a survey.* Proc. ICMI-MLMI '09, 153–160. <https://doi.org/10.1145/1647314.1647343> · PDF libre : <http://iihm.imag.fr/publs/2009/FinalSurvey.pdf>
+
+### Espace d'extension (§7)
+
+- Bowman, D. A., Kruijff, E., LaViola, J. J., & Poupyrev, I. (2004). *3D User Interfaces: Theory and Practice.* Addison-Wesley. ISBN 978-0201758672. (2ᵉ éd. 2017 : LaViola, Kruijff, McMahan, Bowman, Poupyrev.)
+- Cohen, P. R., Johnston, M., McGee, D., Oviatt, S., Pittman, J., Smith, I., Chen, L., & Clow, J. (1997). *QuickSet: Multimodal interaction for distributed applications.* Proc. 5th ACM Int. Conf. on Multimedia, 31–40. <https://doi.org/10.1145/266180.266328>
+- Kaiser, E., Olwal, A., McGee, D., Benko, H., Corradini, A., Li, X., Cohen, P., & Feiner, S. (2003). *Mutual disambiguation of 3D multimodal interaction in augmented and virtual reality.* Proc. ICMI '03, 12–19. <https://doi.org/10.1145/958432.958438>
+- McNeill, D. (1992). *Hand and Mind: What Gestures Reveal about Thought.* University of Chicago Press.
+- Levinson, S. C. (2003). *Space in Language and Cognition: Explorations in Cognitive Diversity.* Cambridge University Press. ISBN 978-0521011969. <https://www.cambridge.org/core/books/space-in-language-and-cognition/D07AD2885A025E00B1C94ED722071D80>

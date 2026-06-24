@@ -356,6 +356,16 @@ sc4ve:notUnderstood rdf:type owl:NamedIndividual ;
                                "I didn't understand, could you rephrase?"@en .
 
 
+###  https://sc4ve.lisn.upsaclay.fr/ontology#noMatch
+###  Énoncé quand une commande cible des objets mais qu'aucun ne correspond (ex: « colorie
+###  cette pomme » sans pomme pointée). Le ou les types recherchés sont ajoutés en C#.
+sc4ve:noMatch rdf:type owl:NamedIndividual ;
+              rdfs:comment "Énoncé quand une commande ne trouve aucun objet correspondant à ses critères."@fr ,
+                           "Spoken when a command finds no object matching its criteria."@en ;
+              rdfs:label "Aucun objet correspondant n'a été trouvé"@fr ,
+                         "No matching object was found"@en .
+
+
 #################################################################
 #    Commandes — exigences de paramètres (lues par ClarificationVocabulary)
 #

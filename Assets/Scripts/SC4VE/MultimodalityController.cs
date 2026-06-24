@@ -63,6 +63,10 @@ namespace Sc4ve.Multimodality
         private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(60) };
         private RuleBasedIntentRecognizer _ruleBasedRecognizer;
 
+        // Commande en attente d'une clarification (paramètre manquant) : la phrase suivante
+        // qui fournit le paramètre la complète (« Colorie cette banane » → « En bleu »).
+        private Command _pendingCommand;
+
         // LLama-7b, qwen-3.5, mistral-nemo 
         // Le corps principal et statique du prompt est maintenant une constante.
         private const string SYSTEM_PROMPT_TEMPLATE = @"Tu es un système expert qui convertit le langage naturel en un format de commande JSON pour un environnement 3D.
@@ -491,9 +495,17 @@ JSON Attendu:
                         commandJson = _ruleBasedRecognizer.Recognize(phrase);
                         if (string.IsNullOrWhiteSpace(commandJson))
                         {
-                            Debug.LogWarning("[RuleBased] Aucune commande produite pour cette phrase.");
-                            Command.Speak(ClarificationVocabulary.NotUnderstood); // manque de sens
-                            continue;
+                            // Réponse à une clarification en attente (ex: « en bleu » après « colorie cette banane »).
+                            if (_pendingCommand != null)
+                                commandJson = _ruleBasedRecognizer.CompletePending(phrase, _pendingCommand);
+
+                            if (string.IsNullOrWhiteSpace(commandJson))
+                            {
+                                Debug.LogWarning("[RuleBased] Aucune commande produite pour cette phrase.");
+                                Command.Speak(ClarificationVocabulary.NotUnderstood); // manque de sens
+                                _pendingCommand = null;
+                                continue;
+                            }
                         }
                     }
                     else
@@ -958,19 +970,44 @@ JSON Attendu:
 
         public void ResolveCommands(List<Command> commands)
         {
-            // Manque de paramètre : si une commande a un paramètre requis manquant (d'après
-            // les restrictions OWL de l'ontologie), on pose la question de clarification
-            // (bilingue, depuis le graphe) et on n'exécute rien — la sélection reste inchangée.
+            // Résolution vide : la cible est spécifiée (filtres) mais aucun objet ne correspond
+            // (ex: « colorie cette pomme » sans pomme pointée). On l'annonce sans exécuter, et
+            // avant la clarification : inutile de demander la couleur s'il n'y a pas de cible.
+            foreach (Command command in commands)
+            {
+                string noMatch = ClarificationVocabulary.GetNoMatchPrompt(command);
+                if (noMatch != null)
+                {
+                    Debug.Log($"[NoMatch] {command.Type} → « {noMatch} »");
+                    Command.Speak(noMatch);
+                    _pendingCommand = null;
+                    return;
+                }
+            }
+
+            // Manque de paramètre : un paramètre requis manque (d'après les restrictions OWL).
+            // On pose la question (bilingue, depuis le graphe), on sélectionne la cible déjà
+            // résolue et on mémorise la commande pour la compléter à la phrase suivante.
             foreach (Command command in commands)
             {
                 string clarification = ClarificationVocabulary.GetMissingParameterPrompt(command);
                 if (clarification != null)
                 {
+                    List<SemantizationCore> target = command.Parameters?
+                        .OfType<SelectionParameter>().FirstOrDefault()?.Objects;
+                    if (target != null && target.Count > 0)
+                    {
+                        Command.LastObjects = target;
+                        SelectionManager.SetSelection(target);
+                    }
+                    _pendingCommand = command;
                     Debug.Log($"[Clarification] {command.Type} : paramètre manquant → « {clarification} »");
                     Command.Speak(clarification);
                     return;
                 }
             }
+
+            _pendingCommand = null; // commande complète → plus rien en attente
 
             int undoBefore = CommandHistory.UndoCount;
 

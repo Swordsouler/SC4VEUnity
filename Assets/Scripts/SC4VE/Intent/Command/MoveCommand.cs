@@ -15,7 +15,13 @@ namespace Sc4ve.Multimodality.Intent
     public class MoveCommand : Command
     {
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
-            => new List<Parameter> { ctx.BuildSelectionParameter(useStartedAt: true), ctx.BuildDestinationParameter() };
+        {
+            // Destination ajoutée seulement si la phrase l'indique (« …ici/là-bas/… »).
+            // Sans destination (« déplace cette pomme »), le PointParameter manque → clarification.
+            var ps = new List<Parameter> { ctx.BuildSelectionParameter(useStartedAt: true) };
+            if (ctx.HasDestination) ps.Add(ctx.BuildDestinationParameter());
+            return ps;
+        }
 
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
         private PointParameter PointParameter => GetParameter<PointParameter>();

@@ -26,8 +26,13 @@ namespace Sc4ve.Multimodality.Intent
         // classe de paramètre (nom local) → question localisée
         private static Dictionary<string, string> _clarifications;
         private static string _notUnderstood;
+        private static string _noMatch;
         private static string _cachedLocale;
         private static bool _validated;
+
+        // Commandes qui rapportent elles-mêmes un résultat vide (« 0 objet », « aucun objet à
+        // décrire ») → on ne déclenche pas le message générique « aucun objet correspondant ».
+        private static readonly HashSet<string> _reportsEmptyResult = new() { "CountCommand", "DescribeCommand" };
 
         /// <summary>Message « je n'ai pas compris » localisé (manque de sens).</summary>
         public static string NotUnderstood => _notUnderstood;
@@ -45,7 +50,8 @@ namespace Sc4ve.Multimodality.Intent
 
             _requirements   = QueryRequirements(graph);
             _clarifications = QueryClarifications(graph, locale);
-            _notUnderstood  = QueryNotUnderstood(graph, locale);
+            _notUnderstood  = QueryMessage(graph, "sc4ve:notUnderstood", locale);
+            _noMatch        = QueryMessage(graph, "sc4ve:noMatch", locale);
             _cachedLocale   = locale;
 
             Debug.Log($"[Clarification] {_requirements.Count} commande(s) avec exigences, " +
@@ -76,6 +82,34 @@ namespace Sc4ve.Multimodality.Intent
                     return _clarifications.TryGetValue(paramClass, out string msg) ? msg : null;
             }
             return null;
+        }
+
+        /// <summary>
+        /// Retourne un message « aucun objet correspondant » localisé si la commande cible des
+        /// objets via des critères (filtres) mais que la résolution est vide ; sinon null.
+        /// Distinct du manque de paramètre : ici la cible est spécifiée mais introuvable
+        /// (ex: « colorie cette pomme » sans pomme pointée).
+        /// </summary>
+        public static string GetNoMatchPrompt(Command command)
+        {
+            if (_noMatch == null || command?.Type == null) return null;
+            if (_reportsEmptyResult.Contains(command.Type)) return null;
+
+            SelectionParameter sel = command.Parameters?.OfType<SelectionParameter>().FirstOrDefault();
+            if (sel == null) return null;
+
+            bool hasCriteria = sel.Filters != null && sel.Filters.Count > 0;
+            bool empty = (sel.Objects?.Count ?? 0) == 0;
+            if (!hasCriteria || !empty) return null;
+
+            // Précise les types recherchés (déjà localisés dans les filtres : « Pomme »/« Apple »).
+            var types = sel.Filters
+                .Where(f => !f.IsOperator && f.Condition != null && f.Condition.IsAnnotation)
+                .Select(f => f.Condition.Value)
+                .Where(v => !string.IsNullOrEmpty(v))
+                .ToList();
+
+            return types.Count > 0 ? $"{_noMatch} : {string.Join(", ", types)}" : _noMatch;
         }
 
         // Un SelectionParameter ne compte que si l'utilisateur a réellement spécifié un
@@ -145,13 +179,13 @@ SELECT ?param ?msg WHERE {{
             return result;
         }
 
-        private static string QueryNotUnderstood(Graph graph, string locale)
+        private static string QueryMessage(Graph graph, string individual, string locale)
         {
             string query = $@"
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
 SELECT ?msg WHERE {{
-    sc4ve:notUnderstood rdfs:label ?msg .
+    {individual} rdfs:label ?msg .
     FILTER(langMatches(lang(?msg), ""{locale}""))
 }}";
             if (graph.ExecuteQuery(query) is SparqlResultSet results && results.Count > 0)
