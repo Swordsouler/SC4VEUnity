@@ -2,6 +2,7 @@ using Sc4ve.Voice;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Sc4ve.Multimodality.Intent
 {
@@ -31,16 +32,32 @@ namespace Sc4ve.Multimodality.Intent
         // Helpers
         // ──────────────────────────────────────────────────────────────────
 
-        // Mots indiquant une destination spatiale (« mets ça ici », « déplace-le là-bas »).
-        private static readonly string[] DestinationWords =
+        // Mots indiquant une destination spatiale (« mets ça ici » / « put it here »), par langue.
+        private static readonly string[] DestinationWordsFr =
         {
             "ici", "là-bas", "là-haut", "là", "dessus", "dessous",
             "devant", "derrière", "à droite", "à gauche"
         };
+        private static readonly string[] DestinationWordsEn =
+        {
+            "here", "there", "over there", "up there", "on top", "underneath",
+            "in front", "behind", "to the right", "to the left"
+        };
 
-        /// <summary>Vrai si la phrase indique une destination spatiale (pour Move/Duplicate).</summary>
-        public bool HasDestination =>
-            Text != null && DestinationWords.Any(w => Text.Contains(w, StringComparison.OrdinalIgnoreCase));
+        /// <summary>
+        /// Vrai si la phrase indique une destination spatiale (pour Move/Duplicate). Frontière de
+        /// mot pour éviter les faux positifs (« sphere » ne contient pas le déclencheur « here »).
+        /// </summary>
+        public bool HasDestination
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(Text)) return false;
+                bool fr = string.IsNullOrEmpty(UserData.Locale) || UserData.Locale.StartsWith("fr");
+                string[] words = fr ? DestinationWordsFr : DestinationWordsEn;
+                return words.Any(w => Regex.IsMatch(Text, $@"\b{Regex.Escape(w)}\b", RegexOptions.IgnoreCase));
+            }
+        }
 
         /// <summary>
         /// Construit le SelectionParameter standard à partir des entités extraites.

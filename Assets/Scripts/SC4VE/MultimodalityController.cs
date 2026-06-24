@@ -665,20 +665,16 @@ JSON Attendu:
             Debug.Log("[LLM] Initializing and caching vocabularies...");
             var annotationTypesTask = ISemanticAnnotation.GetAvailableTypesAsync(UserData.Locale);
             var availableColorsTask = ColorParameter.GetAvailableColorsAsync();
-            var pointerDeicticsTask = Sven.Context.Pointer.GetAllAvailableDeictics(UserData.Locale);
             var pointerNameTask = Sven.Context.Pointer.GetAllAvailableNames(UserData.Locale);
             var cameraNameTask = PointOfView.GetAllAvailableNames(UserData.Locale);
 
-            await Task.WhenAll(annotationTypesTask, availableColorsTask, pointerDeicticsTask, pointerNameTask, cameraNameTask);
+            await Task.WhenAll(annotationTypesTask, availableColorsTask, pointerNameTask, cameraNameTask);
 
             List<string> annotationTypes = await annotationTypesTask;
             _annotationTypesString = string.Join(", ", annotationTypes.Select(t => $"{t}"));
 
             List<string> availableColors = await availableColorsTask;
             _availableColorsString = string.Join(", ", availableColors.Select(c => $"{c}"));
-
-            List<string> pointerDeictics = await pointerDeicticsTask;
-            _pointerDeicticsString = string.Join(", ", pointerDeictics.Select(d => $"{d}"));
 
             List<string> pointerNames = await pointerNameTask;
             _pointerNamesString = string.Join(", ", pointerNames.Select(n => $"{n}"));
@@ -690,6 +686,8 @@ JSON Attendu:
             // (repli sur les attributs C# pour les commandes pas encore migrées).
             await CommandVocabulary.InitializeAsync();
             _availableCommandsString = CommandVocabulary.CommandsDescription;
+            // Déictiques de pointage (sc4ve:deicticWord), bilingues, depuis l'ontologie.
+            _pointerDeicticsString = string.Join(", ", CommandVocabulary.Deictics);
 
             // Exigences de paramètres + messages de clarification (bilingues) depuis l'ontologie.
             await ClarificationVocabulary.InitializeAsync();
@@ -783,24 +781,34 @@ JSON Attendu:
             // ── Déictiques ────────────────────────────────────────────────
             foreach (string d in pointerDeictics)  vocab.Add(d.ToLowerInvariant());
 
-            // ── Mots fonctionnels français courants ───────────────────────
-            foreach (string w in new[]
-            {
-                "le", "la", "les", "l", "un", "une", "des",
-                "de", "du", "en", "à", "au", "aux",
-                "et", "ou", "donc",
-                // "mais" volontairement absent : homophone de "mets" (/mɛ/).
-                // Sans "mais" dans la grammaire, Vosk choisit "mets" pour ce son.
-                "ici", "là", "là-bas", "là-haut",
-                "ce", "cet", "cette", "ces",
-                "ça", "cela", "ceci",
-                "plus", "moins", "très",
-                "tous", "toutes", "tout", "toute",
-                "il", "elle", "ils", "elles",
-                // Nombres
-                "un", "deux", "trois", "quatre", "cinq",
-                "six", "sept", "huit", "neuf", "dix"
-            })
+            // ── Mots fonctionnels courants, par langue ────────────────────
+            // FR : "mais" volontairement absent (homophone de "mets" /mɛ/) → Vosk/Whisper
+            // choisit "mets" pour ce son.
+            string[] functionWords = (UserData.Locale ?? "fr").StartsWith("en")
+                ? new[]
+                {
+                    "the", "a", "an", "some", "of", "to", "on", "in", "at",
+                    "and", "or",
+                    "here", "there", "this", "that", "these", "those", "it", "them",
+                    "more", "less", "very", "all", "every",
+                    "one", "two", "three", "four", "five",
+                    "six", "seven", "eight", "nine", "ten"
+                }
+                : new[]
+                {
+                    "le", "la", "les", "l", "un", "une", "des",
+                    "de", "du", "en", "à", "au", "aux",
+                    "et", "ou", "donc",
+                    "ici", "là", "là-bas", "là-haut",
+                    "ce", "cet", "cette", "ces",
+                    "ça", "cela", "ceci",
+                    "plus", "moins", "très",
+                    "tous", "toutes", "tout", "toute",
+                    "il", "elle", "ils", "elles",
+                    "un", "deux", "trois", "quatre", "cinq",
+                    "six", "sept", "huit", "neuf", "dix"
+                };
+            foreach (string w in functionWords)
                 vocab.Add(w);
 
             var result = vocab.OrderBy(w => w).ToList();

@@ -28,17 +28,24 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         private readonly string _pointerName;
         private readonly string _cameraName;
 
-        // Mots-nombres français → entier
-        private static readonly Dictionary<string, int> FrenchNumbers =
+        // Mots-nombres → entier, par langue (la table active suit la locale).
+        private static readonly Dictionary<string, int> NumbersFr =
             new(StringComparer.OrdinalIgnoreCase)
             {
                 { "un", 1 }, { "une", 1 }, { "deux", 2 }, { "trois", 3 },
                 { "quatre", 4 }, { "cinq", 5 }, { "six", 6 }, { "sept", 7 },
                 { "huit", 8 }, { "neuf", 9 }, { "dix", 10 }
             };
+        private static readonly Dictionary<string, int> NumbersEn =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                { "one", 1 }, { "two", 2 }, { "three", 3 }, { "four", 4 }, { "five", 5 },
+                { "six", 6 }, { "seven", 7 }, { "eight", 8 }, { "nine", 9 }, { "ten", 10 }
+            };
+        private static Dictionary<string, int> Numbers => IsFrench ? NumbersFr : NumbersEn;
 
-        // Pronoms coréférentiels français
-        private static readonly HashSet<string> CoreferencePronouns =
+        // Pronoms coréférentiels, par langue.
+        private static readonly HashSet<string> CoreferencePronounsFr =
             new(StringComparer.OrdinalIgnoreCase)
             {
                 "le", "la", "les", "lui", "leur", "eux", "elles",
@@ -46,13 +53,25 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 "celui-là", "celle-là", "ceux-là", "celles-là",
                 "ça", "cela", "ceci"
             };
+        private static readonly HashSet<string> CoreferencePronounsEn =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                "it", "them", "they", "this", "that", "these", "those", "one", "ones"
+            };
+        private static HashSet<string> CoreferencePronouns => IsFrench ? CoreferencePronounsFr : CoreferencePronounsEn;
 
-        // Mots indiquant une destination (pour MoveCommand)
-        private static readonly string[] DestinationWords =
+        // Mots indiquant une destination (pour MoveCommand), par langue.
+        private static readonly string[] DestinationWordsFr =
         {
             "là-bas", "là-haut", "ici", "là", "dessus", "dessous",
             "devant", "derrière", "à droite", "à gauche"
         };
+        private static readonly string[] DestinationWordsEn =
+        {
+            "over there", "up there", "here", "there", "on top", "underneath",
+            "in front", "behind", "to the right", "to the left"
+        };
+        private static string[] DestinationWords => IsFrench ? DestinationWordsFr : DestinationWordsEn;
 
         /// <summary>
         /// Délai ajouté au timestamp du PointParameter de destination dans un MoveCommand.
@@ -103,11 +122,13 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // l'accent et la frontière de mot. On retire ces mots du texte de détection de
             // commande (sinon « sélectionné » déclenche SelectCommand, car NormalizeAccents
             // confond « sélectionné » et « sélectionne »), et on force la coréférence.
-            bool referencesSelection =
-                Regex.IsMatch(text, @"\bsélectionné(e|s|es)?\b") ||
-                Regex.IsMatch(text, @"\bsélection\b");
+            // « sélectionné(e)(s) » / « sélection » (fr) ; « selected » / « selection » (en).
+            string selectionRefPattern = IsFrench
+                ? @"\b(sélectionné(e|s|es)?|sélection)\b"
+                : @"\b(selected|selection)\b";
+            bool referencesSelection = Regex.IsMatch(text, selectionRefPattern);
             string commandText = referencesSelection
-                ? Regex.Replace(text, @"\b(sélectionné(e|s|es)?|sélection)\b", " ")
+                ? Regex.Replace(text, selectionRefPattern, " ")
                 : text;
 
             // 1. Détection du type de commande via les attributs [RuleBasedTriggers]
@@ -189,7 +210,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
 
             // Réponse de type destination (ex: MoveCommand en attente → « là-bas » / pointage).
             if (!filled && ps.OfType<PointParameter>().FirstOrDefault() == null &&
-                DestinationWords.Any(w => text.Contains(w, StringComparison.OrdinalIgnoreCase)))
+                DestinationWords.Any(w => Regex.IsMatch(text, $@"\b{Regex.Escape(w)}\b", RegexOptions.IgnoreCase)))
             {
                 DateTime end = words.Count > 0 ? words[^1].EndedAt : DateTime.Now;
                 ps.Add(new PointParameter { Type = "PointParameter", Value = _pointerName,
@@ -271,9 +292,12 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // Pré-vérification : "met(s)/mettre" + mot de destination non-contigu → MoveCommand.
             // Nécessaire quand un pronom ("ça", "le"…) s'intercale entre le verbe et la destination,
             // ce qui empêche les triggers multi-mots ("mets ici", "mets là") de se déclencher.
-            string[] clearDestWords = { "ici", "la-bas", "la-haut", "dessus", "dessous", "devant", "derriere", "a droite", "a gauche" };
-            if (Regex.IsMatch(normalizedText, @"\b(mets|met|mettre)\b") &&
-                clearDestWords.Any(d => normalizedText.Contains(d, StringComparison.OrdinalIgnoreCase)))
+            string moveVerbs = IsFrench ? @"\b(mets|met|mettre)\b" : @"\b(put|move|place)\b";
+            string[] clearDestWords = IsFrench
+                ? new[] { "ici", "la-bas", "la-haut", "dessus", "dessous", "devant", "derriere", "a droite", "a gauche" }
+                : new[] { "here", "there", "over there", "up there", "on top", "underneath", "in front", "behind", "to the right", "to the left" };
+            if (Regex.IsMatch(normalizedText, moveVerbs) &&
+                clearDestWords.Any(d => Regex.IsMatch(normalizedText, $@"\b{Regex.Escape(d)}\b", RegexOptions.IgnoreCase)))
             {
                 return "MoveCommand";
             }
@@ -423,7 +447,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 new[] { ' ', ',', '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (string token in tokens)
             {
-                if (FrenchNumbers.TryGetValue(token, out int num))
+                if (Numbers.TryGetValue(token, out int num))
                     return num;
             }
 
@@ -446,8 +470,10 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         }
 
         /// <summary>
-        /// Détermine si une couleur trouvée dans le texte est une couleur cible (ex: "en rouge")
-        /// plutôt qu'une couleur de filtre source (ex: "les pommes rouges").
+        /// Détermine si une couleur est la couleur CIBLE (à appliquer) plutôt qu'un filtre SOURCE
+        /// (décrivant les objets). FR : introduite par « en » / « de couleur » (« …en rouge »).
+        /// EN : pas de préposition fiable (« color it red ») → la cible est en fin de phrase ;
+        /// une couleur source précède l'objet (« color the green apples red »).
         /// </summary>
         private bool IsTargetColor(string text, string colorForm)
         {
@@ -455,9 +481,12 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             if (idx < 0) return false;
 
             string before = text.Substring(0, idx).TrimEnd();
-            return before.EndsWith(" en")
-                || before.EndsWith(" de couleur")
-                || before == "en";
+            if (IsFrench)
+                return before.EndsWith(" en") || before.EndsWith(" de couleur") || before == "en";
+
+            // Anglais : couleur en fin de phrase, ou introduite par « in »/« to ».
+            string after = text.Substring(idx + colorForm.Length).Trim();
+            return after.Length == 0 || before.EndsWith(" in") || before.EndsWith(" to");
         }
 
         /// <summary>

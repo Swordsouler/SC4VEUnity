@@ -20,6 +20,7 @@ namespace Sc4ve.Multimodality.Intent
     {
         private static List<(string[] Triggers, string CommandType)> _triggerMappings;
         private static string _commandsDescription;
+        private static List<string> _deictics;
         private static string _cachedLocale;
 
         /// <summary>Mappings (triggers, type) pour la locale courante (ontologie + repli attributs).</summary>
@@ -30,6 +31,9 @@ namespace Sc4ve.Multimodality.Intent
         public static string CommandsDescription
             => _commandsDescription ?? CommandDescriptionAttribute.GetAvailableCommandsString();
 
+        /// <summary>Mots déictiques de pointage (sc4ve:deicticWord) pour la locale courante.</summary>
+        public static List<string> Deictics => _deictics ?? new List<string>();
+
         public static async Task InitializeAsync()
         {
             string locale = UserData.Locale;
@@ -39,9 +43,11 @@ namespace Sc4ve.Multimodality.Intent
 
             _triggerMappings     = BuildTriggerMappings(graph, locale);
             _commandsDescription = BuildCommandsDescription(graph, locale);
+            _deictics            = QueryDeictics(graph, locale);
             _cachedLocale        = locale;
 
-            Debug.Log($"[CommandVocab] {_triggerMappings.Count} mapping(s) de triggers, locale '{locale}'.");
+            Debug.Log($"[CommandVocab] {_triggerMappings.Count} mapping(s) de triggers, " +
+                      $"{_deictics.Count} déictique(s), locale '{locale}'.");
         }
 
         private static List<(string[], string)> BuildTriggerMappings(Graph graph, string locale)
@@ -103,6 +109,25 @@ SELECT ?cmd ?param WHERE {
                     string param = LocalName(row["param"].ToString());
                     if (!result.TryGetValue(cmd, out var list)) result[cmd] = list = new List<string>();
                     if (!list.Contains(param)) list.Add(param);
+                }
+            return result;
+        }
+
+        /// <summary>Mots déictiques (sc4ve:deicticWord) filtrés sur la locale.</summary>
+        private static List<string> QueryDeictics(Graph graph, string locale)
+        {
+            var result = new List<string>();
+            string query = $@"
+PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
+SELECT ?w WHERE {{
+    ?x sc4ve:deicticWord ?w .
+    FILTER(langMatches(lang(?w), ""{locale}""))
+}}";
+            if (graph.ExecuteQuery(query) is SparqlResultSet results)
+                foreach (SparqlResult row in results.Cast<SparqlResult>())
+                {
+                    string w = (row["w"] as ILiteralNode)?.Value;
+                    if (w != null) result.Add(w);
                 }
             return result;
         }

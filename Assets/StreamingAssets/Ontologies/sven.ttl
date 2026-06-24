@@ -975,14 +975,7 @@ sven:b rdf:type owl:DatatypeProperty ;
                   "blue"@en .
 
 
-###  https://sven.lisn.upsaclay.fr/ontology#deicticWord
-sven:deicticWord rdf:type owl:DatatypeProperty ;
-                 rdfs:domain sven:Class ;
-                 rdfs:range xsd:string ;
-                 rdfs:comment "Le mot déictique associé à la classe."@fr ,
-                              "The deictic word associated with the class."@en ;
-                 rdfs:label "deictic word"@en ,
-                            "mot déictique"@fr .
+###  Propriété déictique déplacée vers l'ontologie sc4ve (sc4ve:deicticWord) — voir sc4ve.ttl.
 
 
 ###  https://sven.lisn.upsaclay.fr/ontology#g
@@ -1476,13 +1469,8 @@ sven:Object rdf:type owl:NamedIndividual ;
 
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Pointer
-sven:Pointer rdf:type owl:NamedIndividual ;
-             sven:deicticWord "ce"@fr ,
-                              "ceci"@fr ,
-                              "ces"@fr ,
-                              "cet"@fr ,
-                              "cette"@fr ,
-                              "ça"@fr .
+sven:Pointer rdf:type owl:NamedIndividual .
+###  Déictiques déplacés vers sc4ve:Deixis (sc4ve:deicticWord) — voir sc4ve.ttl.
 
 
 #################################################################
