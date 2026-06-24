@@ -62,8 +62,11 @@ namespace Sc4ve.Multimodality.Intent
         /// <summary>
         /// Construit le SelectionParameter standard à partir des entités extraites.
         /// <paramref name="useStartedAt"/> = true pour MoveCommand (source pointée avant de parler).
+        /// <paramref name="fallbackToSelection"/> = true : si aucune cible explicite n'est extraite,
+        /// on retombe sur la sélection courante (coréférence implicite) au lieu de laisser le
+        /// paramètre vide — pour les commandes qui transforment l'existant (Move, Duplicate).
         /// </summary>
-        public SelectionParameter BuildSelectionParameter(bool useStartedAt = false)
+        public SelectionParameter BuildSelectionParameter(bool useStartedAt = false, bool fallbackToSelection = false)
         {
             var filters = new List<FilterElement>();
 
@@ -112,6 +115,16 @@ namespace Sc4ve.Multimodality.Intent
                     needsOp = true;
                 }
             }
+
+            // Aucune cible explicite : repli sur la sélection courante (coréférence implicite).
+            // Le filtre Coreference est résolu vers SelectionManager dans SelectionParameter.Semanticize
+            // (même structure que la coréférence explicite « colorie les en rouge »).
+            if (fallbackToSelection && filters.Count == 0)
+                filters.Add(new FilterElement
+                {
+                    IsOperator = false,
+                    Condition  = new Condition { Type = "Coreference" }
+                });
 
             return new SelectionParameter { Type = "SelectionParameter", Filters = filters, Limit = Limit };
         }

@@ -18,7 +18,8 @@ namespace Sc4ve.Multimodality.Intent
         {
             // Destination ajoutée seulement si la phrase l'indique (« …ici/là-bas/… »).
             // Sans destination (« déplace cette pomme »), le PointParameter manque → clarification.
-            var ps = new List<Parameter> { ctx.BuildSelectionParameter(useStartedAt: true) };
+            // Cible absente (« déplace ici » alors qu'un objet est sélectionné) → sélection courante.
+            var ps = new List<Parameter> { ctx.BuildSelectionParameter(useStartedAt: true, fallbackToSelection: true) };
             if (ctx.HasDestination) ps.Add(ctx.BuildDestinationParameter());
             return ps;
         }

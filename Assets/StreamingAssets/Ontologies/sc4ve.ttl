@@ -335,6 +335,15 @@ sc4ve:clarification rdf:type owl:DatatypeProperty ;
                     rdfs:label "clarification"@en ,
                                "clarification"@fr .
 
+###  https://sc4ve.lisn.upsaclay.fr/ontology#orphanClarification
+sc4ve:orphanClarification rdf:type owl:DatatypeProperty ;
+                          rdfs:domain sc4ve:Parameter ;
+                          rdfs:range xsd:string ;
+                          rdfs:comment "Question posée quand un paramètre de ce type est reconnu SANS commande (ambiguïté : plusieurs actions possibles)."@fr ,
+                                       "Question asked when a parameter of this type is recognized WITHOUT a command (ambiguity: several possible actions)."@en ;
+                          rdfs:label "orphan clarification"@en ,
+                                     "clarification orpheline"@fr .
+
 
 ###  Messages de clarification par type de paramètre manquant (manque de paramètre)
 sc4ve:SelectionParameter sc4ve:clarification "Sur quels objets ?"@fr ,
@@ -342,6 +351,9 @@ sc4ve:SelectionParameter sc4ve:clarification "Sur quels objets ?"@fr ,
 
 sc4ve:ColorParameter sc4ve:clarification "En quelle couleur ?"@fr ,
                                          "In which color?"@en .
+sc4ve:ColorParameter sc4ve:orphanClarification
+    "Vous avez indiqué une couleur mais aucune action. Voulez-vous colorier la sélection, ou sélectionner les objets de cette couleur ?"@fr ,
+    "You specified a color but no action. Do you want to colorize the selection, or select objects of that color?"@en .
 
 sc4ve:PointParameter sc4ve:clarification "À quel endroit ?"@fr ,
                                          "To which location?"@en .

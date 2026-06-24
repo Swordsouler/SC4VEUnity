@@ -510,7 +510,11 @@ JSON Attendu:
                             if (string.IsNullOrWhiteSpace(commandJson))
                             {
                                 Debug.LogWarning("[RuleBased] Aucune commande produite pour cette phrase.");
-                                Command.Speak(ClarificationVocabulary.NotUnderstood); // manque de sens
+                                // Paramètre isolé sans commande (« en vert ») → ambiguïté : on nomme
+                                // les actions possibles plutôt qu'un « je n'ai pas compris » générique.
+                                string orphanParam = _ruleBasedRecognizer.DetectOrphanParameter(phrase);
+                                string orphanPrompt = ClarificationVocabulary.GetOrphanPrompt(orphanParam);
+                                Command.Speak(orphanPrompt ?? ClarificationVocabulary.NotUnderstood);
                                 _pendingCommand = null;
                                 continue;
                             }

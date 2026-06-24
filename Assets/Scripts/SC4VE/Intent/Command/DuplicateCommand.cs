@@ -15,7 +15,8 @@ namespace Sc4ve.Multimodality.Intent
         // optionnelle (uniquement si la phrase indique un endroit, « copie cet objet ici »).
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
         {
-            var ps = new List<Parameter> { ctx.BuildSelectionParameter(useStartedAt: true) };
+            // Cible absente (« fais une copie ici » alors qu'un objet est sélectionné) → sélection courante.
+            var ps = new List<Parameter> { ctx.BuildSelectionParameter(useStartedAt: true, fallbackToSelection: true) };
             if (ctx.HasDestination) ps.Add(ctx.BuildDestinationParameter());
             return ps;
         }

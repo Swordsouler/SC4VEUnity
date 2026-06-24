@@ -151,6 +151,17 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             bool hasCoreference = referencesSelection
                 || (annotations.Count == 0 && deictics.Count == 0 && HasCoreference(text));
 
+            // « sélectionne toutes les citrouilles » : « tout/toutes » quantifie ici un type
+            // précis (annotation, couleur ou déictique) → ce n'est pas « tout sélectionner »
+            // mais une sélection filtrée sur ce type. On requalifie SelectAll en Select (limite
+            // -1 = tous les objets de ce type).
+            if (commandType == "SelectAllCommand" &&
+                (annotations.Count > 0 || colors.Count > 0 || deictics.Count > 0))
+            {
+                Debug.Log("[RuleBased] SelectAllCommand requalifié en SelectCommand (cible spécifique présente).");
+                commandType = "SelectCommand";
+            }
+
             Debug.Log(
                 $"[RuleBased] Annotations : [{string.Join(", ", annotations.Select(a => a.Value))}] | " +
                 $"Couleurs : [{string.Join(", ", colors.Select(c => $"{c.Value}(cible={c.IsTarget})"))}] | " +
@@ -224,6 +235,23 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             string completed = JsonConvert.SerializeObject(new List<Command> { pending }, Formatting.Indented);
             Debug.Log($"[RuleBased] Complétion de {pending.Type} :\n{completed}");
             return completed;
+        }
+
+        /// <summary>
+        /// Si la phrase contient un paramètre isolé (couleur) mais aucune commande reconnue,
+        /// retourne le nom de la classe de paramètre (« ColorParameter ») pour une clarification
+        /// d'ambiguïté (« en vert » → colorier ? sélectionner ?) ; sinon null. À appeler quand
+        /// Recognize a renvoyé null et qu'aucune commande n'est en attente.
+        /// </summary>
+        public string DetectOrphanParameter(Sentence sentence)
+        {
+            if (sentence == null || string.IsNullOrWhiteSpace(sentence.Text))
+                return null;
+            string text = CorrectHomophones(sentence.Text.ToLowerInvariant().Trim());
+            List<Word> words = sentence.Words ?? new List<Word>();
+            if (FindColors(text, words).Count > 0)
+                return "ColorParameter";
+            return null;
         }
 
         // ─────────────────────────────────────────────────────────────────────

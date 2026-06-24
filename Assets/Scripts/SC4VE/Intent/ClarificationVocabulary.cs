@@ -23,8 +23,10 @@ namespace Sc4ve.Multimodality.Intent
     {
         // type de commande (nom local) → liste (classe de paramètre requise, cardinalité)
         private static Dictionary<string, List<(string ParamClass, int Cardinality)>> _requirements;
-        // classe de paramètre (nom local) → question localisée
+        // classe de paramètre (nom local) → question localisée (paramètre requis manquant)
         private static Dictionary<string, string> _clarifications;
+        // classe de paramètre (nom local) → question localisée (paramètre reconnu SANS commande)
+        private static Dictionary<string, string> _orphanClarifications;
         private static string _notUnderstood;
         private static string _noMatch;
         private static string _cachedLocale;
@@ -37,6 +39,14 @@ namespace Sc4ve.Multimodality.Intent
         /// <summary>Message « je n'ai pas compris » localisé (manque de sens).</summary>
         public static string NotUnderstood => _notUnderstood;
 
+        /// <summary>
+        /// Message d'ambiguïté localisé quand un paramètre (ex: une couleur) est reconnu SANS
+        /// commande (« en vert » seul). Nomme les actions possibles ; null si aucun message défini.
+        /// </summary>
+        public static string GetOrphanPrompt(string paramClass)
+            => _orphanClarifications != null && paramClass != null
+               && _orphanClarifications.TryGetValue(paramClass, out string msg) ? msg : null;
+
         public static async Task InitializeAsync()
         {
             string locale = UserData.Locale;
@@ -44,11 +54,12 @@ namespace Sc4ve.Multimodality.Intent
 
             Graph graph = await OntologyCache.GetGraphAsync();
 
-            _requirements   = QueryRequirements(graph);
-            _clarifications = QueryClarifications(graph, locale);
-            _notUnderstood  = QueryMessage(graph, "sc4ve:notUnderstood", locale);
-            _noMatch        = QueryMessage(graph, "sc4ve:noMatch", locale);
-            _cachedLocale   = locale;
+            _requirements         = QueryRequirements(graph);
+            _clarifications       = QueryParamMessages(graph, locale, "sc4ve:clarification");
+            _orphanClarifications = QueryParamMessages(graph, locale, "sc4ve:orphanClarification");
+            _notUnderstood        = QueryMessage(graph, "sc4ve:notUnderstood", locale);
+            _noMatch              = QueryMessage(graph, "sc4ve:noMatch", locale);
+            _cachedLocale         = locale;
 
             Debug.Log($"[Clarification] {_requirements.Count} commande(s) avec exigences, " +
                       $"{_clarifications.Count} message(s) de paramètre, locale '{locale}'.");
@@ -157,13 +168,13 @@ SELECT ?cmd ?param ?card WHERE {
             return requirements;
         }
 
-        private static Dictionary<string, string> QueryClarifications(Graph graph, string locale)
+        private static Dictionary<string, string> QueryParamMessages(Graph graph, string locale, string property)
         {
             var result = new Dictionary<string, string>();
             string query = $@"
 PREFIX sc4ve: <https://sc4ve.lisn.upsaclay.fr/ontology#>
 SELECT ?param ?msg WHERE {{
-    ?param sc4ve:clarification ?msg .
+    ?param {property} ?msg .
     FILTER(langMatches(lang(?msg), ""{locale}""))
 }}";
             if (graph.ExecuteQuery(query) is SparqlResultSet results)
