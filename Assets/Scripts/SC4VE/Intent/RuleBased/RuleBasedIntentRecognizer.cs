@@ -213,7 +213,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             }
 
             // Priorité aux déclencheurs les plus longs (multi-mots d'abord)
-            var ordered = RuleBasedTriggersAttribute.GetAllMappings()
+            var ordered = CommandVocabulary.TriggerMappings
                 .SelectMany(m => m.Triggers.Select(t => (Trigger: t, CommandType: m.CommandType)))
                 .OrderByDescending(x => x.Trigger.Length);
 
@@ -324,7 +324,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             string[] tokens = text.Split(
                 new[] { ' ', ',', '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
 
-            var allMappings = RuleBasedTriggersAttribute.GetAllMappings();
+            var allMappings = CommandVocabulary.TriggerMappings;
             bool IsVerb(string w) => allMappings.Any(
                 m => m.Triggers.Any(t => t.Equals(w, StringComparison.OrdinalIgnoreCase)));
 

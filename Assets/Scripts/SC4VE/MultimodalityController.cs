@@ -666,7 +666,10 @@ JSON Attendu:
             List<string> cameraNames = await cameraNameTask;
             _cameraNamesString = string.Join(", ", cameraNames.Select(n => $"{n}"));
 
-            _availableCommandsString = CommandDescriptionAttribute.GetAvailableCommandsString();
+            // Vocabulaire de commandes (triggers + descriptions LLM), bilingue, depuis l'ontologie
+            // (repli sur les attributs C# pour les commandes pas encore migrées).
+            await CommandVocabulary.InitializeAsync();
+            _availableCommandsString = CommandVocabulary.CommandsDescription;
 
             // Exigences de paramètres + messages de clarification (bilingues) depuis l'ontologie.
             await ClarificationVocabulary.InitializeAsync();
@@ -748,7 +751,7 @@ JSON Attendu:
             var vocab = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             // ── Verbes d'action (toutes les formes des triggers) ──────────
-            foreach (var (triggers, _) in RuleBasedTriggersAttribute.GetAllMappings())
+            foreach (var (triggers, _) in CommandVocabulary.TriggerMappings)
                 foreach (string trigger in triggers)
                     foreach (string word in trigger.ToLowerInvariant().Split(' '))
                         vocab.Add(word);
