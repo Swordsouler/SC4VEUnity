@@ -35,10 +35,7 @@ namespace Sc4ve.Multimodality.Intent
             string locale = UserData.Locale;
             if (_triggerMappings != null && _cachedLocale == locale) return;
 
-            Graph graph = new();
-            Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
-            TurtleParser parser = new();
-            foreach (string ttl in ontologies.Values) parser.Load(graph, ttl);
+            Graph graph = await OntologyCache.GetGraphAsync();
 
             _triggerMappings     = BuildTriggerMappings(graph, locale);
             _commandsDescription = BuildCommandsDescription(graph, locale);

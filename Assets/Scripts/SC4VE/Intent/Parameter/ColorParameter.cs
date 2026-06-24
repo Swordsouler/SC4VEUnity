@@ -197,15 +197,8 @@ WHERE {{
 
         public static async Task<List<string>> GetAllAvailableColors(Language language)
         {
-            // load a graph with colors from resources
-            Graph graph = new();
-            // load ontology like GraphManager
-            Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
-            TurtleParser turtleParser = new();
-            foreach (KeyValuePair<string, string> ontology in ontologies)
-            {
-                turtleParser.Load(graph, ontology.Value);
-            }
+            // Graphe ontologique partagé (parsé une seule fois) — évite de re-parser les .ttl.
+            Graph graph = await OntologyCache.GetGraphAsync();
 
             string locale = UserData.Locale;
             // On récupère le label ET les composantes RGB (en OPTIONAL pour ne pas exclure une

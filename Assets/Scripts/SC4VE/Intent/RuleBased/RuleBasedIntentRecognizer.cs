@@ -217,10 +217,10 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         private static readonly Dictionary<string, string> HomophonesFr =
             new(StringComparer.OrdinalIgnoreCase)
             {
-                { "mais",  "mets"   },   // /mɛ/  : "mais" (conj.) → "mets" (mettre)
-                { "est",   "et"     },   // /ɛ/   : "est" (être)   → "et"   (conj.) — rare
-                { "ses",   "ces"    },   // /se/  : "ses" (poss.)  → "ces"  (dém.)
-                { "on",    "ont"    },   // /ɔ̃/  : "on" → "ont"
+                // Uniquement des corrections liées aux verbes de commande (sûres : ces mots ne
+                // sont pas utilisés autrement dans une commande). On évite les particules
+                // courantes (est/et, ses/ces, on/ont) qui pourraient corrompre une entrée valide.
+                { "mais",     "mets"     },   // /mɛ/ : "mais" → "mets" (mettre)
                 { "dépasse",  "déplace"  },   // Whisper confond /deplas/ (déplace) et /depas/ (dépasse)
                 { "dépasser", "déplacer" },
                 { "dépassé",  "déplacé"  },

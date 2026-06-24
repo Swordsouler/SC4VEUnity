@@ -468,6 +468,14 @@ JSON Attendu:
             UserData.Language = _language;
             if (_speechToText != null) _speechToText.OnTranscriptionResult += OnTranscriptionResult;
 
+            // Suspendre l'écoute pendant que le système parle (Piper) : sinon le micro re-capte
+            // la voix de synthèse et la réinterprète comme une commande (boucle de rétroaction).
+            PiperTextToSpeech tts = FindFirstObjectByType<PiperTextToSpeech>();
+            if (tts != null && _speechToText != null)
+            {
+                tts.OnSpeechStart += () => _speechToText.SetListeningSuspended(true);
+                tts.OnSpeechEnd   += () => _speechToText.SetListeningSuspended(false);
+            }
         }
 
         private async void OnTranscriptionResult(string obj)
@@ -951,13 +959,11 @@ JSON Attendu:
         {
             return await Task.Run(async () =>
             {
+                // Copie du graphe ontologique mis en cache (parsé une seule fois) au lieu de
+                // re-parser tous les .ttl à chaque commande — Merge copie triples + namespaces.
+                Graph cached = await OntologyCache.GetGraphAsync();
                 Graph graph = new();
-                Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
-                foreach (KeyValuePair<string, string> ontology in ontologies)
-                {
-                    TurtleParser turtleParser = new();
-                    turtleParser.Load(graph, ontology.Value);
-                }
+                graph.Merge(cached);
                 graph.BaseUri = new Uri(SvenSettings.BaseUri);
                 graph.NamespaceMap.AddNamespace("", UriFactory.Create(SvenSettings.BaseUri));
                 foreach (Command command in commands)

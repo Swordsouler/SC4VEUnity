@@ -42,11 +42,7 @@ namespace Sc4ve.Multimodality.Intent
             string locale = UserData.Locale;
             if (_requirements != null && _cachedLocale == locale) return;
 
-            Graph graph = new();
-            Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
-            TurtleParser parser = new();
-            foreach (string ttl in ontologies.Values)
-                parser.Load(graph, ttl);
+            Graph graph = await OntologyCache.GetGraphAsync();
 
             _requirements   = QueryRequirements(graph);
             _clarifications = QueryClarifications(graph, locale);

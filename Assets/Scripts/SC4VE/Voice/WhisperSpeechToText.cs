@@ -27,6 +27,7 @@ namespace Sc4ve.Voice
         private bool _isBuffering;
         private bool _isTranscribing;
         private bool _pttKeyActive;
+        private bool _suspended;   // micro ignoré pendant que le système parle (TTS)
 
         // Prompt initial : amorce Whisper avec des exemples de commandes. Whisper segmente bien
         // mieux les mots liés (« colorie là » au lieu de « colorila ») quand il est amorcé par
@@ -53,10 +54,17 @@ namespace Sc4ve.Voice
             {
                 _whisperManager.enableTokens = true;
                 _whisperManager.tokensTimestamps = true;
-                // Langue de reconnaissance = locale de l'application (Whisper est multilingue ;
-                // sans ça il garde son défaut « en » et transcrirait le français en anglais).
+                // Langue de reconnaissance = locale de l'application. Sauf si le modèle est
+                // anglais-seul (.en) : forcer une autre langue le casserait → on prévient et on
+                // garde le réglage du modèle. (Whisper multilingue : « en » par défaut sinon.)
                 if (!string.IsNullOrEmpty(UserData.Locale))
-                    _whisperManager.language = UserData.Locale;
+                {
+                    bool englishOnly = _whisperManager.ModelPath != null && _whisperManager.ModelPath.Contains(".en");
+                    if (englishOnly && !UserData.Locale.StartsWith("en"))
+                        Debug.LogWarning($"[Whisper] Modèle anglais seul ({_whisperManager.ModelPath}) incompatible avec la locale '{UserData.Locale}'. Utilise un modèle multilingue (fichier sans .en).");
+                    else
+                        _whisperManager.language = UserData.Locale;
+                }
                 // Amorcer dès le départ (avant même le chargement du vocabulaire du domaine,
                 // et même en mode LLM où SetGrammar n'est pas appelé).
                 if (string.IsNullOrEmpty(_whisperManager.initialPrompt))
@@ -101,6 +109,18 @@ namespace Sc4ve.Voice
             _voiceProcessor.StopRecording();
         }
 
+        // Ignore le micro pendant que le système parle (et jette l'audio capté entre-temps,
+        // souvent la voix de synthèse), pour éviter de re-transcrire le TTS comme une commande.
+        public override void SetListeningSuspended(bool suspended)
+        {
+            _suspended = suspended;
+            if (suspended)
+            {
+                _audioBuffer.Clear();
+                _isBuffering = false;
+            }
+        }
+
         /// <summary>
         /// Définit le vocabulaire du domaine comme prompt initial pour guider Whisper.
         /// Remplace le mécanisme de grammaire de Vosk.
@@ -117,6 +137,7 @@ namespace Sc4ve.Voice
 
         private void OnFrameCaptured(short[] samples)
         {
+            if (_suspended) return;               // le système parle → on ignore le micro
             if (_pushToTalk && !_pttKeyActive) return;
 
             if (!_isBuffering)
@@ -128,6 +149,7 @@ namespace Sc4ve.Voice
 
         private void OnVoiceActivityStopped()
         {
+            if (_suspended) return;
             if (_isBuffering)
                 _ = TranscribeBufferAsync();
         }
