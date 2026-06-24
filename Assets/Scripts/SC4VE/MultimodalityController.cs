@@ -39,6 +39,10 @@ namespace Sc4ve.Multimodality
         [BoxGroup("References"), SerializeField] private BaseSpeechToText _speechToText;
         [BoxGroup("References"), SerializeField] private Language _language = Language.English;
 
+        [BoxGroup("Feedback"), SerializeField,
+         Tooltip("Énonce une confirmation vocale après chaque commande réussie (ex: « 6 objets coloriés »). Décocher pour la désactiver.")]
+        private bool _voiceGrounding = true;
+
         [BoxGroup("Recognizer Settings"), SerializeField, Tooltip("LLM : utilise un modèle de langage (OpenAI ou local). RuleBased : utilise uniquement des algorithmes, sans LLM.")]
         private RecognizerMode _recognizerMode = RecognizerMode.LLM;
 
@@ -1032,7 +1036,14 @@ JSON Attendu:
             List<SemantizationCore> lastObjects = new();
             foreach (Command command in commands)
             {
-                lastObjects.AddRange(command.Execute());
+                List<SemantizationCore> affected = command.Execute();
+                lastObjects.AddRange(affected);
+                // Grounding vocal : confirme ce qui a été fait (« 6 objets coloriés »), si activé.
+                if (_voiceGrounding)
+                {
+                    string grounding = CommandVocabulary.GetGrounding(command.Type, affected?.Count ?? 0);
+                    if (!string.IsNullOrEmpty(grounding)) Command.Speak(grounding);
+                }
             }
             Command.LastObjects = lastObjects;
 

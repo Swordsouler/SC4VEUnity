@@ -21,6 +21,7 @@ namespace Sc4ve.Multimodality.Intent
         private static List<(string[] Triggers, string CommandType)> _triggerMappings;
         private static string _commandsDescription;
         private static List<string> _deictics;
+        private static Dictionary<string, List<string>> _groundings;
         private static string _cachedLocale;
 
         /// <summary>Mappings (triggers, type) pour la locale courante (ontologie + repli attributs).</summary>
@@ -34,6 +35,20 @@ namespace Sc4ve.Multimodality.Intent
         /// <summary>Mots déictiques de pointage (sc4ve:deicticWord) pour la locale courante.</summary>
         public static List<string> Deictics => _deictics ?? new List<string>();
 
+        /// <summary>
+        /// Confirmation vocale localisée (« 6 objets coloriés ») pour une commande ayant affecté
+        /// <paramref name="count"/> objets ; null si aucun modèle sc4ve:grounding défini ou count = 0.
+        /// Le modèle contient « {n} » (le nombre) et « (s) » (pluriel résolu : singulier si 1).
+        /// </summary>
+        public static string GetGrounding(string commandType, int count)
+        {
+            if (count <= 0 || commandType == null || _groundings == null) return null;
+            if (!_groundings.TryGetValue(commandType, out var msgs) || msgs.Count == 0) return null;
+            return msgs[0]
+                .Replace("{n}", count.ToString())
+                .Replace("(s)", count == 1 ? "" : "s");
+        }
+
         public static async Task InitializeAsync()
         {
             string locale = UserData.Locale;
@@ -44,6 +59,7 @@ namespace Sc4ve.Multimodality.Intent
             _triggerMappings     = BuildTriggerMappings(graph, locale);
             _commandsDescription = BuildCommandsDescription(graph, locale);
             _deictics            = QueryDeictics(graph, locale);
+            _groundings          = QueryByCommand(graph, "sc4ve:grounding", locale);
             _cachedLocale        = locale;
 
             Debug.Log($"[CommandVocab] {_triggerMappings.Count} mapping(s) de triggers, " +
