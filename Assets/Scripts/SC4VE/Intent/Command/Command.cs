@@ -76,12 +76,21 @@ namespace Sc4ve.Multimodality.Intent
         }
 
         /// <summary>
+        /// Repli sur la sélection courante quand la cible (déictique/pointage, ou absence de cible)
+        /// résout à vide. Vrai par défaut (commandes de transformation : « triple ça » / « cache
+        /// ça » agissent sur la sélection si rien n'est pointé). Les commandes qui DÉFINISSENT la
+        /// sélection (Select/Unselect) le passent à false.
+        /// </summary>
+        protected virtual bool FallbackToSelectionWhenEmpty => true;
+
+        /// <summary>
         /// Construit les paramètres de la commande depuis le contexte RuleBased.
-        /// Par défaut : un seul SelectionParameter standard.
+        /// Par défaut : un seul SelectionParameter standard (repli sélection selon
+        /// <see cref="FallbackToSelectionWhenEmpty"/>).
         /// Surcharger pour les commandes avec une logique spécifique (MoveCommand, ColorizeCommand…).
         /// </summary>
         public virtual List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
-            => new List<Parameter> { ctx.BuildSelectionParameter() };
+            => new List<Parameter> { ctx.BuildSelectionParameter(fallbackToSelection: FallbackToSelectionWhenEmpty) };
 
         public abstract List<SemantizationCore> Execute();
 

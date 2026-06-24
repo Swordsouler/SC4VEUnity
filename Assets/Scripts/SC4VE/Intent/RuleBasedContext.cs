@@ -22,6 +22,10 @@ namespace Sc4ve.Multimodality.Intent
         public IReadOnlyList<RuleBasedAnnotation> Deictics     { get; init; }
         public bool HasCoreference { get; init; }
         public int  Limit          { get; init; }
+        // Facteur d'échelle explicite (« double » → 2, « triple » → 3) ; 0 = non spécifié.
+        public float ScaleFactor   { get; init; }
+        // Taille absolue cible (« mets la taille à 50 » → 50) ; 0 = non spécifié.
+        public float ScaleValue    { get; init; }
 
         public IReadOnlyList<RuleBasedColor> SourceColors =>
             Colors?.Where(c => !c.IsTarget).ToList() ?? new List<RuleBasedColor>();
@@ -62,9 +66,10 @@ namespace Sc4ve.Multimodality.Intent
         /// <summary>
         /// Construit le SelectionParameter standard à partir des entités extraites.
         /// <paramref name="useStartedAt"/> = true pour MoveCommand (source pointée avant de parler).
-        /// <paramref name="fallbackToSelection"/> = true : si aucune cible explicite n'est extraite,
-        /// on retombe sur la sélection courante (coréférence implicite) au lieu de laisser le
-        /// paramètre vide — pour les commandes qui transforment l'existant (Move, Duplicate).
+        /// <paramref name="fallbackToSelection"/> = true : si la cible (déictique/pointage, ou
+        /// absence de cible) résout à vide, on retombe sur la sélection courante au lieu de laisser
+        /// le paramètre vide — pour les commandes qui transforment l'existant (Move, Duplicate).
+        /// Une cible explicite PAR TYPE (annotation/couleur) désactive ce repli.
         /// </summary>
         public SelectionParameter BuildSelectionParameter(bool useStartedAt = false, bool fallbackToSelection = false)
         {
@@ -116,17 +121,19 @@ namespace Sc4ve.Multimodality.Intent
                 }
             }
 
-            // Aucune cible explicite : repli sur la sélection courante (coréférence implicite).
-            // Le filtre Coreference est résolu vers SelectionManager dans SelectionParameter.Semanticize
-            // (même structure que la coréférence explicite « colorie les en rouge »).
-            if (fallbackToSelection && filters.Count == 0)
-                filters.Add(new FilterElement
-                {
-                    IsOperator = false,
-                    Condition  = new Condition { Type = "Coreference" }
-                });
+            // Repli sur la sélection courante (Move/Duplicate) : posé si AUCUNE cible explicite
+            // PAR TYPE (annotation/couleur) n'est donnée. Un déictique (« ça ») ou l'absence de
+            // cible peuvent retomber sur la sélection quand le pointage résout à vide ; « les
+            // pommes » non (cible explicite → NoMatch si aucune pomme). Résolu dans Semanticize.
+            bool explicitTypeTarget = (Annotations?.Count > 0) || (SourceColors?.Count > 0);
 
-            return new SelectionParameter { Type = "SelectionParameter", Filters = filters, Limit = Limit };
+            return new SelectionParameter
+            {
+                Type = "SelectionParameter",
+                Filters = filters,
+                Limit = Limit,
+                FallbackToSelection = fallbackToSelection && !explicitTypeTarget
+            };
         }
 
         /// <summary>

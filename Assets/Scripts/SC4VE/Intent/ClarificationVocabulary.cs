@@ -105,7 +105,7 @@ namespace Sc4ve.Multimodality.Intent
             SelectionParameter sel = command.Parameters?.OfType<SelectionParameter>().FirstOrDefault();
             if (sel == null) return null;
 
-            bool hasCriteria = sel.Filters != null && sel.Filters.Count > 0;
+            bool hasCriteria = (sel.Filters != null && sel.Filters.Count > 0) || sel.FallbackToSelection;
             bool empty = (sel.Objects?.Count ?? 0) == 0;
             if (!hasCriteria || !empty) return null;
 
@@ -124,7 +124,9 @@ namespace Sc4ve.Multimodality.Intent
         // vide signifie « cible absente ». Les autres paramètres comptent dès qu'ils sont présents.
         private static bool IsSatisfied(Parameter p)
         {
-            if (p is SelectionParameter sel) return (sel.Filters?.Count ?? 0) > 0;
+            // Exception : un SelectionParameter avec repli (Move/Duplicate) est satisfait même
+            // sans filtre — la sélection courante servira de cible (résolu dans Semanticize).
+            if (p is SelectionParameter sel) return (sel.Filters?.Count ?? 0) > 0 || sel.FallbackToSelection;
             return true;
         }
 

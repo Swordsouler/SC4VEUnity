@@ -12,6 +12,9 @@ namespace Sc4ve.Multimodality.Intent
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
 
+        // Désélectionner gère lui-même l'absence de cible (vide toute la sélection) → pas de repli.
+        protected override bool FallbackToSelectionWhenEmpty => false;
+
         public override List<SemantizationCore> Execute()
         {
             bool hasFilter = SelectionParameter?.Filters != null && SelectionParameter.Filters.Count > 0;

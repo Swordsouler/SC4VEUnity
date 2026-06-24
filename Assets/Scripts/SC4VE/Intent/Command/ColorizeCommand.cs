@@ -24,7 +24,7 @@ namespace Sc4ve.Multimodality.Intent
                     Value     = ctx.TargetColors[0].Value,
                     Timestamp = ctx.TargetColors[0].Timestamp
                 });
-            ps.Add(ctx.BuildSelectionParameter());
+            ps.Add(ctx.BuildSelectionParameter(fallbackToSelection: FallbackToSelectionWhenEmpty));
             return ps;
         }
 

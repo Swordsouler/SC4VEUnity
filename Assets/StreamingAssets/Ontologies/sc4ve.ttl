@@ -241,6 +241,20 @@ sc4ve:ScaleUpCommand rdf:type owl:Class ;
                                 "Scale Up Command"@en .
 
 
+###  https://sc4ve.lisn.upsaclay.fr/ontology#ScaleToCommand
+sc4ve:ScaleToCommand rdf:type owl:Class ;
+                     rdfs:subClassOf sc4ve:Command ,
+                                     [ rdf:type owl:Restriction ;
+                                       owl:onProperty sc4ve:hasParameter ;
+                                       owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                       owl:onClass sc4ve:SelectionParameter
+                                     ] ;
+                     rdfs:comment "A command to set the absolute size (scale) of objects to a value."@en ,
+                                  "Une commande pour régler la taille (échelle absolue) des objets à une valeur."@fr ;
+                     rdfs:label "Commande de Réglage de taille"@fr ,
+                                "Scale To Command"@en .
+
+
 ###  https://sc4ve.lisn.upsaclay.fr/ontology#SelectCommand
 sc4ve:SelectCommand rdf:type owl:Class ;
                     rdfs:subClassOf sc4ve:Command ,
@@ -568,12 +582,16 @@ sc4ve:FlipCommand sc4ve:trigger
     "flip"@en , "mirror"@en , "turn over"@en .
 
 sc4ve:ScaleUpCommand sc4ve:trigger
-    "augmente la taille"@fr , "grossis"@fr , "grossit"@fr , "agrandis"@fr , "agrandit"@fr , "grandit"@fr , "grandir"@fr , "grossir"@fr , "agrandir"@fr ,
-    "scale up"@en , "grow"@en , "bigger"@en , "enlarge"@en , "make bigger"@en .
+    "augmente la taille"@fr , "grossis"@fr , "grossit"@fr , "agrandis"@fr , "agrandit"@fr , "grandit"@fr , "grandir"@fr , "grossir"@fr , "agrandir"@fr , "double"@fr , "doubler"@fr , "triple"@fr , "tripler"@fr ,
+    "scale up"@en , "grow"@en , "bigger"@en , "enlarge"@en , "make bigger"@en , "double"@en , "triple"@en .
 
 sc4ve:ScaleDownCommand sc4ve:trigger
     "diminue la taille"@fr , "rapetisse"@fr , "réduis"@fr , "réduit"@fr , "diminue"@fr , "rétrécis"@fr , "rétrécit"@fr , "rapetisser"@fr , "réduire"@fr , "rétrécir"@fr ,
     "scale down"@en , "shrink"@en , "smaller"@en , "reduce"@en , "make smaller"@en .
+
+sc4ve:ScaleToCommand sc4ve:trigger
+    "mets la taille"@fr , "règle la taille"@fr , "fixe la taille"@fr , "définis la taille"@fr , "ajuste la taille"@fr ,
+    "set the size"@en , "set size"@en , "scale to"@en , "size to"@en .
 
 sc4ve:AlignCommand sc4ve:trigger
     "aligne"@fr , "aligner"@fr , "même hauteur"@fr , "à la même hauteur"@fr ,

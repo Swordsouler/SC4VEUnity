@@ -59,6 +59,17 @@ namespace Sc4ve.Multimodality.Intent
             set => _limit = value;
         }
 
+        // Repli sur la sélection courante quand la cible (déictique/pointage, ou absence de cible)
+        // résout à vide — pour Move/Duplicate. N'est PAS posé si une cible explicite par type
+        // (annotation/couleur) est donnée. Voir RuleBasedContext.BuildSelectionParameter.
+        [SerializeField] private bool _fallbackToSelection;
+        [JsonProperty("fallbackToSelection")]
+        public bool FallbackToSelection
+        {
+            get => _fallbackToSelection;
+            set => _fallbackToSelection = value;
+        }
+
         [JsonIgnore] public string LimitSparql => Limit > 0 ? $"LIMIT {Limit}" : "LIMIT 10000";
 
         [SerializeField] private Order _order;
@@ -177,9 +188,12 @@ WHERE
 
             /******************************************/
             List<string> objectsUri = await QueryObjects(sceneGraphCopy);
-            // Filtre Coreference (« les », « ça »…) : on résout vers la sélection
-            // persistante si elle existe, sinon vers les derniers objets manipulés.
-            if (HasCoreferenceCondition)
+            // Le pointage / la cible explicite sont résolus EN PREMIER (QueryObjects ci-dessus).
+            // On ne complète avec la sélection courante (sinon les derniers objets manipulés) que :
+            //   - coréférence explicite (« les », « la sélection »…) → HasCoreferenceCondition ; OU
+            //   - repli des commandes de transformation (« triple ça ») quand le pointage/la cible
+            //     n'a RIEN trouvé (FallbackToSelection && 0 objet). Le pointage garde la priorité.
+            if (HasCoreferenceCondition || (FallbackToSelection && objectsUri.Count == 0))
             {
                 IEnumerable<string> coreferenced = SelectionManager.HasSelection
                     ? SelectionManager.SelectedIds

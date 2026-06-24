@@ -162,6 +162,15 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 commandType = "SelectCommand";
             }
 
+            // « mets la taille à 50 » (ScaleToCommand) : le nombre est la VALEUR d'échelle absolue,
+            // pas une limite de sélection. On l'extrait et on remet la limite à « tous ».
+            float scaleValue = 0f;
+            if (commandType == "ScaleToCommand" && limit > 0)
+            {
+                scaleValue = limit;
+                limit = -1;
+            }
+
             Debug.Log(
                 $"[RuleBased] Annotations : [{string.Join(", ", annotations.Select(a => a.Value))}] | " +
                 $"Couleurs : [{string.Join(", ", colors.Select(c => $"{c.Value}(cible={c.IsTarget})"))}] | " +
@@ -179,7 +188,9 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 Colors           = colors,
                 Deictics         = deictics,
                 HasCoreference   = hasCoreference,
-                Limit            = limit
+                Limit            = limit,
+                ScaleFactor      = DetectScaleFactor(text),
+                ScaleValue       = scaleValue
             };
 
             Command cmd = CreateCommand(commandType);
@@ -316,6 +327,14 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             string[] inputTokens = normalizedText.Split(
                 new[] { ' ', ',', '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
             string[] inputStems = System.Array.ConvertAll(inputTokens, Stem);
+
+            // Pré-vérification : « (mets/règle/fixe) la taille … à N » → régler la taille à une
+            // valeur absolue. AVANT MoveCommand : sans accent, le trigger « mets là » devient
+            // « mets la » et matcherait « mets la taille ». « taille »/« size » + un nombre lève
+            // l'ambiguïté (« double/triple la taille » n'a pas de nombre → reste ScaleUp).
+            string sizeWord = IsFrench ? "taille" : "size";
+            if (Regex.IsMatch(normalizedText, $@"\b{sizeWord}\b") && DetectLimit(text) > 0)
+                return "ScaleToCommand";
 
             // Pré-vérification : "met(s)/mettre" + mot de destination non-contigu → MoveCommand.
             // Nécessaire quand un pronom ("ça", "le"…) s'intercale entre le verbe et la destination,
@@ -480,6 +499,19 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             }
 
             return -1; // tous les objets
+        }
+
+        /// <summary>
+        /// Facteur d'échelle explicite : « double(r) » → 2, « triple(r) » → 3 ; 0 si non spécifié
+        /// (la commande applique alors son facteur incrémental par défaut). Les radicaux « doubl »
+        /// / « tripl » couvrent les formes fr ET en (mots quasi identiques).
+        /// </summary>
+        private static float DetectScaleFactor(string text)
+        {
+            string n = FrenchStemmer.NormalizeAccents(text);
+            if (Regex.IsMatch(n, @"\bdoubl")) return 2f;
+            if (Regex.IsMatch(n, @"\btripl")) return 3f;
+            return 0f;
         }
 
         // ─────────────────────────────────────────────────────────────────────
