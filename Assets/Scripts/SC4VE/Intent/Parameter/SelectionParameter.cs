@@ -70,6 +70,17 @@ namespace Sc4ve.Multimodality.Intent
             set => _fallbackToSelection = value;
         }
 
+        // Référence au singulier (« la pomme », sans « les »/« des »/nombre). Si plusieurs objets
+        // correspondent ET qu'aucun pointage n'a désigné lequel, ResolveCommands demande « laquelle ? »
+        // (désambiguïsation résolue au pointeur). Voir RuleBasedContext.BuildSelectionParameter.
+        [SerializeField] private bool _singularIntent;
+        [JsonProperty("singularIntent")]
+        public bool SingularIntent
+        {
+            get => _singularIntent;
+            set => _singularIntent = value;
+        }
+
         [JsonIgnore] public string LimitSparql => Limit > 0 ? $"LIMIT {Limit}" : "LIMIT 10000";
 
         [SerializeField] private Order _order;

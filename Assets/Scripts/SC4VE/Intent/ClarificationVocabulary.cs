@@ -29,6 +29,7 @@ namespace Sc4ve.Multimodality.Intent
         private static Dictionary<string, string> _orphanClarifications;
         private static string _notUnderstood;
         private static string _noMatch;
+        private static string _disambiguation;
         private static string _cachedLocale;
         private static bool _validated;
 
@@ -47,6 +48,13 @@ namespace Sc4ve.Multimodality.Intent
             => _orphanClarifications != null && paramClass != null
                && _orphanClarifications.TryGetValue(paramClass, out string msg) ? msg : null;
 
+        /// <summary>
+        /// Message de désambiguïsation localisé (« J'ai trouvé 3 objets… ») ; null si non défini.
+        /// « {n} » est remplacé par le nombre de candidats.
+        /// </summary>
+        public static string GetDisambiguationPrompt(int count)
+            => _disambiguation?.Replace("{n}", count.ToString());
+
         public static async Task InitializeAsync()
         {
             string locale = UserData.Locale;
@@ -59,6 +67,7 @@ namespace Sc4ve.Multimodality.Intent
             _orphanClarifications = QueryParamMessages(graph, locale, "sc4ve:orphanClarification");
             _notUnderstood        = QueryMessage(graph, "sc4ve:notUnderstood", locale);
             _noMatch              = QueryMessage(graph, "sc4ve:noMatch", locale);
+            _disambiguation       = QueryMessage(graph, "sc4ve:disambiguation", locale);
             _cachedLocale         = locale;
 
             Debug.Log($"[Clarification] {_requirements.Count} commande(s) avec exigences, " +

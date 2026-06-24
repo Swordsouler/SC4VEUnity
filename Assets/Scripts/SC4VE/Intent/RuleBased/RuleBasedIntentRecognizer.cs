@@ -144,8 +144,15 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // 2. Extraction des entités
             List<RuleBasedAnnotation> annotations = FindAnnotations(text, words);
             List<RuleBasedColor>      colors      = FindColors(text, words);
-            List<RuleBasedAnnotation> deictics    = FindDeictics(text, words);
+            // Ablation (benchmark) : pointage désactivé → pas de déictiques (« ça » ne produit
+            // plus de filtre Event), la résolution se fait à la voix seule.
+            List<RuleBasedAnnotation> deictics    = MultimodalitySettings.PointingEnabled
+                ? FindDeictics(text, words)
+                : new List<RuleBasedAnnotation>();
             int  limit          = DetectLimit(text);
+            // Intention au singulier (« la pomme ») : aucun marqueur pluriel NI nombre. Sert à la
+            // désambiguïsation quand plusieurs cibles correspondent (cf. ResolveCommands).
+            bool singularIntent = !HasPluralMarker(text) && limit <= 1;
             // Une référence explicite à la sélection (« …sélectionnés », « la sélection »)
             // force la coréférence vers la sélection courante.
             bool hasCoreference = referencesSelection
@@ -190,7 +197,8 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 HasCoreference   = hasCoreference,
                 Limit            = limit,
                 ScaleFactor      = DetectScaleFactor(text),
-                ScaleValue       = scaleValue
+                ScaleValue       = scaleValue,
+                SingularIntent   = singularIntent
             };
 
             Command cmd = CreateCommand(commandType);
@@ -512,6 +520,20 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             if (Regex.IsMatch(n, @"\bdoubl")) return 2f;
             if (Regex.IsMatch(n, @"\btripl")) return 3f;
             return 0f;
+        }
+
+        /// <summary>
+        /// Vrai si la phrase contient un marqueur de pluralité / collectif (« les », « tous »… ;
+        /// « all », « every »… ou « the …s ») → intention « tous les objets de ce type », pas une
+        /// cible unique. L'anglais reste approximatif (pluriel du nom mal détecté hors collectifs).
+        /// </summary>
+        private static bool HasPluralMarker(string text)
+        {
+            string n = FrenchStemmer.NormalizeAccents(text);
+            string pattern = IsFrench
+                ? @"\b(les|des|ces|tous|toutes|tout|plusieurs)\b"
+                : @"\b(all|every|both|several)\b|\bthe\s+\w+s\b";
+            return Regex.IsMatch(n, pattern);
         }
 
         // ─────────────────────────────────────────────────────────────────────

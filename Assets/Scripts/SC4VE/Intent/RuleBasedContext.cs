@@ -26,6 +26,8 @@ namespace Sc4ve.Multimodality.Intent
         public float ScaleFactor   { get; init; }
         // Taille absolue cible (« mets la taille à 50 » → 50) ; 0 = non spécifié.
         public float ScaleValue    { get; init; }
+        // Référence au singulier (« la pomme ») → candidate à la désambiguïsation si plusieurs cibles.
+        public bool SingularIntent { get; init; }
 
         public IReadOnlyList<RuleBasedColor> SourceColors =>
             Colors?.Where(c => !c.IsTarget).ToList() ?? new List<RuleBasedColor>();
@@ -57,6 +59,8 @@ namespace Sc4ve.Multimodality.Intent
             get
             {
                 if (string.IsNullOrEmpty(Text)) return false;
+                // Ablation (benchmark) : sans pointage, pas de destination (« ici » = au pointeur).
+                if (!MultimodalitySettings.PointingEnabled) return false;
                 bool fr = string.IsNullOrEmpty(UserData.Locale) || UserData.Locale.StartsWith("fr");
                 string[] words = fr ? DestinationWordsFr : DestinationWordsEn;
                 return words.Any(w => Regex.IsMatch(Text, $@"\b{Regex.Escape(w)}\b", RegexOptions.IgnoreCase));
@@ -132,7 +136,8 @@ namespace Sc4ve.Multimodality.Intent
                 Type = "SelectionParameter",
                 Filters = filters,
                 Limit = Limit,
-                FallbackToSelection = fallbackToSelection && !explicitTypeTarget
+                FallbackToSelection = fallbackToSelection && !explicitTypeTarget,
+                SingularIntent = SingularIntent
             };
         }
 

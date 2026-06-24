@@ -392,6 +392,16 @@ sc4ve:noMatch rdf:type owl:NamedIndividual ;
                          "No matching object was found"@en .
 
 
+###  https://sc4ve.lisn.upsaclay.fr/ontology#disambiguation
+###  Énoncé quand une référence au singulier (« la pomme ») correspond à plusieurs objets, sans
+###  pointage pour lever l'ambiguïté. « {n} » est remplacé par le nombre de candidats.
+sc4ve:disambiguation rdf:type owl:NamedIndividual ;
+                     rdfs:comment "Demande de désambiguïsation (« {n} » = nombre de candidats)."@fr ,
+                                  "Disambiguation request (« {n} » = number of candidates)."@en ;
+                     rdfs:label "J'ai trouvé {n} objets correspondants. Désigne celui que tu veux avec le pointeur."@fr ,
+                                "I found {n} matching objects. Point at the one you want."@en .
+
+
 #################################################################
 #    Commandes — exigences de paramètres (lues par ClarificationVocabulary)
 #

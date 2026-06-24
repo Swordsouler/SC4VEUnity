@@ -43,6 +43,14 @@ namespace Sc4ve.Multimodality
          Tooltip("Énonce une confirmation vocale après chaque commande réussie (ex: « 6 objets coloriés »). Décocher pour la désactiver.")]
         private bool _voiceGrounding = true;
 
+        [BoxGroup("Benchmark"), SerializeField,
+         Tooltip("Pointage activé. Décocher pour l'ABLATION : déictiques + destinations ignorés → voix seule (mesure la contribution du pointage).")]
+        private bool _pointingEnabled = true;
+
+        [BoxGroup("Benchmark"), SerializeField,
+         Tooltip("Journalise modalité / issue / durée par commande, et écrit un CSV (persistentDataPath/sven_metrics.csv).")]
+        private bool _metricsEnabled = true;
+
         [BoxGroup("Recognizer Settings"), SerializeField, Tooltip("LLM : utilise un modèle de langage (OpenAI ou local). RuleBased : utilise uniquement des algorithmes, sans LLM.")]
         private RecognizerMode _recognizerMode = RecognizerMode.LLM;
 
@@ -70,6 +78,20 @@ namespace Sc4ve.Multimodality
         // Commande en attente d'une clarification (paramètre manquant) : la phrase suivante
         // qui fournit le paramètre la complète (« Colorie cette banane » → « En bleu »).
         private Command _pendingCommand;
+
+        // Désambiguïsation en attente : référence au singulier (« la pomme ») qui correspond à
+        // plusieurs cibles, sans pointage. L'énoncé suivant (l'utilisateur pointe une cible) la
+        // résout par proximité au pointeur. Voir ResolveCommands / TryResolveDisambiguation.
+        private class PendingDisambiguation
+        {
+            public Command Command;
+            public List<SemantizationCore> Candidates;
+        }
+        private PendingDisambiguation _pendingDisambiguation;
+
+        // Commandes d'agrégat/requête : agissent sur TOUTES les correspondances → pas de désambiguïsation.
+        private static readonly HashSet<string> _noDisambiguation =
+            new() { "CountCommand", "DescribeCommand", "MeasureCommand" };
 
         // LLama-7b, qwen-3.5, mistral-nemo 
         // Le corps principal et statique du prompt est maintenant une constante.
@@ -495,8 +517,20 @@ JSON Attendu:
                 phrase.Start(new Instant(phrase.StartedAt));
                 phrase.End(new Instant(phrase.EndedAt));
 
+                // Benchmark : applique l'ablation (pointage on/off) et démarre la mesure de l'énoncé.
+                MultimodalitySettings.PointingEnabled = _pointingEnabled;
+                MultimodalityMetrics.Enabled = _metricsEnabled;
+                MultimodalityMetrics.Begin(phrase.Text);
+
                 try
                 {
+                    // Réponse à une désambiguïsation en attente : l'utilisateur a désigné une cible.
+                    if (_pendingDisambiguation != null)
+                    {
+                        if (TryResolveDisambiguation(phrase)) continue;
+                        _pendingDisambiguation = null; // pas une réponse de pointage → on abandonne
+                    }
+
                     string commandJson;
 
                     if (_recognizerMode == RecognizerMode.RuleBased)
@@ -519,6 +553,7 @@ JSON Attendu:
                                 string orphanParam = _ruleBasedRecognizer.DetectOrphanParameter(phrase);
                                 string orphanPrompt = ClarificationVocabulary.GetOrphanPrompt(orphanParam);
                                 Command.Speak(orphanPrompt ?? ClarificationVocabulary.NotUnderstood);
+                                MultimodalityMetrics.Complete(null, orphanParam != null ? "orphan" : "not_understood", 0);
                                 _pendingCommand = null;
                                 continue;
                             }
@@ -532,6 +567,7 @@ JSON Attendu:
                         {
                             Debug.LogWarning("[LLM] Received empty or null JSON from LLM after all attempts.");
                             Command.Speak(ClarificationVocabulary.NotUnderstood); // manque de sens
+                            MultimodalityMetrics.Complete(null, "not_understood", 0);
                             continue;
                         }
                         Debug.Log($"[LLM] Received FINAL JSON: {commandJson}");
@@ -541,6 +577,7 @@ JSON Attendu:
                     if (commands == null || commands.Count == 0 || commands.Any(c => c is UnknownCommand))
                     {
                         Command.Speak(ClarificationVocabulary.NotUnderstood); // manque de sens
+                        MultimodalityMetrics.Complete(commands?.FirstOrDefault(), "not_understood", 0);
                         continue;
                     }
 
@@ -551,6 +588,7 @@ JSON Attendu:
                 catch (Exception e)
                 {
                     Debug.LogError($"[{_recognizerMode}] An error occurred during processing: {e.Message}\n{e.StackTrace}");
+                    MultimodalityMetrics.Complete(null, "error", 0);
                 }
             }
         }
@@ -1002,6 +1040,7 @@ JSON Attendu:
                 {
                     Debug.Log($"[NoMatch] {command.Type} → « {noMatch} »");
                     Command.Speak(noMatch);
+                    MultimodalityMetrics.Complete(command, "no_match", 0);
                     _pendingCommand = null;
                     return;
                 }
@@ -1025,8 +1064,33 @@ JSON Attendu:
                     _pendingCommand = command;
                     Debug.Log($"[Clarification] {command.Type} : paramètre manquant → « {clarification} »");
                     Command.Speak(clarification);
+                    MultimodalityMetrics.Complete(command, "clarification", 0);
                     return;
                 }
+            }
+
+            // Désambiguïsation : référence au singulier (« la pomme ») correspondant à PLUSIEURS
+            // objets, sans pointage / coréférence / repli-sélection → on demande laquelle et on met
+            // en attente ; l'énoncé suivant (l'utilisateur pointe une cible) la résout au pointeur.
+            foreach (Command command in commands)
+            {
+                if (_noDisambiguation.Contains(command.Type)) continue;
+                SelectionParameter sel = command.Parameters?.OfType<SelectionParameter>().FirstOrDefault();
+                if (sel == null || !sel.SingularIntent || sel.FallbackToSelection) continue;
+                List<SemantizationCore> objs = sel.Objects;
+                if (objs == null || objs.Count <= 1) continue;
+                bool pointingOrCoref = sel.Filters != null && sel.Filters.Any(f =>
+                    !f.IsOperator && f.Condition != null && (f.Condition.IsEvent || f.Condition.IsCoreference));
+                if (pointingOrCoref) continue;
+
+                _pendingDisambiguation = new PendingDisambiguation { Command = command, Candidates = objs };
+                _pendingCommand = null;
+                SelectionManager.SetSelection(objs);   // surbrillance des candidats
+                string prompt = ClarificationVocabulary.GetDisambiguationPrompt(objs.Count);
+                Debug.Log($"[Disambiguation] {command.Type} : {objs.Count} cibles pour une référence au singulier.");
+                if (!string.IsNullOrEmpty(prompt)) Command.Speak(prompt);
+                MultimodalityMetrics.Complete(command, "disambiguation", objs.Count);
+                return;
             }
 
             _pendingCommand = null; // commande complète → plus rien en attente
@@ -1046,6 +1110,7 @@ JSON Attendu:
                 }
             }
             Command.LastObjects = lastObjects;
+            MultimodalityMetrics.Complete(commands.FirstOrDefault(), "executed", lastObjects.Count);
 
             // La sélection (et son contour) suit toujours les objets de la dernière commande.
             List<SemantizationCore> selection = Command.LastObjects;
@@ -1056,6 +1121,47 @@ JSON Attendu:
                 CommandHistory.SetLastAffected(selection);
 
             SelectionManager.SetSelection(selection);
+        }
+
+        /// <summary>
+        /// Résout une désambiguïsation en attente. Si l'énoncé est une vraie commande, retourne
+        /// false (on abandonne, traitement normal). Sinon (l'utilisateur a désigné une cible au
+        /// pointeur), exécute la commande en attente sur le candidat le plus proche du pointeur.
+        /// </summary>
+        private bool TryResolveDisambiguation(Sentence phrase)
+        {
+            // Une vraie commande dans la réponse → ce n'est pas une désambiguïsation.
+            if (_ruleBasedRecognizer != null &&
+                !string.IsNullOrWhiteSpace(_ruleBasedRecognizer.Recognize(phrase)))
+                return false;
+
+            PendingDisambiguation pending = _pendingDisambiguation;
+            _pendingDisambiguation = null;
+
+            SemantizationCore chosen = ClosestCandidateToPointer(pending.Candidates);
+            if (chosen == null)
+            {
+                Command.Speak(ClarificationVocabulary.NotUnderstood);
+                MultimodalityMetrics.Complete(pending.Command, "not_understood", 0);
+                return true;
+            }
+
+            SelectionParameter sel = pending.Command.Parameters?.OfType<SelectionParameter>().FirstOrDefault();
+            if (sel != null) sel.ObjectsUri = new List<string> { chosen.GetUUID() };
+            Debug.Log($"[Disambiguation] Cible désignée : {chosen.GetUUID()} (parmi {pending.Candidates.Count}).");
+            ResolveCommands(new List<Command> { pending.Command });
+            return true;
+        }
+
+        /// <summary>Le candidat le plus proche de la position pointée par le pointeur, ou null.</summary>
+        private static SemantizationCore ClosestCandidateToPointer(List<SemantizationCore> candidates)
+        {
+            Pointer pointer = UnityEngine.Object.FindFirstObjectByType<Pointer>();
+            if (pointer == null || candidates == null) return null;
+            Vector3 hit = pointer.PointerHitPosition;
+            return candidates.Where(c => c != null)
+                             .OrderBy(c => Vector3.Distance(c.transform.position, hit))
+                             .FirstOrDefault();
         }
 
         // Classes d'aide pour désérialiser la réponse d'OpenAI
