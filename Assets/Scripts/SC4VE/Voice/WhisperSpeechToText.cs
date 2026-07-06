@@ -178,19 +178,26 @@ namespace Sc4ve.Voice
 
             OnStatusUpdated?.Invoke("Whisper : transcription...");
 
-            int sampleRate = _voiceProcessor.SampleRate > 0 ? _voiceProcessor.SampleRate : 16000;
-            WhisperResult result = await _whisperManager.GetTextAsync(buffer, sampleRate, 1);
-
-            if (result != null && !string.IsNullOrWhiteSpace(result.Result))
+            try
             {
-                _recognizerStartedAt = audioStart;
-                string json = BuildVoskCompatibleJson(result);
-                Debug.Log($"[Whisper] Transcription : {result.Result.Trim()}");
-                OnTranscriptionResult?.Invoke(json);
-            }
+                int sampleRate = _voiceProcessor.SampleRate > 0 ? _voiceProcessor.SampleRate : 16000;
+                WhisperResult result = await _whisperManager.GetTextAsync(buffer, sampleRate, 1);
 
-            OnStatusUpdated?.Invoke("Whisper : écoute en cours...");
-            _isTranscribing = false;
+                if (result != null && !string.IsNullOrWhiteSpace(result.Result))
+                {
+                    _recognizerStartedAt = audioStart;
+                    string json = BuildVoskCompatibleJson(result);
+                    Debug.Log($"[Whisper] Transcription : {result.Result.Trim()}");
+                    OnTranscriptionResult?.Invoke(json);
+                }
+            }
+            finally
+            {
+                // Toujours relâcher le verrou : sinon une exception de transcription
+                // bloque définitivement toutes les transcriptions suivantes.
+                OnStatusUpdated?.Invoke("Whisper : écoute en cours...");
+                _isTranscribing = false;
+            }
         }
 
         // Construit un JSON identique au format Vosk pour que RecognitionResult/Sentence

@@ -1,12 +1,12 @@
 ﻿<Solution>
   <Project Path="ControllerSample.csproj" />
-  <Project Path="VX.AI.Runtime.BigtreeAlgorithm.csproj" />
-  <Project Path="VX.NLP.Runtime.VoxellNLP.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.csproj" />
-  <Project Path="VX.Util.Runtime.csproj" />
+  <Project Path="SC4VE.Tests.EditMode.csproj" />
+  <Project Path="SC4VE.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Vosk.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.Editor.csproj" />
   <Project Path="Bunny83.simpleJson.csproj" />
-  <Project Path="VX.Util.Editor.csproj" />
-  <Project Path="VX.NLP.Runtime.csproj" />
+  <Project Path="QuickOutline.csproj" />
+  <Project Path="SVEN.Samples.Demo.csproj" />
 </Solution>

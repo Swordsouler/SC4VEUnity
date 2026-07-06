@@ -12,8 +12,6 @@ namespace Sc4ve.Multimodality.Intent
                        "double", "doubler", "triple", "tripler")]
     public class ScaleUpCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         // Facteur d'agrandissement. ×1.1 par défaut (« agrandis ») ; redéfini par « double » (×2)
         // ou « triple » (×3). Initialisé à 1.1 pour que les commandes du LLM (JSON sans « factor »)
         // restent valides.
@@ -29,24 +27,17 @@ namespace Sc4ve.Multimodality.Intent
 
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> objects = SelectionParameter.Objects;
-            var undoActions = new List<Action>();
-            var redoActions = new List<Action>();
-            foreach (SemantizationCore semantizationCore in objects)
+            List<SemantizationCore> objects = SelectionParameter?.Objects ?? new();
+            return ExecuteReversible(objects, semantizationCore =>
             {
                 Transform t = semantizationCore.transform;
                 Vector3 prev = t.localScale;
                 Vector3 next = prev * Factor;
                 t.localScale = next;
-                undoActions.Add(() => { if (t != null) t.localScale = prev; });
-                redoActions.Add(() => { if (t != null) t.localScale = next; });
                 Debug.Log($"Scaling up object {semantizationCore.GetUUID()} to {t.localScale}");
-            }
-            if (undoActions.Count > 0)
-                CommandHistory.Push(
-                    () => undoActions.ForEach(a => a()),
-                    () => redoActions.ForEach(a => a()));
-            return objects;
+                return (() => t.localScale = prev,
+                        () => t.localScale = next);
+            });
         }
     }
 }

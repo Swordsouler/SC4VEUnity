@@ -391,7 +391,7 @@ WHERE
             }}
             {{
                 ?color a sven:Color ;
-                        rdfs:label ""{EscapeSparqlLiteral(Value)}""@fr ;
+                        rdfs:label ""{EscapeSparqlLiteral(Value)}""@{locale} ;
                         sven:r ?tr{index} ;
                         sven:g ?tg{index} ;
                         sven:b ?tb{index} ;

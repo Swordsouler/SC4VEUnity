@@ -2,6 +2,7 @@ using Sven.GraphManagement;
 using Sven.OwlTime;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using VDS.RDF;
 using VDS.RDF.Parsing;
 
@@ -83,7 +84,8 @@ namespace Sc4ve.Voice
             GraphManager.Assert(new Triple(eventNode, GraphManager.CreateUriNode("rdf:type"), GraphManager.CreateUriNode($"sc4ve:{GetType().Name}")));
             GraphManager.Assert(new Triple(eventNode, GraphManager.CreateUriNode("sven:hasTemporalExtent"), this.Interval.Semanticize()));
             if (_user != null) GraphManager.Assert(new Triple(GraphManager.CreateUriNode(":" + _user.UUID), GraphManager.CreateUriNode("sven:perform"), eventNode));
-            GraphManager.Assert(new Triple(eventNode, GraphManager.CreateUriNode("sc4ve:confidence"), GraphManager.CreateLiteralNode(Confidence.ToString(), UriFactory.Create(XmlSpecsHelper.XmlSchemaDataTypeFloat))));
+            // InvariantCulture : en locale française, ToString() produirait « 0,87 » — littéral xsd:float invalide.
+            GraphManager.Assert(new Triple(eventNode, GraphManager.CreateUriNode("sc4ve:confidence"), GraphManager.CreateLiteralNode(Confidence.ToString(CultureInfo.InvariantCulture), UriFactory.Create(XmlSpecsHelper.XmlSchemaDataTypeFloat))));
             GraphManager.Assert(new Triple(eventNode, GraphManager.CreateUriNode("sc4ve:text"), GraphManager.CreateLiteralNode(Text, UriFactory.Create(XmlSpecsHelper.XmlSchemaDataTypeString))));
             foreach (var word in Words)
             {

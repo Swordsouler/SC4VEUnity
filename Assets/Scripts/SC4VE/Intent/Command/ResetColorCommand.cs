@@ -10,17 +10,12 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable, CommandDescription("Remet les objets à leur couleur d'origine. Paramètres: SelectionParameter.")]
     public class ResetColorCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> objects = SelectionParameter.Objects;
-            var undoActions = new List<Action>();
-            var redoActions = new List<Action>();
-
-            foreach (SemantizationCore obj in objects)
+            List<SemantizationCore> objects = SelectionParameter?.Objects ?? new();
+            return ExecuteReversible(objects, obj =>
             {
-                if (!obj.TryGetComponent(out Renderer renderer) || renderer.material == null) continue;
+                if (!obj.TryGetComponent(out Renderer renderer) || renderer.material == null) return null;
 
                 var prevColor = renderer.material.color;
                 var captured  = obj;
@@ -29,20 +24,12 @@ namespace Sc4ve.Multimodality.Intent
 
                 var nextColor = renderer.material.color;
 
-                undoActions.Add(() => {
+                Debug.Log($"[ResetColor] {obj.GetUUID()} → couleur d'origine.");
+                return (() => {
                     if (captured.TryGetComponent(out Renderer r))
                         r.material.color = prevColor;
-                });
-                redoActions.Add(() => OriginalStateStore.RestoreColor(captured));
-                Debug.Log($"[ResetColor] {obj.GetUUID()} → couleur d'origine.");
-            }
-
-            if (undoActions.Count > 0)
-                CommandHistory.Push(
-                    () => undoActions.ForEach(a => a()),
-                    () => redoActions.ForEach(a => a()));
-
-            return objects;
+                }, () => OriginalStateStore.RestoreColor(captured));
+            });
         }
     }
 }

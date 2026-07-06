@@ -464,34 +464,6 @@ namespace Sc4ve.Voice
         }
 
         /// <summary>
-        /// Save a WAV file to disk
-        /// </summary>
-        /// <param name="filePath">Path to save the WAV file </param>
-        /// <param name="data">Audio data to save </param>
-        private void SaveWavFile(string filePath, byte[] data)
-        {
-            using var fileStream = new FileStream(filePath, FileMode.Create);
-            using var writer = new BinaryWriter(fileStream);
-            // Write WAV header
-            writer.Write(new char[4] { 'R', 'I', 'F', 'F' });
-            writer.Write(36 + data.Length);
-            writer.Write(new char[4] { 'W', 'A', 'V', 'E' });
-            writer.Write(new char[4] { 'f', 'm', 't', ' ' });
-            writer.Write(16);
-            writer.Write((short)1);
-            writer.Write((short)1);
-            writer.Write(16000);
-            writer.Write(16000 * 2);
-            writer.Write((short)2);
-            writer.Write((short)16);
-            writer.Write(new char[4] { 'd', 'a', 't', 'a' });
-            writer.Write(data.Length);
-            writer.Write(data);
-
-            Debug.Log("WAV file saved to " + filePath);
-        }
-
-        /// <summary>
         /// Load a WAV file from disk
         /// </summary>
         /// <param name="path">Path to the WAV file </param>

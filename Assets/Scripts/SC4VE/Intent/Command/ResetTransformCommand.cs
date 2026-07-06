@@ -10,20 +10,14 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable, CommandDescription("Remet les objets à leur position/rotation/taille d'origine. Paramètres: SelectionParameter.")]
     public class ResetTransformCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> objects = SelectionParameter.Objects;
-            var undoActions = new List<Action>();
-            var redoActions = new List<Action>();
-
-            foreach (SemantizationCore obj in objects)
+            List<SemantizationCore> objects = SelectionParameter?.Objects ?? new();
+            return ExecuteReversible(objects, obj =>
             {
                 var prevPos   = obj.transform.position;
                 var prevRot   = obj.transform.rotation;
                 var prevScale = obj.transform.localScale;
-                var captured  = obj;
 
                 OriginalStateStore.RestoreTransform(obj);
 
@@ -31,25 +25,17 @@ namespace Sc4ve.Multimodality.Intent
                 var newRot   = obj.transform.rotation;
                 var newScale = obj.transform.localScale;
 
-                undoActions.Add(() => {
-                    captured.transform.position   = prevPos;
-                    captured.transform.rotation   = prevRot;
-                    captured.transform.localScale = prevScale;
-                });
-                redoActions.Add(() => {
-                    captured.transform.position   = newPos;
-                    captured.transform.rotation   = newRot;
-                    captured.transform.localScale = newScale;
-                });
                 Debug.Log($"[ResetTransform] {obj.GetUUID()} → position d'origine.");
-            }
-
-            if (undoActions.Count > 0)
-                CommandHistory.Push(
-                    () => undoActions.ForEach(a => a()),
-                    () => redoActions.ForEach(a => a()));
-
-            return objects;
+                return (() => {
+                    obj.transform.position   = prevPos;
+                    obj.transform.rotation   = prevRot;
+                    obj.transform.localScale = prevScale;
+                }, () => {
+                    obj.transform.position   = newPos;
+                    obj.transform.rotation   = newRot;
+                    obj.transform.localScale = newScale;
+                });
+            });
         }
     }
 }

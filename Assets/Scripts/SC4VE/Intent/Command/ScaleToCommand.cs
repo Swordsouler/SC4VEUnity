@@ -11,8 +11,6 @@ namespace Sc4ve.Multimodality.Intent
                        "ajuste la taille", "set the size", "set size", "scale to", "size to")]
     public class ScaleToCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         // Taille cible absolue : localScale = (Value, Value, Value). 1 par défaut (taille neutre)
         // pour rester valide si une commande LLM n'inclut pas « value ».
         [SerializeField] private float _value = 1f;
@@ -28,23 +26,16 @@ namespace Sc4ve.Multimodality.Intent
         public override List<SemantizationCore> Execute()
         {
             List<SemantizationCore> objects = SelectionParameter?.Objects ?? new();
-            var undoActions = new List<Action>();
-            var redoActions = new List<Action>();
-            foreach (SemantizationCore semantizationCore in objects)
+            return ExecuteReversible(objects, semantizationCore =>
             {
                 Transform t = semantizationCore.transform;
                 Vector3 prev = t.localScale;
                 Vector3 next = Vector3.one * Value;
                 t.localScale = next;
-                undoActions.Add(() => { if (t != null) t.localScale = prev; });
-                redoActions.Add(() => { if (t != null) t.localScale = next; });
                 Debug.Log($"[ScaleTo] Objet {semantizationCore.GetUUID()} → localScale {next}");
-            }
-            if (undoActions.Count > 0)
-                CommandHistory.Push(
-                    () => undoActions.ForEach(a => a()),
-                    () => redoActions.ForEach(a => a()));
-            return objects;
+                return (() => t.localScale = prev,
+                        () => t.localScale = next);
+            });
         }
     }
 }

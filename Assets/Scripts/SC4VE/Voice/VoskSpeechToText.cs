@@ -104,8 +104,11 @@ namespace Sc4ve.Voice
 
         //Threading Logic
 
-        // Flag to signal we are ending
-        private bool _running;
+        // Flag to signal we are ending (volatile : lu par la boucle de fond, écrit par le main thread)
+        private volatile bool _running;
+
+        // Tâche de la boucle de reconnaissance en cours, pour pouvoir l'attendre avant Dispose.
+        private Task _workerTask;
 
         //Thread safe queue of microphone data.
         private readonly ConcurrentQueue<short[]> _threadedBufferQueue = new();
@@ -377,7 +380,7 @@ namespace Sc4ve.Voice
 
         private void OnDestroy()
         {
-            _running = false;
+            StopWorkerAndWait();
             if (VoiceProcessor != null)
             {
                 VoiceProcessor.StopRecording();
@@ -418,10 +421,34 @@ namespace Sc4ve.Voice
             }
 
             // Process the final result after the loop finishes
-            var finalResult = _recognizer.FinalResult();
-            _threadedResultQueue.Enqueue(finalResult);
+            if (_recognizer != null)
+            {
+                var finalResult = _recognizer.FinalResult();
+                _threadedResultQueue.Enqueue(finalResult);
+            }
 
             voskRecognizerReadMarker.End();
+        }
+
+        /// <summary>
+        /// Arrête la boucle de reconnaissance et ATTEND sa sortie. Obligatoire avant de
+        /// disposer le recognizer natif : la boucle l'utilise depuis un thread de fond
+        /// (AcceptWaveform/FinalResult) et un Dispose concurrent provoque un crash natif.
+        /// </summary>
+        private void StopWorkerAndWait()
+        {
+            _running = false;
+            if (_workerTask == null) return;
+            try
+            {
+                // Borné : la boucle sort au pire après un Task.Delay(100) + un AcceptWaveform.
+                _workerTask.Wait(2000);
+            }
+            catch (AggregateException e)
+            {
+                Debug.LogWarning($"[Vosk] La boucle de reconnaissance s'est terminée avec une erreur : {e.InnerException?.Message}");
+            }
+            _workerTask = null;
         }
 
         private void HandleRecordingStart()
@@ -437,8 +464,11 @@ namespace Sc4ve.Voice
                 _recognizerInitializedAt = _recognizerInitializedAt.Add(pausedDuration);
             }
 
+            // Attendre la sortie d'une éventuelle boucle précédente : deux boucles simultanées
+            // partageraient le même recognizer natif (non thread-safe).
+            StopWorkerAndWait();
             _running = true;
-            Task.Run(ThreadedWork).ConfigureAwait(false);
+            _workerTask = Task.Run(ThreadedWork);
         }
 
         private void HandleRecordingStop()
@@ -487,7 +517,9 @@ namespace Sc4ve.Voice
             KeyPhrases = words;
 
             bool wasRunning = _running;
-            if (wasRunning) _running = false;
+            // Attendre la sortie de la boucle AVANT de disposer : sinon use-after-dispose
+            // du recognizer natif sur le thread de fond (crash natif).
+            StopWorkerAndWait();
 
             if (_recognizer != null)
             {
@@ -500,7 +532,7 @@ namespace Sc4ve.Voice
             if (wasRunning)
             {
                 _running = true;
-                Task.Run(ThreadedWork).ConfigureAwait(false);
+                _workerTask = Task.Run(ThreadedWork);
             }
 
             Debug.Log($"[Vosk] Grammaire mise à jour : {words.Count} mots.");

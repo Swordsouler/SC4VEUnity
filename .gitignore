@@ -78,3 +78,10 @@ crashlytics-build.properties
 /[Aa]ssets/Models/*
 /[Aa]ssets/[Ss]treamingAssets/Whisper/*
 /[Aa]ssets/[Ss]treamingAssets/Piper/*
+
+# Modèles Vosk (~42 Mo) : à télécharger manuellement, cf. README
+/[Aa]ssets/[Ss]treamingAssets/vosk-model-*
+
+# Fichiers locaux non versionnés
+/debug.log
+/sven_training_dataset_1000plus.csv

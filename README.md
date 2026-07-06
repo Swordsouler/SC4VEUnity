@@ -2,6 +2,8 @@
 
 Système de contrôle vocal multimodal pour Unity VR, basé sur le framework SVEN (Semantized Virtual ENvironment). Permet de manipuler des objets 3D par commandes vocales en français et en anglais via reconnaissance vocale locale (Whisper ou Vosk) et synthèse vocale locale (Piper).
 
+**Scène principale :** ouvrir `Assets/Scenes/New Demo.unity` — la scène de démonstration la plus récente, avec le composant `MultimodalityController` déjà configuré. La variante VR correspondante est `Assets/Scenes/Demo Record SC4VE VR.unity` (voir aussi `Assets/Scenes/Demo Record SC4VE.unity`).
+
 ---
 
 ## Table des matières
@@ -39,10 +41,13 @@ BaseSpeechToText
     ▼
 MultimodalityController
  ├── [Mode LLM]        → OpenAI gpt-4o-mini / gpt-4o ou serveur local
- └── [Mode RuleBased]  → FrenchStemmer + regex + ActionMappings
+ └── [Mode RuleBased]  → FrenchStemmer + regex + [RuleBasedTriggers] (RuleBasedIntentRecognizer)
+    │  commandJson
+    ▼
+CommandConverter  (désérialisation JSON → objets Command par réflexion)
     │
     ▼
-CommandExecutor  (CreateCommand, ColorizeCommand, MoveCommand…)
+Command.Execute()  (ColorizeCommand, MoveCommand, DeleteCommand…)
     │
     ▼
 Scene Unity (objets SVEN ontologie RDF/OWL)
@@ -224,7 +229,7 @@ Le `MultimodalityController` supporte deux modes configurables dans l'Inspector 
 
 Entièrement offline, sans réseau ni modèle externe :
 - Racinisation française (`FrenchStemmer`) + expressions régulières
-- Table `ActionMappings` associant mots-clés → types de commandes
+- Déclencheurs déclarés par attribut `[RuleBasedTriggers]` sur chaque commande, découverts par réflexion (`RuleBasedIntentRecognizer`)
 - Vocabulaire Vosk injecté dynamiquement depuis l'ontologie pour réduire les confusions phonétiques
 
 Recommandé pour un usage hors-ligne garanti et une latence minimale (< 50 ms).  
@@ -307,19 +312,96 @@ Ollama expose une API compatible OpenAI sur `/v1` — aucune autre modification 
 
 ## Commandes disponibles
 
+Les commandes sont découvertes automatiquement par réflexion (attribut `[CommandDescription]` pour le mode LLM, `[RuleBasedTriggers]` pour le mode RuleBased). Catalogue complet, par catégorie :
+
+**Suppression / duplication**
+
 | Commande | Description | Exemple |
 |----------|-------------|---------|
-| `CreateCommand` | Créer un objet | « Crée une pomme rouge » |
-| `DestroyCommand` | Supprimer un objet | « Détruis la citrouille » |
-| `ColorizeCommand` | Changer la couleur | « Colorie les pommes en bleu » |
-| `MoveCommand` | Déplacer un objet | « Déplace la banane ici » |
-| `ScaleUpCommand` | Agrandir | « Agrandis la pomme » |
-| `ScaleDownCommand` | Rétrécir | « Rétrécis la carotte » |
-| `HideCommand` | Masquer | « Cache la banane » |
-| `ShowCommand` | Afficher | « Montre la citrouille » |
-| `SelectCommand` | Sélectionner | « Sélectionne les pommes rouges » |
-| `UnselectCommand` | Désélectionner | « Désélectionne tout » |
-| `EventCommand` | Événement système | « Sauvegarde la scène » |
+| `DeleteCommand` | Supprime (désactive) les objets, annulable | « Supprime les pommes » |
+| `DuplicateCommand` | Duplique les objets (copie décalée ou à l'endroit pointé) | « Duplique les pommes » |
+
+**Couleur**
+
+| Commande | Description | Exemple |
+|----------|-------------|---------|
+| `ColorizeCommand` | Applique une couleur | « Colorie les pommes en rouge » |
+| `ColorizeDarkerCommand` | Assombrit la couleur | « Assombris les pommes » |
+| `ColorizeLighterCommand` | Éclaircit la couleur | « Éclaircis les pommes » |
+| `ColorizeCopyCommand` | Copie la couleur d'un objet vers un autre | « Colorie les pommes comme les citrouilles » |
+| `ResetColorCommand` | Remet la couleur d'origine | « Couleur d'origine pour les pommes » |
+
+**Apparence (visibilité, transparence)**
+
+| Commande | Description | Exemple |
+|----------|-------------|---------|
+| `HideCommand` | Masque les objets | « Cache les pommes » |
+| `ShowCommand` | Affiche les objets | « Montre les pommes » |
+| `SetTransparentCommand` | Rend semi-transparent (alpha 30 %) | « Rends les pommes transparentes » |
+| `SetOpaqueCommand` | Rend entièrement opaque | « Rends les pommes opaques » |
+| `HighlightCommand` | Active/désactive la mise en évidence | « Surligne les pommes » |
+
+**Transformation (taille, rotation, position)**
+
+| Commande | Description | Exemple |
+|----------|-------------|---------|
+| `ScaleUpCommand` | Agrandit les objets | « Agrandis les pommes » |
+| `ScaleDownCommand` | Réduit les objets | « Réduis les pommes » |
+| `ScaleToCommand` | Règle la taille à une valeur absolue | « Mets la taille de la citrouille à 2 » |
+| `ResetScaleCommand` | Remet la taille à (1, 1, 1) | « Taille normale pour les pommes » |
+| `RotateLeftCommand` | Pivote de 45° vers la gauche | « Tourne les pommes à gauche » |
+| `RotateRightCommand` | Pivote de 45° vers la droite (« tourne » par défaut) | « Tourne les pommes à droite » |
+| `FlipCommand` | Retourne les objets de 180° | « Retourne les pommes » |
+| `MoveCommand` | Déplace les objets vers la position pointée | « 👆 Déplace la pomme ici » |
+| `SnapToGroundCommand` | Pose les objets sur le sol | « Pose les pommes au sol » |
+| `AlignCommand` | Aligne à la même hauteur (Y) | « Aligne les pommes » |
+| `ResetTransformCommand` | Remet position/rotation/taille d'origine | « Réinitialise les pommes » |
+
+**Manipulation (VR)**
+
+| Commande | Description | Exemple |
+|----------|-------------|---------|
+| `GrabCommand` | Saisit les objets | « Attrape la pomme » |
+| `ReleaseCommand` | Relâche les objets tenus | « Lâche la pomme » |
+
+**Sélection**
+
+| Commande | Description | Exemple |
+|----------|-------------|---------|
+| `SelectCommand` | Sélectionne les objets ciblés | « Sélectionne les pommes rouges » |
+| `UnselectCommand` | Retire de la sélection / vide la sélection | « Désélectionne tout » |
+| `SelectAllCommand` | Sélectionne tous les objets actifs | « Sélectionne tout » |
+| `InvertSelectionCommand` | Inverse la sélection courante | « Inverse la sélection » |
+
+**Navigation / focus**
+
+| Commande | Description | Exemple |
+|----------|-------------|---------|
+| `FocusCommand` | Oriente la caméra vers les objets | « Focus sur les pommes » |
+
+**Information / description**
+
+| Commande | Description | Exemple |
+|----------|-------------|---------|
+| `DescribeCommand` | Affiche les propriétés dans la console | « Décris les pommes » |
+| `CountCommand` | Compte les objets correspondant au filtre | « Combien de pommes ? » |
+| `MeasureCommand` | Mesure une distance entre points/objets | « Mesure la distance entre la pomme et la citrouille » |
+
+**Historique / état de la scène**
+
+| Commande | Description | Exemple |
+|----------|-------------|---------|
+| `UndoCommand` | Annule la dernière action | « Annule » |
+| `RedoCommand` | Rétablit l'action annulée | « Rétablis » |
+| `ResetSceneCommand` | Remet toute la scène à l'état initial | « Réinitialise la scène » |
+
+**Système / vocal**
+
+| Commande | Description | Exemple |
+|----------|-------------|---------|
+| `SpeechCommand` | Énonce une question de clarification via TTS (générée en interne, pas de déclencheur vocal direct) | — |
+
+> Voir `COMMANDS_REFERENCE.md` pour le catalogue détaillé et `COMMANDS.md` pour ajouter une commande.
 
 ---
 

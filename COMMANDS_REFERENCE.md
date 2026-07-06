@@ -139,6 +139,19 @@ Documentation complète de toutes les commandes vocales disponibles, avec phrase
 
 ---
 
+### ScaleToCommand ↩️
+**Règle la taille à une valeur absolue** (localScale = N sur chaque axe ; N = 1 par défaut si aucune valeur n'est fournie).
+
+| Phrase | Résultat attendu |
+|---|---|
+| `« Mets la taille de la citrouille à 2. »` | La citrouille passe à l'échelle (2, 2, 2). |
+| `« Règle la taille des pommes à 3. »` | Les pommes passent à l'échelle (3, 3, 3). |
+| `« 👆 Fixe la taille de ça à 0.5. »` | L'objet pointé est ramené à l'échelle (0.5, 0.5, 0.5). |
+
+> 💡 Le nombre prononcé est interprété comme la valeur d'échelle absolue (et non comme une limite de sélection).
+
+---
+
 ## 3. Transformation géométrique
 
 ### RotateRightCommand ↩️
@@ -365,13 +378,25 @@ Trigger générique `« tourne »` sans précision de direction → rotation dro
 
 ---
 
-### SelectCommand *(non implémenté)*
-> ⚠️ La logique de sélection Unity n'est pas encore implémentée (`Execute()` lève une `NotImplementedException`). Les triggers sont déclarés pour préparer la grammaire Vosk.
+### SelectCommand
+**Définit la sélection persistante** sur les objets ciblés. La sélection alimente la coréférence (`LastObjects`) pour les commandes suivantes. Sans cible, aucune sélection par défaut : le système demande « Sur quels objets ? ».
+
+| Phrase | Résultat attendu |
+|---|---|
+| `« Sélectionne les pommes. »` | Les pommes deviennent la sélection courante. |
+| `« Sélectionne les objets rouges. »` | Les objets rouges sont sélectionnés. |
+| `« 👆 Sélectionne ça. »` | L'objet pointé est sélectionné. |
 
 ---
 
-### UnselectCommand *(non implémenté)*
-> ⚠️ Même statut que `SelectCommand`.
+### UnselectCommand
+**Retire des objets de la sélection.** Sans cible (« désélectionne tout »), vide entièrement la sélection.
+
+| Phrase | Résultat attendu |
+|---|---|
+| `« Désélectionne tout. »` | La sélection est entièrement vidée. |
+| `« Désélectionne les pommes. »` | Les pommes sont retirées de la sélection courante. |
+| `« 👆 Désélectionne ça. »` | L'objet pointé est retiré de la sélection. |
 
 ---
 
@@ -427,6 +452,18 @@ Trigger générique `« tourne »` sans précision de direction → rotation dro
 
 ---
 
+### SpeechCommand *(interne)*
+**Énonce une question de clarification** à l'utilisateur via la synthèse vocale (Piper). Elle est générée automatiquement par le système de clarification lorsqu'une commande manque d'un paramètre requis — il n'y a **pas** de déclencheur vocal direct.
+
+| Contexte | Résultat attendu |
+|---|---|
+| Commande ambiguë (« Colorie cette banane » sans couleur) | Le système énonce à voix haute la question de clarification (ex. « En quelle couleur ? »). |
+| Cible absente (« Agrandis » sans objet ni pointage) | Le système demande oralement « Sur quels objets ? ». |
+
+> ⚠️ Requiert un composant `PiperTextToSpeech` dans la scène. Sinon, le texte est seulement journalisé dans la console.
+
+---
+
 ## 9. Historique et état de la scène
 
 ### UndoCommand
@@ -479,6 +516,7 @@ Commandes annulables : `RotateLeft`, `RotateRight`, `Flip`, `ResetScale`, `Reset
 | `HighlightCommand` | Visibilité | ✅ | SelectionParameter | RB + LLM |
 | `ScaleUpCommand` | Taille | — | SelectionParameter | RB + LLM |
 | `ScaleDownCommand` | Taille | — | SelectionParameter | RB + LLM |
+| `ScaleToCommand` | Taille | ✅ | SelectionParameter | RB + LLM |
 | `ResetScaleCommand` | Taille | ✅ | SelectionParameter | RB + LLM |
 | `RotateRightCommand` | Transform | ✅ | SelectionParameter | RB + LLM |
 | `RotateLeftCommand` | Transform | ✅ | SelectionParameter | RB + LLM |
@@ -507,6 +545,7 @@ Commandes annulables : `RotateLeft`, `RotateRight`, `Flip`, `ResetScale`, `Reset
 | `UndoCommand` | Historique | — | *(aucun)* | RB + LLM |
 | `RedoCommand` | Historique | — | *(aucun)* | RB + LLM |
 | `ResetSceneCommand` | Historique | — | *(aucun)* | RB + LLM |
+| `SpeechCommand` | Système | — | SentenceParameter | LLM / interne |
 
 *RB = RuleBased, LLM = OpenAI / serveur local*
 

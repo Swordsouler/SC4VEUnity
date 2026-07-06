@@ -10,26 +10,23 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable, CommandDescription("Éclaircit la couleur (*2). Paramètres: SelectionParameter.")]
     public class ColorizeLighterCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> objects = SelectionParameter.Objects;
-            foreach (SemantizationCore semantizationCore in objects)
+            return ExecuteReversible(SelectionParameter?.Objects ?? new(), obj =>
             {
-                if (!semantizationCore.TryGetComponent(out Renderer renderer) || renderer.material == null) continue;
+                if (!obj.TryGetComponent(out Renderer renderer) || renderer.material == null) return null;
 
-                UnityEngine.Color current = renderer.material.color;
+                UnityEngine.Color prev = renderer.material.color;
                 UnityEngine.Color lighter = new(
-                    Mathf.Clamp01(current.r * 2f),
-                    Mathf.Clamp01(current.g * 2f),
-                    Mathf.Clamp01(current.b * 2f),
-                    current.a);
+                    Mathf.Clamp01(prev.r * 2f),
+                    Mathf.Clamp01(prev.g * 2f),
+                    Mathf.Clamp01(prev.b * 2f),
+                    prev.a);
 
                 renderer.material.color = lighter;
-            }
-
-            return objects;
+                return (() => renderer.material.color = prev,
+                        () => renderer.material.color = lighter);
+            });
         }
     }
 }

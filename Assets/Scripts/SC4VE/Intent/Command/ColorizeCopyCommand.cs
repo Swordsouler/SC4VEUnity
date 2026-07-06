@@ -15,16 +15,22 @@ namespace Sc4ve.Multimodality.Intent
 
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> targetObjects = SelectionParameterTarget.Objects;
-            SemantizationCore sourceObject = SelectionParameterSource.Objects.FirstOrDefault();
-            if (!sourceObject.TryGetComponent(out MeshRenderer sourceRenderer) || sourceRenderer.material == null) return new();
-            UnityEngine.Color colorToCopy = sourceRenderer.material.color;
-            foreach (SemantizationCore semantizationCore in targetObjects)
+            List<SemantizationCore> targetObjects = SelectionParameterTarget?.Objects ?? new();
+            SemantizationCore sourceObject = SelectionParameterSource?.Objects?.FirstOrDefault();
+            if (sourceObject == null || !sourceObject.TryGetComponent(out MeshRenderer sourceRenderer) || sourceRenderer.material == null)
             {
-                if (!semantizationCore.TryGetComponent(out Renderer renderer) || renderer.material == null) continue;
-                renderer.material.color = colorToCopy;
+                Debug.LogWarning("[ColorizeCopy] Objet source introuvable ou sans matériau — commande ignorée.");
+                return new();
             }
-            return targetObjects;
+            UnityEngine.Color colorToCopy = sourceRenderer.material.color;
+            return ExecuteReversible(targetObjects, obj =>
+            {
+                if (!obj.TryGetComponent(out Renderer renderer) || renderer.material == null) return null;
+                UnityEngine.Color prev = renderer.material.color;
+                renderer.material.color = colorToCopy;
+                return (() => renderer.material.color = prev,
+                        () => renderer.material.color = colorToCopy);
+            });
         }
     }
 }

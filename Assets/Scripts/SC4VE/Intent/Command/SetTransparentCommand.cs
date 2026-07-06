@@ -12,17 +12,12 @@ namespace Sc4ve.Multimodality.Intent
     public class SetTransparentCommand : Command
     {
         private const float TargetAlpha = 0.3f;
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> objects = SelectionParameter.Objects;
-            var undoActions = new List<Action>();
-            var redoActions = new List<Action>();
-
-            foreach (SemantizationCore obj in objects)
+            List<SemantizationCore> objects = SelectionParameter?.Objects ?? new();
+            return ExecuteReversible(objects, obj =>
             {
-                if (!obj.TryGetComponent(out Renderer renderer) || renderer.material == null) continue;
+                if (!obj.TryGetComponent(out Renderer renderer) || renderer.material == null) return null;
 
                 var  prevColor = renderer.material.color;
                 var  prevMode  = renderer.material.HasProperty("_Mode")
@@ -33,22 +28,14 @@ namespace Sc4ve.Multimodality.Intent
                 SetTransparent(mat, TargetAlpha);
                 var nextColor = mat.color;
 
-                undoActions.Add(() => {
+                Debug.Log($"[SetTransparent] {obj.GetUUID()} alpha → {TargetAlpha}");
+                return (() => {
                     if (prevMode >= 0) SetOpaque(captured.TryGetComponent(out Renderer r) ? r.material : mat);
                     if (captured.TryGetComponent(out Renderer rr)) rr.material.color = prevColor;
-                });
-                redoActions.Add(() => {
+                }, () => {
                     if (captured.TryGetComponent(out Renderer r)) SetTransparent(r.material, TargetAlpha);
                 });
-                Debug.Log($"[SetTransparent] {obj.GetUUID()} alpha → {TargetAlpha}");
-            }
-
-            if (undoActions.Count > 0)
-                CommandHistory.Push(
-                    () => undoActions.ForEach(a => a()),
-                    () => redoActions.ForEach(a => a()));
-
-            return objects;
+            });
         }
 
         internal static void SetTransparent(Material mat, float alpha)

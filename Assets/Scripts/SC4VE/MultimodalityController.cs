@@ -489,6 +489,10 @@ JSON Attendu:
         // Utilisée pour les serveurs locaux dont le n_ctx est limité (4 096 par défaut).
         private string _cachedSystemPromptLocal;
 
+        private PiperTextToSpeech _tts;
+        private Action _ttsSpeechStartHandler;
+        private Action _ttsSpeechEndHandler;
+
         private void Awake()
         {
             UserData.Language = _language;
@@ -496,11 +500,25 @@ JSON Attendu:
 
             // Suspendre l'écoute pendant que le système parle (Piper) : sinon le micro re-capte
             // la voix de synthèse et la réinterprète comme une commande (boucle de rétroaction).
-            PiperTextToSpeech tts = FindFirstObjectByType<PiperTextToSpeech>();
-            if (tts != null && _speechToText != null)
+            _tts = FindFirstObjectByType<PiperTextToSpeech>();
+            if (_tts != null && _speechToText != null)
             {
-                tts.OnSpeechStart += () => _speechToText.SetListeningSuspended(true);
-                tts.OnSpeechEnd   += () => _speechToText.SetListeningSuspended(false);
+                _ttsSpeechStartHandler = () => _speechToText.SetListeningSuspended(true);
+                _ttsSpeechEndHandler   = () => _speechToText.SetListeningSuspended(false);
+                _tts.OnSpeechStart += _ttsSpeechStartHandler;
+                _tts.OnSpeechEnd   += _ttsSpeechEndHandler;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            // Désabonnements symétriques d'Awake : sans eux, STT/TTS continueraient d'invoquer
+            // un contrôleur détruit après un rechargement de scène (MissingReferenceException).
+            if (_speechToText != null) _speechToText.OnTranscriptionResult -= OnTranscriptionResult;
+            if (_tts != null)
+            {
+                if (_ttsSpeechStartHandler != null) _tts.OnSpeechStart -= _ttsSpeechStartHandler;
+                if (_ttsSpeechEndHandler != null) _tts.OnSpeechEnd -= _ttsSpeechEndHandler;
             }
         }
 
@@ -940,11 +958,25 @@ JSON Attendu:
                     Debug.Log($"[LLM] Token Usage ({model}): Prompt={usage.PromptTokens}, Completion={usage.CompletionTokens}, Total={usage.TotalTokens}");
                 }
 
-                return StripMarkdownJson(openAiResponse?.Choices?[0]?.Message?.Content);
+                if (openAiResponse?.Choices == null || openAiResponse.Choices.Count == 0)
+                {
+                    // Un « choices »: [] arrive (filtre de contenu, certains serveurs locaux) :
+                    // sans cette garde, l'indexation lève et court-circuite le repli gracieux.
+                    Debug.LogError($"[LLM] Réponse sans 'choices' exploitable ({model} @ {endpointUrlForLogging}) : {responseBody}");
+                    return null;
+                }
+                return StripMarkdownJson(openAiResponse.Choices[0]?.Message?.Content);
             }
             catch (HttpRequestException e)
             {
                 Debug.LogError($"[LLM] Network Error when calling {endpointUrlForLogging}: {e.Message}");
+                return null;
+            }
+            catch (TaskCanceledException)
+            {
+                // Le timeout HttpClient est surfacé en TaskCanceledException, pas en
+                // HttpRequestException : sans ce catch, il remonte comme erreur générique.
+                Debug.LogError($"[LLM] Timeout après {_httpClient.Timeout.TotalSeconds:0} s en appelant {endpointUrlForLogging}.");
                 return null;
             }
         }
@@ -1000,6 +1032,18 @@ JSON Attendu:
         {
             try
             {
+                // response_format=json_object pousse certains modèles à envelopper le tableau
+                // dans un objet ({"commands": [...]}) ou à renvoyer une commande seule : on
+                // accepte ces variantes plutôt que d'escalader inutilement vers le modèle précis.
+                string trimmed = json?.TrimStart();
+                if (!string.IsNullOrEmpty(trimmed) && trimmed.StartsWith("{"))
+                {
+                    JObject wrapper = JObject.Parse(json);
+                    JToken array = wrapper.Properties().Select(p => p.Value)
+                                          .FirstOrDefault(v => v.Type == JTokenType.Array);
+                    if (array != null) return array.ToObject<List<Command>>();
+                    if (wrapper["type"] != null) return new List<Command> { wrapper.ToObject<Command>() };
+                }
                 return JsonConvert.DeserializeObject<List<Command>>(json);
             }
             catch (Exception e)
@@ -1131,8 +1175,15 @@ JSON Attendu:
         private bool TryResolveDisambiguation(Sentence phrase)
         {
             // Une vraie commande dans la réponse → ce n'est pas une désambiguïsation.
-            if (_ruleBasedRecognizer != null &&
-                !string.IsNullOrWhiteSpace(_ruleBasedRecognizer.Recognize(phrase)))
+            if (_ruleBasedRecognizer != null)
+            {
+                if (!string.IsNullOrWhiteSpace(_ruleBasedRecognizer.Recognize(phrase)))
+                    return false;
+            }
+            // Mode LLM : pas de reconnaisseur RuleBased disponible — on détecte une nouvelle
+            // commande via les déclencheurs du vocabulaire, pour ne pas consommer « annule » /
+            // « colorie… » comme une désignation de pointage.
+            else if (ContainsCommandTrigger(phrase.Text))
                 return false;
 
             PendingDisambiguation pending = _pendingDisambiguation;
@@ -1151,6 +1202,19 @@ JSON Attendu:
             Debug.Log($"[Disambiguation] Cible désignée : {chosen.GetUUID()} (parmi {pending.Candidates.Count}).");
             ResolveCommands(new List<Command> { pending.Command });
             return true;
+        }
+
+        /// <summary>Vrai si le texte contient un déclencheur de commande connu (mot entier).</summary>
+        private static bool ContainsCommandTrigger(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            foreach (var (triggers, _) in CommandVocabulary.TriggerMappings)
+                foreach (string trigger in triggers)
+                    if (System.Text.RegularExpressions.Regex.IsMatch(
+                            text, $@"\b{System.Text.RegularExpressions.Regex.Escape(trigger)}\b",
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                        return true;
+            return false;
         }
 
         /// <summary>Le candidat le plus proche de la position pointée par le pointeur, ou null.</summary>
@@ -1184,93 +1248,8 @@ JSON Attendu:
 
         #region TestCommands
 
-        private List<Command> CommandTest1()
-        {
-            string jsonTest = $@"[
-  {{
-    ""type"": ""MoveCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""PointParameter"",
-        ""value"": ""Pointer"",
-        ""timestamp"": ""{DateTime.Now:o}""
-      }},
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{
-            ""type"": ""Event"",
-            ""value"": ""Pointeur"",
-            ""timestamp"": ""{DateTime.Now:o}""
-          }}
-        ],
-        ""limit"": ""1""
-      }}
-    ]
-  }}
-]";
-            return DeserializeCommand(jsonTest);
-        }
-
-        private List<Command> CommandTest2()
-        {
-            string jsonTest = $@"[
-  {{
-    ""type"": ""ColorizeCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""ColorParameter"",
-        ""value"": ""Rouge""
-      }},
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-        {{
-            ""type"": ""Annotation"",
-            ""value"": ""Citrouille"",
-            ""timestamp"": ""{DateTime.Now:o}""
-         }},
-        ""OR"",
-        {{
-            ""type"": ""Annotation"",
-            ""value"": ""Pomme"",
-            ""timestamp"": ""{DateTime.Now:o}""
-          }},
-          ""AND"",
-          {{
-            ""type"": ""Event"",
-            ""value"": ""Caméra"",
-            ""timestamp"": ""{DateTime.Now:o}""
-          }}
-        ],
-        ""limit"": ""5"",
-        ""order"": {{
-          ""criterias"": [
-            {{
-              ""type"": ""size"",
-              ""desc"": true
-            }},
-            {{
-              ""type"": ""name"",
-              ""desc"": false
-            }}
-          ]
-        }}
-      }}
-    ]
-  }}
-]";
-            return DeserializeCommand(jsonTest);
-        }
-
         public void PrintTest()
         {
-            /*Debug.Log(JsonConvert.SerializeObject(CommandTest1()));
-            Debug.Log(JsonConvert.SerializeObject(CommandTest2()));
-            // debug turtle content of the graph
-            List<Command> commands = await CommandToGraphOutputCommandAsync(CommandTest1());
-            ResolveCommands(commands);
-            Debug.Log("Command has been resolved");*/
             Debug.Log(JsonConvert.SerializeObject(new Sentence("Colorie en rouge les cinq plus grosses citrouilles ou pomme que je vois")));
         }
 

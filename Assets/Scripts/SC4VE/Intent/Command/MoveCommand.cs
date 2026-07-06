@@ -24,12 +24,11 @@ namespace Sc4ve.Multimodality.Intent
             return ps;
         }
 
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
         private PointParameter PointParameter => GetParameter<PointParameter>();
 
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> objects = SelectionParameter.Objects;
+            List<SemantizationCore> objects = SelectionParameter?.Objects ?? new();
 
             Vector3? destination = PointParameter?.Point;
 
@@ -52,24 +51,18 @@ namespace Sc4ve.Multimodality.Intent
                 }
             }
 
-            var undoActions = new List<Action>();
-            var redoActions = new List<Action>();
-            foreach (SemantizationCore semantizationCore in objects)
+            if (destination == null) return objects;
+
+            return ExecuteReversible(objects, semantizationCore =>
             {
-                if (destination == null) continue;
                 Transform t = semantizationCore.transform;
                 Vector3 prev = t.position;
                 Vector3 next = (Vector3)destination;
                 t.position = next;
-                undoActions.Add(() => { if (t != null) t.position = prev; });
-                redoActions.Add(() => { if (t != null) t.position = next; });
                 Debug.Log($"[MoveCommand] Objet {semantizationCore.GetUUID()} déplacé vers {destination}");
-            }
-            if (undoActions.Count > 0)
-                CommandHistory.Push(
-                    () => undoActions.ForEach(a => a()),
-                    () => redoActions.ForEach(a => a()));
-            return objects;
+                return (() => t.position = prev,
+                        () => t.position = next);
+            });
         }
     }
 }

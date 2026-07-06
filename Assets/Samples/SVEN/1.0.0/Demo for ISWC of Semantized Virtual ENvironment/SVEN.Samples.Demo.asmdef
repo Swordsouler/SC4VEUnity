@@ -1,0 +1,20 @@
+{
+    "name": "SVEN.Samples.Demo",
+    "rootNamespace": "",
+    "references": [
+        "com.nsaintl.sven",
+        "NaughtyAttributes.Core",
+        "PrimeTween.Runtime",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

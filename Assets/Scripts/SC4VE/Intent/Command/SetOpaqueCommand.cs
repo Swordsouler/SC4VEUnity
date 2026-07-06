@@ -10,17 +10,12 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable, CommandDescription("Rend les objets entièrement opaques (alpha 100%). Paramètres: SelectionParameter.")]
     public class SetOpaqueCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> objects = SelectionParameter.Objects;
-            var undoActions = new List<Action>();
-            var redoActions = new List<Action>();
-
-            foreach (SemantizationCore obj in objects)
+            List<SemantizationCore> objects = SelectionParameter?.Objects ?? new();
+            return ExecuteReversible(objects, obj =>
             {
-                if (!obj.TryGetComponent(out Renderer renderer) || renderer.material == null) continue;
+                if (!obj.TryGetComponent(out Renderer renderer) || renderer.material == null) return null;
 
                 var prevColor = renderer.material.color;
                 var mat       = renderer.material;
@@ -29,23 +24,15 @@ namespace Sc4ve.Multimodality.Intent
                 SetTransparentCommand.SetOpaque(mat);
                 var nextColor = mat.color;
 
-                undoActions.Add(() => {
+                Debug.Log($"[SetOpaque] {obj.GetUUID()} → opaque.");
+                return (() => {
                     if (captured.TryGetComponent(out Renderer r))
                         SetTransparentCommand.SetTransparent(r.material, prevColor.a);
-                });
-                redoActions.Add(() => {
+                }, () => {
                     if (captured.TryGetComponent(out Renderer r))
                         SetTransparentCommand.SetOpaque(r.material);
                 });
-                Debug.Log($"[SetOpaque] {obj.GetUUID()} → opaque.");
-            }
-
-            if (undoActions.Count > 0)
-                CommandHistory.Push(
-                    () => undoActions.ForEach(a => a()),
-                    () => redoActions.ForEach(a => a()));
-
-            return objects;
+            });
         }
     }
 }

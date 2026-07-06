@@ -67,12 +67,20 @@ namespace Sc4ve.Voice
         private async Task ProcessQueueAsync()
         {
             _isSpeaking = true;
-            while (_queue.Count > 0)
+            try
             {
-                string text = _queue.Dequeue();
-                await SpeakOnceAsync(text);
+                while (_queue.Count > 0)
+                {
+                    string text = _queue.Dequeue();
+                    await SpeakOnceAsync(text);
+                }
             }
-            _isSpeaking = false;
+            finally
+            {
+                // Toujours relâcher le verrou : sinon une exception fige définitivement la
+                // synthèse (la file ne serait plus jamais consommée).
+                _isSpeaking = false;
+            }
         }
 
         private async Task SpeakOnceAsync(string text)
@@ -91,10 +99,19 @@ namespace Sc4ve.Voice
                 if (clip == null) return;
 
                 OnSpeechStart?.Invoke();
-                _audioSource.PlayOneShot(clip);
-
-                await Task.Delay((int)(clip.length * 1000) + 200);
-                OnSpeechEnd?.Invoke();
+                try
+                {
+                    _audioSource.PlayOneShot(clip);
+                    await Task.Delay((int)(clip.length * 1000) + 200);
+                }
+                finally
+                {
+                    // OnSpeechEnd doit TOUJOURS suivre OnSpeechStart : l'écoute STT est suspendue
+                    // entre les deux (MultimodalityController) et resterait bloquée sinon.
+                    OnSpeechEnd?.Invoke();
+                    // AudioClip créé à chaque énoncé → libération explicite (fuite mémoire audio sinon).
+                    Destroy(clip);
+                }
             }
             finally
             {
@@ -137,10 +154,23 @@ namespace Sc4ve.Voice
             process.StandardInput.BaseStream.Flush();
             process.StandardInput.Close();
 
+            // Drainer stderr en continu : si le tampon du pipe (~4 Ko) se remplit, piper se
+            // bloque en écriture et ne termine jamais (deadlock jusqu'au timeout).
+            Task<string> stderrTask = process.StandardError.ReadToEndAsync();
+
             bool finished = process.WaitForExit(10_000); // timeout 10 s
-            if (!finished || process.ExitCode != 0)
+            if (!finished)
             {
-                string err = process.StandardError.ReadToEnd();
+                // Sans Kill(), le processus piper survit au timeout (Dispose ne le termine pas).
+                try { process.Kill(); } catch (Exception) { /* déjà terminé entre-temps */ }
+                process.WaitForExit(2_000);
+                UnityEngine.Debug.LogError("[Piper] Timeout (10 s) — processus piper tué.");
+                return false;
+            }
+
+            if (process.ExitCode != 0)
+            {
+                string err = stderrTask.Wait(1_000) ? stderrTask.Result : "(stderr indisponible)";
                 UnityEngine.Debug.LogError($"[Piper] Erreur (exit {process.ExitCode}) : {err}");
                 return false;
             }

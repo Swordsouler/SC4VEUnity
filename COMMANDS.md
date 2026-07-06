@@ -12,7 +12,7 @@ Ce guide explique comment ajouter une nouvelle commande vocale au système SC4VE
 4. [Étape 3 — Mode LLM : rien à faire](#4-étape-3--mode-llm--rien-à-faire)
 5. [Étape 4 — Mettre à jour l'ontologie sc4ve](#5-étape-4--mettre-à-jour-lontologie-sc4ve)
 6. [Référence des paramètres](#6-référence-des-paramètres)
-7. [Exemple complet : RotateCommand](#7-exemple-complet--rotatecommand)
+7. [Exemple complet : RotateLeftCommand](#7-exemple-complet--rotateleftcommand)
 
 ---
 
@@ -282,11 +282,11 @@ Les filtres peuvent être combinés avec les opérateurs `"AND"` et `"OR"` dans 
 
 ---
 
-## 7. Exemple complet : RotateCommand
+## 7. Exemple complet : RotateLeftCommand
 
-Fait pivoter de 45° les objets sélectionnés autour de l'axe Y.
+Fait pivoter de 45° vers la gauche (axe Y monde) les objets sélectionnés. Cette commande existe réellement dans le projet — voici son implémentation de bout en bout.
 
-### `RotateCommand.cs`
+### `RotateLeftCommand.cs`
 
 ```csharp
 using Sven.Content;
@@ -296,65 +296,71 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable, CommandDescription(
-        "Fait pivoter / tourne les objets de 45° autour de l'axe Y. " +
-        "Paramètres: SelectionParameter (les objets à faire pivoter, identifiés " +
-        "par annotation, couleur ou pointage déictique).")]
-    public class RotateCommand : Command
+    [RuleBasedTriggers("tourne à gauche", "pivote à gauche", "rotation gauche", "tourne gauche")]
+    [Serializable, CommandDescription("Fait pivoter les objets de 45° vers la gauche (axe Y). Paramètres: SelectionParameter.")]
+    public class RotateLeftCommand : Command
     {
         private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
 
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> objects = SelectionParameter?.Objects ?? new();
+            List<SemantizationCore> objects = SelectionParameter.Objects;
+            var undoActions = new List<Action>();
+            var redoActions = new List<Action>();
+
             foreach (SemantizationCore obj in objects)
             {
-                obj.transform.Rotate(Vector3.up, 45f);
-                Debug.Log($"[RotateCommand] {obj.GetUUID()} pivoté de 45°");
+                var prev = obj.transform.rotation;
+                obj.transform.Rotate(Vector3.up, -45f, Space.World);
+                var next = obj.transform.rotation;
+                var captured = obj;
+                undoActions.Add(() => captured.transform.rotation = prev);
+                redoActions.Add(() => captured.transform.rotation = next);
             }
+
+            if (undoActions.Count > 0)
+                CommandHistory.Push(
+                    () => undoActions.ForEach(a => a()),
+                    () => redoActions.ForEach(a => a()));
+
             return objects;
         }
     }
 }
 ```
 
-### Ajout dans `ActionMappings` (RuleBasedIntentRecognizer.cs)
+### Aucune inscription manuelle
 
-```csharp
-(new[] { "tourne", "tourner", "pivote", "pivoter",
-          "fais tourner", "faire tourner", "fais pivoter", "faire pivoter" },
-    "RotateCommand"),
-```
+Les deux attributs suffisent. Il n'y a **pas** de table `ActionMappings` ni de `switch` à
+compléter : le `RuleBasedIntentRecognizer` découvre le type de commande via `[RuleBasedTriggers]`
+(mode RuleBased) et le LLM reçoit la description via `[CommandDescription]` (mode LLM). La commande
+n'utilise que le `SelectionParameter` par défaut — aucune surcharge de `BuildRuleBasedParameters`
+n'est donc nécessaire.
 
-### Ajout dans `BuildCommands` (RuleBasedIntentRecognizer.cs)
+### Déclaration dans l'ontologie `sc4ve.ttl`
 
-```csharp
-case "RotateCommand":
-{
-    SelectionParameter selParam = BuildSelectionParameter(
-        annotations, colors.Where(c => !c.IsTarget).ToList(),
-        deictics, hasCoreference, limit, useStartedAt: false);
-    Command cmd = CreateCommand("RotateCommand");
-    cmd.Parameters = new List<Parameter> { selParam };
-    commands.Add(cmd);
-    break;
-}
+Un `SelectionParameter` est requis → une restriction OWL (cf. §5), avec les labels `@fr` **et** `@en` :
+
+```turtle
+sc4ve:RotateLeftCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Rotate Left Command"@en , "Commande de Rotation Gauche"@fr .
 ```
 
 ### Phrases reconnues
 
 ```
-« Tourne la pomme rouge. »
-→ RotateCommand(SelectionParameter[Annotation=Pomme, Color=Rouge])
+« Tourne la pomme rouge à gauche. »
+→ RotateLeftCommand(SelectionParameter[Annotation=Pomme, Color=Rouge])
 
-« Tourne ça. »
-→ RotateCommand(SelectionParameter[Event=Pointeur, timestamp=début de phrase])
+« 👆 Pivote ça à gauche. »
+→ RotateLeftCommand(SelectionParameter[Event=Pointeur, timestamp=début de phrase])
 
-« Fais pivoter les citrouilles. »
-→ RotateCommand(SelectionParameter[Annotation=Citrouille])
+« Tourne les citrouilles à gauche. »
+→ RotateLeftCommand(SelectionParameter[Annotation=Citrouille])
 
-« Tourne les. »
-→ RotateCommand(SelectionParameter[Coreference])
+« Tourne-les à gauche. »
+→ RotateLeftCommand(SelectionParameter[Coreference])
 ```
 
 ---

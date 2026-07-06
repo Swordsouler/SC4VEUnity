@@ -1,0 +1,23 @@
+{
+    "name": "SC4VE",
+    "rootNamespace": "",
+    "references": [
+        "com.nsaintl.sven",
+        "com.whisper.unity",
+        "NaughtyAttributes.Core",
+        "Unity.TextMeshPro",
+        "Bunny83.simpleJson",
+        "Vosk",
+        "QuickOutline",
+        "SVEN.Samples.Demo"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

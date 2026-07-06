@@ -13,18 +13,13 @@ namespace Sc4ve.Multimodality.Intent
         private static readonly HashSet<string> _highlighted = new();
         private static readonly UnityEngine.Color HighlightColor = UnityEngine.Color.yellow * 0.5f;
 
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> objects = SelectionParameter.Objects;
-            var undoActions = new List<Action>();
-            var redoActions = new List<Action>();
-
-            foreach (SemantizationCore obj in objects)
+            List<SemantizationCore> objects = SelectionParameter?.Objects ?? new();
+            return ExecuteReversible(objects, obj =>
             {
-                if (!obj.TryGetComponent(out Renderer renderer) || renderer.material == null) continue;
-                if (!renderer.material.HasProperty("_EmissionColor")) continue;
+                if (!obj.TryGetComponent(out Renderer renderer) || renderer.material == null) return null;
+                if (!renderer.material.HasProperty("_EmissionColor")) return null;
 
                 string uuid     = obj.GetUUID();
                 bool wasOn      = _highlighted.Contains(uuid);
@@ -36,22 +31,14 @@ namespace Sc4ve.Multimodality.Intent
                 else
                     AddHighlight(renderer, capturedId);
 
-                undoActions.Add(() => {
+                return (() => {
                     if (!captured.TryGetComponent(out Renderer r)) return;
                     if (wasOn) AddHighlight(r, capturedId); else RemoveHighlight(r, capturedId);
-                });
-                redoActions.Add(() => {
+                }, () => {
                     if (!captured.TryGetComponent(out Renderer r)) return;
                     if (wasOn) RemoveHighlight(r, capturedId); else AddHighlight(r, capturedId);
                 });
-            }
-
-            if (undoActions.Count > 0)
-                CommandHistory.Push(
-                    () => undoActions.ForEach(a => a()),
-                    () => redoActions.ForEach(a => a()));
-
-            return objects;
+            });
         }
 
         private static void AddHighlight(Renderer renderer, string uuid)

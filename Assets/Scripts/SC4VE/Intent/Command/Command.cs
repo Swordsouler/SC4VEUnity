@@ -99,6 +99,40 @@ namespace Sc4ve.Multimodality.Intent
             return Parameters?.OfType<T>().Skip(element - 1).FirstOrDefault();
         }
 
+        /// <summary>Premier SelectionParameter de la commande (cible par défaut), ou null.</summary>
+        protected SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
+
+        /// <summary>
+        /// Applique une mutation réversible à chaque objet et pousse UNE entrée undo/redo
+        /// dans <see cref="CommandHistory"/>. <paramref name="mutate"/> applique la mutation
+        /// à l'objet et retourne la paire (undo, redo) correspondante, ou null pour ignorer
+        /// l'objet. Les closures sont protégées contre les objets détruits entre-temps
+        /// (undo/redo devient un no-op pour eux, au lieu d'une MissingReferenceException).
+        /// </summary>
+        protected static List<SemantizationCore> ExecuteReversible(
+            List<SemantizationCore> objects,
+            Func<SemantizationCore, (Action undo, Action redo)?> mutate)
+        {
+            var undoActions = new List<Action>();
+            var redoActions = new List<Action>();
+            foreach (SemantizationCore obj in objects ?? new List<SemantizationCore>())
+            {
+                if (obj == null) continue;
+                (Action undo, Action redo)? actions = mutate(obj);
+                if (actions == null) continue;
+                SemantizationCore captured = obj;
+                Action undo = actions.Value.undo;
+                Action redo = actions.Value.redo;
+                undoActions.Add(() => { if (captured != null) undo(); });
+                redoActions.Add(() => { if (captured != null) redo(); });
+            }
+            if (undoActions.Count > 0)
+                CommandHistory.Push(
+                    () => undoActions.ForEach(a => a()),
+                    () => redoActions.ForEach(a => a()));
+            return objects ?? new List<SemantizationCore>();
+        }
+
         /// <summary>
         /// Énonce un texte via la synthèse vocale (Piper) si un PiperTextToSpeech est présent
         /// dans la scène. Sans effet (avertissement) sinon. La langue est gérée par le composant.

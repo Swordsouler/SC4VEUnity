@@ -21,7 +21,6 @@ namespace Sc4ve.Multimodality.Intent
             return ps;
         }
 
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
         private PointParameter PointParameter => GetParameter<PointParameter>();
 
         public override List<SemantizationCore> Execute()
@@ -42,6 +41,15 @@ namespace Sc4ve.Multimodality.Intent
 
                 Debug.Log($"[Duplicate] Copie de {semantizationCore.GetUUID()} instanciée à {duplicatedGameObject.transform.position}.");
             }
+
+            // Annulation : désactivation douce des copies (même sémantique que DeleteCommand),
+            // pour que « annule » retire les objets dupliqués et que « rétablis » les ramène.
+            ExecuteReversible(duplicates, dup =>
+            {
+                GameObject go = dup.gameObject;
+                return (() => go.SetActive(false),
+                        () => go.SetActive(true));
+            });
 
             // Retourne les copies (et non les originaux) pour la coréférence : « copie ça ici » puis « agrandis-le ».
             return duplicates.Count > 0 ? duplicates : objects;

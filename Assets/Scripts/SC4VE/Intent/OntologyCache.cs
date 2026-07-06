@@ -17,7 +17,14 @@ namespace Sc4ve.Multimodality.Intent
         private static Task<Graph> _loadTask;
 
         /// <summary>Graphe ontologique partagé (parsé une seule fois).</summary>
-        public static Task<Graph> GetGraphAsync() => _loadTask ??= LoadAsync();
+        public static Task<Graph> GetGraphAsync()
+        {
+            // Ne jamais mettre en cache une tâche échouée : un .ttl illisible au premier essai
+            // bloquerait vocabulaire et commandes pour toute la session. On retente au prochain appel.
+            if (_loadTask == null || _loadTask.IsFaulted || _loadTask.IsCanceled)
+                _loadTask = LoadAsync();
+            return _loadTask;
+        }
 
         private static async Task<Graph> LoadAsync()
         {

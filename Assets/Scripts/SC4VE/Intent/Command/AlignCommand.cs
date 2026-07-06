@@ -9,39 +9,25 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable, CommandDescription("Aligne les objets à la même hauteur (Y) que le premier sélectionné. Paramètres: SelectionParameter.")]
     public class AlignCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> objects = SelectionParameter.Objects;
+            List<SemantizationCore> objects = SelectionParameter?.Objects ?? new();
             if (objects.Count < 2)
             {
                 Debug.Log("[Align] Deux objets minimum requis pour l'alignement.");
                 return objects;
             }
 
-            float targetY   = objects[0].transform.position.y;
-            var undoActions = new List<Action>();
-            var redoActions = new List<Action>();
-
-            foreach (SemantizationCore obj in objects)
+            float targetY = objects[0].transform.position.y;
+            return ExecuteReversible(objects, obj =>
             {
-                var prevPos  = obj.transform.position;
-                var newPos   = new Vector3(obj.transform.position.x, targetY, obj.transform.position.z);
-                var captured = obj;
-
+                Vector3 prevPos = obj.transform.position;
+                Vector3 newPos  = new(obj.transform.position.x, targetY, obj.transform.position.z);
                 obj.transform.position = newPos;
-
-                undoActions.Add(() => captured.transform.position = prevPos);
-                redoActions.Add(() => captured.transform.position = newPos);
                 Debug.Log($"[Align] {obj.GetUUID()} → Y={targetY}");
-            }
-
-            CommandHistory.Push(
-                () => undoActions.ForEach(a => a()),
-                () => redoActions.ForEach(a => a()));
-
-            return objects;
+                return (() => obj.transform.position = prevPos,
+                        () => obj.transform.position = newPos);
+            });
         }
     }
 }
