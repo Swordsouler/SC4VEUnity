@@ -83,11 +83,29 @@ namespace Sc4ve.Voice
             }
         }
 
+        /// <summary>
+        /// Résout un chemin relatif à StreamingAssets et vérifie qu'il n'en sort pas :
+        /// les champs sont sérialisés dans la scène et pourraient contenir un chemin
+        /// absolu ou une traversée « .. ». Retourne null (avec erreur loguée) sinon.
+        /// </summary>
+        private static string ResolveStreamingAssetsPath(string relativePath, string label)
+        {
+            string root = Path.GetFullPath(Application.streamingAssetsPath);
+            string full = Path.GetFullPath(Path.Combine(root, relativePath ?? string.Empty));
+            if (!full.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            {
+                UnityEngine.Debug.LogError($"[Piper] {label} hors de StreamingAssets : \"{relativePath}\"");
+                return null;
+            }
+            return full;
+        }
+
         private async Task SpeakOnceAsync(string text)
         {
-            string piperExe  = Path.Combine(Application.streamingAssetsPath, _piperExePath);
-            string modelPath = Path.Combine(Application.streamingAssetsPath,
-                                            _language == Language.French ? _frenchModelPath : _englishModelPath);
+            string piperExe  = ResolveStreamingAssetsPath(_piperExePath, "Exécutable");
+            string modelPath = ResolveStreamingAssetsPath(
+                _language == Language.French ? _frenchModelPath : _englishModelPath, "Modèle");
+            if (piperExe == null || modelPath == null) return;
             string outputWav = Path.Combine(Application.temporaryCachePath,
                                             $"piper_{Guid.NewGuid():N}.wav");
             try

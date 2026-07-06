@@ -14,6 +14,12 @@ namespace Sc4ve.Voice
             SpeechToText.OnTranscriptionResult += OnTranscriptionResult;
         }
 
+        private void OnDestroy()
+        {
+            if (SpeechToText != null)
+                SpeechToText.OnTranscriptionResult -= OnTranscriptionResult;
+        }
+
         private void OnTranscriptionResult(string obj)
         {
             var result = new RecognitionResult(obj, SpeechToText.RecognizerStartedAt);

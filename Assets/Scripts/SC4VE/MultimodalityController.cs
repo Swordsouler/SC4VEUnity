@@ -613,9 +613,10 @@ JSON Attendu:
                     ResolveCommands(commands);
                     Debug.Log($"[{_recognizerMode}] Commands resolved successfully.");
                 }
-                catch (Exception e)
+                catch (Exception e) when (e is not OutOfMemoryException)
                 {
-                    Debug.LogError($"[{_recognizerMode}] An error occurred during processing: {e.Message}\n{e.StackTrace}");
+                    Debug.LogError($"[{_recognizerMode}] An error occurred during processing.");
+                    Debug.LogException(e);
                     MultimodalityMetrics.Complete(null, "error", 0);
                 }
             }
@@ -661,9 +662,17 @@ JSON Attendu:
 
             bool needsCorrection = false;
 
+            // Règle 0 : liste vide ou type de commande inconnu (halluciné par le modèle léger).
+            // Le modèle précis a une chance de produire le bon type — l'essayer avant d'abandonner.
+            if (commands.Count == 0 || commands.Any(c => c is UnknownCommand))
+            {
+                Debug.Log("[LLM] Validation failed (R0): empty command list or unknown command type.");
+                needsCorrection = true;
+            }
+
             // Règle 1 : ColorizeCommand ne doit pas contenir de filtre Color dans le SelectionParameter
             // (la couleur cible va dans ColorParameter, pas dans les filtres de sélection).
-            if (commands.Any(c => c is ColorizeCommand &&
+            if (!needsCorrection && commands.Any(c => c is ColorizeCommand &&
                 (c.Parameters?.OfType<SelectionParameter>().FirstOrDefault()
                     ?.Filters.Any(f => !f.IsOperator && f.Condition?.Type == "Color") ?? false)))
             {
@@ -1046,16 +1055,20 @@ JSON Attendu:
                 // response_format=json_object pousse certains modèles à envelopper le tableau
                 // dans un objet ({"commands": [...]}) ou à renvoyer une commande seule : on
                 // accepte ces variantes plutôt que d'escalader inutilement vers le modèle précis.
+                List<Command> commands = null;
                 string trimmed = json?.TrimStart();
                 if (!string.IsNullOrEmpty(trimmed) && trimmed.StartsWith("{"))
                 {
                     JObject wrapper = JObject.Parse(json);
                     JToken array = wrapper.Properties().Select(p => p.Value)
                                           .FirstOrDefault(v => v.Type == JTokenType.Array);
-                    if (array != null) return array.ToObject<List<Command>>();
-                    if (wrapper["type"] != null) return new List<Command> { wrapper.ToObject<Command>() };
+                    if (array != null) commands = array.ToObject<List<Command>>();
+                    else if (wrapper["type"] != null) commands = new List<Command> { wrapper.ToObject<Command>() };
                 }
-                return JsonConvert.DeserializeObject<List<Command>>(json);
+                commands ??= JsonConvert.DeserializeObject<List<Command>>(json);
+                // Le tableau peut contenir des éléments null ([null, {…}]) : on les retire,
+                // les validations et ResolveCommands supposent des éléments non nuls.
+                return commands?.Where(c => c != null).ToList();
             }
             catch (Exception e)
             {
@@ -1066,21 +1079,21 @@ JSON Attendu:
 
         public async Task<List<Command>> CommandToGraphOutputCommandAsync(List<Command> commands)
         {
-            return await Task.Run(async () =>
-            {
-                // Copie du graphe ontologique mis en cache (parsé une seule fois) au lieu de
-                // re-parser tous les .ttl à chaque commande — Merge copie triples + namespaces.
-                Graph cached = await OntologyCache.GetGraphAsync();
-                Graph graph = new();
-                graph.Merge(cached);
-                graph.BaseUri = new Uri(SvenSettings.BaseUri);
-                graph.NamespaceMap.AddNamespace("", UriFactory.Create(SvenSettings.BaseUri));
-                foreach (Command command in commands)
-                    await command.Semanticize(graph);
+            // Sur le thread principal (pas de Task.Run) : Semanticize interroge la copie du
+            // graphe de scène et GraphManager.Assert mute le graphe partagé — aucun des deux
+            // n'est thread-safe vis-à-vis du code Unity qui les utilise en parallèle.
+            // Copie du graphe ontologique mis en cache (parsé une seule fois) au lieu de
+            // re-parser tous les .ttl à chaque commande — Merge copie triples + namespaces.
+            Graph cached = await OntologyCache.GetGraphAsync();
+            Graph graph = new();
+            graph.Merge(cached);
+            graph.BaseUri = new Uri(SvenSettings.BaseUri);
+            graph.NamespaceMap.AddNamespace("", UriFactory.Create(SvenSettings.BaseUri));
+            foreach (Command command in commands)
+                await command.Semanticize(graph);
 
-                GraphManager.Assert(graph.Triples);
-                return commands;
-            });
+            GraphManager.Assert(graph.Triples);
+            return commands;
         }
 
         public void ResolveCommands(List<Command> commands)
@@ -1267,7 +1280,8 @@ JSON Attendu:
         private void Update()
         {
             HandlePointerDown();
-            HandlePointerUp();
+            // Fire-and-forget délibéré : HandlePointerUp gère toutes ses exceptions en interne.
+            _ = HandlePointerUp();
         }
 
         private Parameter thisParameter = null;
@@ -1296,7 +1310,7 @@ JSON Attendu:
             }
         }
 
-        public async void HandlePointerUp()
+        public async Task HandlePointerUp()
         {
             if (Input.GetMouseButtonUp(0))
             {
@@ -1325,9 +1339,10 @@ JSON Attendu:
                     ResolveCommands(commands);
                     Debug.Log(JsonConvert.SerializeObject(commands));
                 }
-                catch (Exception e)
+                catch (Exception e) when (e is not OutOfMemoryException)
                 {
-                    Debug.LogError($"[Pointer] MoveCommand failed: {e.Message}\n{e.StackTrace}");
+                    Debug.LogError("[Pointer] MoveCommand failed.");
+                    Debug.LogException(e);
                 }
                 finally
                 {

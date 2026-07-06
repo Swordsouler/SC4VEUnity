@@ -453,9 +453,9 @@ Assets/StreamingAssets/
 
 | Package | Source | Usage |
 |---------|--------|-------|
+| `com.nsaintl.sven` | [GitHub](https://github.com/Swordsouler/SVENUnity) | Framework SVEN : ontologie RDF/OWL, objets sémantisés (dépendance centrale) |
 | `com.whisper.unity` | [GitHub](https://github.com/Macoron/whisper.unity) | STT Whisper |
-| `com.utilities.encoder.pcm` | Package Manager | Encodage audio |
-| Vosk Unity | [Package](https://github.com/alphacep/vosk-unity-asset) | STT Vosk |
+| Vosk | Vendorisé dans `Assets/ThirdParty/Vosk` ([provenance](https://github.com/alphacep/vosk-unity-asset), Apache 2.0) | STT Vosk |
 | NaughtyAttributes | Package Manager | Inspector UI |
 | TextMeshPro | Package Manager | Affichage UI |
 | XR Interaction Toolkit | Package Manager | Interactions VR |

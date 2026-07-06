@@ -18,6 +18,14 @@ namespace Sc4ve.Multimodality.Intent
             Description = description;
         }
 
+        // Liste blanche des types de commandes concrets, indexés par nom simple. Le nom vient
+        // du JSON produit par le LLM : il n'est jamais résolu en type arbitraire de l'assembly.
+        private static readonly Lazy<Dictionary<string, Type>> _commandTypesByName = new(() =>
+            Assembly.GetAssembly(typeof(Command))
+                .GetTypes()
+                .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(Command)))
+                .ToDictionary(t => t.Name, t => t));
+
         /// <summary>
         /// Crée dynamiquement une instance de commande basée sur son nom de type.
         /// </summary>
@@ -26,25 +34,18 @@ namespace Sc4ve.Multimodality.Intent
             if (string.IsNullOrWhiteSpace(typeStr))
                 return new UnknownCommand { Type = "Unknown" };
 
-            var assembly = Assembly.GetAssembly(typeof(Command));
+            if (!_commandTypesByName.Value.TryGetValue(typeStr, out Type commandType))
+                return new UnknownCommand { Type = typeStr };
 
-            // Chercher le type dans l'assembly
-            var commandType = assembly?.GetType($"Sc4ve.Multimodality.Intent.{typeStr}");
-
-            if (commandType != null && typeof(Command).IsAssignableFrom(commandType) && !commandType.IsAbstract)
+            try
             {
-                try
-                {
-                    return (Command)Activator.CreateInstance(commandType);
-                }
-                catch (Exception e)
-                {
-                    UnityEngine.Debug.LogWarning($"Failed to create command instance for type {typeStr}: {e.Message}");
-                    return new UnknownCommand { Type = typeStr };
-                }
+                return (Command)Activator.CreateInstance(commandType);
             }
-
-            return new UnknownCommand { Type = typeStr };
+            catch (Exception e)
+            {
+                UnityEngine.Debug.LogWarning($"Failed to create command instance for type {typeStr}: {e.Message}");
+                return new UnknownCommand { Type = typeStr };
+            }
         }
 
         /// <summary>

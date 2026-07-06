@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "com.genesis.sparktts.unity": "https://github.com/arghyasur1991/Spark-TTS-Unity.git",
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "com.nsaintl.sven": "https://github.com/Swordsouler/SVENUnity.git#upm",
     "com.unity.2d.sprite": "1.0.0",
@@ -17,7 +16,7 @@
     "com.unity.xr.interaction.toolkit": "3.2.2",
     "com.unity.xr.management": "4.5.3",
     "com.unity.xr.openxr": "1.15.1",
-    "com.whisper.unity": "https://github.com/Macoron/whisper.unity.git?path=/Packages/com.whisper.unity",
+    "com.whisper.unity": "https://github.com/Macoron/whisper.unity.git?path=/Packages/com.whisper.unity#529a628a915a97799e89e061af9cb7c71407124d",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",
@@ -64,8 +63,7 @@
       "name": "npm",
       "url": "https://registry.npmjs.org/",
       "scopes": [
-        "com.kyrylokuzyk",
-        "com.github.asus4"
+        "com.kyrylokuzyk"
       ]
     }
   ]

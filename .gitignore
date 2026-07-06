@@ -85,3 +85,11 @@ crashlytics-build.properties
 # Fichiers locaux non versionnés
 /debug.log
 /sven_training_dataset_1000plus.csv
+
+# Secrets : ne jamais versionner de clés ou d'identifiants
+*.env
+.env*
+*.key
+*.pem
+secrets.json
+credentials.json
