@@ -1,4 +1,4 @@
-# SVENMultimodality
+# SC4VEUnity
 
 Système de contrôle vocal multimodal pour Unity VR, basé sur le framework SVEN (Semantized Virtual ENvironment). Permet de manipuler des objets 3D par commandes vocales en français et en anglais via reconnaissance vocale locale (Whisper ou Vosk) et synthèse vocale locale (Piper).
 
