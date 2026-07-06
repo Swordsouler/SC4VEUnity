@@ -3929,7 +3929,7 @@ MonoBehaviour:
   _recognizerMode: 1
   _movePointDelayMs: 300
   _llmService: 1
-  _openAiApiKey: ***CLE-RETIREE***
+  _openAiApiKey:
   _localLlmUrl: http://localhost:1234/v1
   _fastModel: gpt-4o-mini
   _preciseModel: gpt-4o

@@ -250,9 +250,11 @@ Utilise l'API OpenAI pour interpréter la commande vocale en JSON :
 | Champ | Valeur |
 |-------|--------|
 | **Llm Service** | `OpenAI` |
-| **Open Ai Api Key** | Clé API OpenAI (`sk-…`) |
+| **Open Ai Api Key** | Laisser vide (recommandé) → la variable d'environnement `OPENAI_API_KEY` est utilisée |
 | **Fast Model** | `gpt-4o-mini` (défaut) |
 | **Precise Model** | `gpt-4o` (défaut) |
+
+> **Clé API :** définir la variable d'environnement `OPENAI_API_KEY` (variables utilisateur Windows, puis redémarrer Unity) plutôt que remplir le champ Inspector — ce champ est sérialisé dans la scène et finirait committé dans Git.
 
 ---
 
@@ -414,7 +416,7 @@ Les commandes sont découvertes automatiquement par réflexion (attribut `[Comma
 | **Speech To Text** | `BaseSpeechToText` | Assigner `WhisperSpeechToText` ou `VoskSpeechToText` |
 | **Piper TTS** | `PiperTextToSpeech` | Optionnel, pour les retours vocaux |
 | **Mode** | `LLM` / `RuleBased` | Mode de reconnaissance d'intentions |
-| **API Key** | `string` | Clé OpenAI (mode LLM uniquement) |
+| **API Key** | `string` | Clé OpenAI (mode LLM uniquement) — laisser vide pour utiliser `OPENAI_API_KEY` |
 
 ### SSTResultTMP
 

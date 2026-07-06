@@ -3782,7 +3782,7 @@ MonoBehaviour:
   _language: 0
   _recognizerMode: 1
   _llmService: 1
-  _openAiApiKey: ***CLE-RETIREE***
+  _openAiApiKey:
   _localLlmUrl: http://localhost:1234/v1
 --- !u!1 &1665784244 stripped
 GameObject:

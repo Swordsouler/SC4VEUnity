@@ -62,7 +62,7 @@ namespace Sc4ve.Multimodality
         [BoxGroup("LLM Settings"), ShowIf("IsLlmMode"), SerializeField]
         private LlmService _llmService = LlmService.OpenAI;
 
-        [BoxGroup("LLM Settings"), ShowIf("IsLlmModeOpenAI"), SerializeField, Tooltip("Clé API OpenAI. Ne pas exposer publiquement.")]
+        [BoxGroup("LLM Settings"), ShowIf("IsLlmModeOpenAI"), SerializeField, Tooltip("Clé API OpenAI. Laisser vide pour utiliser la variable d'environnement OPENAI_API_KEY (recommandé : ce champ est sérialisé dans la scène, donc committé avec elle).")]
         private string _openAiApiKey;
 
         [BoxGroup("LLM Settings"), ShowIf("IsLlmModeLocal"), SerializeField, Tooltip("URL du serveur LLM local (ex: http://localhost:1234/v1).")]
@@ -71,6 +71,16 @@ namespace Sc4ve.Multimodality
         private bool IsLlmMode     => _recognizerMode == RecognizerMode.LLM;
         private bool IsLlmModeOpenAI => IsLlmMode && _llmService == LlmService.OpenAI;
         private bool IsLlmModeLocal  => IsLlmMode && _llmService == LlmService.Local;
+
+        /// <summary>
+        /// Clé API OpenAI effective : champ Inspector si renseigné, sinon variable
+        /// d'environnement OPENAI_API_KEY. Préférer la variable d'environnement — le champ
+        /// Inspector est sérialisé dans la scène, donc committé avec elle.
+        /// </summary>
+        private string OpenAiApiKey =>
+            !string.IsNullOrWhiteSpace(_openAiApiKey)
+                ? _openAiApiKey
+                : Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 
         private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(60) };
         private RuleBasedIntentRecognizer _ruleBasedRecognizer;
@@ -914,14 +924,15 @@ JSON Attendu:
 
             if (_llmService == LlmService.OpenAI)
             {
-                if (string.IsNullOrWhiteSpace(_openAiApiKey))
+                string apiKey = OpenAiApiKey;
+                if (string.IsNullOrWhiteSpace(apiKey))
                 {
-                    Debug.LogError("[LLM] OpenAI API Key is not set. Please set it in the inspector.");
+                    Debug.LogError("[LLM] Clé API OpenAI absente : définir la variable d'environnement OPENAI_API_KEY (recommandé) ou le champ Inspector.");
                     return null;
                 }
                 const string openAiUrl = "https://api.openai.com/v1/chat/completions";
                 requestMessage = new HttpRequestMessage(HttpMethod.Post, openAiUrl);
-                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
                 endpointUrlForLogging = openAiUrl;
             }
             else // LlmService.Local
