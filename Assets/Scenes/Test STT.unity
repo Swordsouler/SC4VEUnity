@@ -604,12 +604,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad9dac0bb99777244b1e26b52c3d27fc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ModelPath: P:\SVENMultimodailty\Assets\StreamingAssets\Models\vosk-model-small-fr-0.22.zip
-  VoiceProcessor: {fileID: 1725725867}
-  MaxAlternatives: 1
-  MaxRecordLength: 5
-  AutoStart: 1
-  KeyPhrases: []
+  _modelPath: vosk-model-small-fr-0.22.zip
+  _voiceProcessor: {fileID: 1725725867}
+  _maxAlternatives: 1
+  _maxRecordLength: 5
+  _autoStart: 1
+  _keyPhrases: []
 --- !u!114 &1725725867
 MonoBehaviour:
   m_ObjectHideFlags: 0
