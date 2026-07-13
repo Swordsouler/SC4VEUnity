@@ -17,6 +17,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using VDS.RDF;
 using VDS.RDF.Parsing;
 
@@ -1290,7 +1291,7 @@ JSON Attendu:
 
         public void HandlePointerDown()
         {
-            if (Input.GetMouseButtonDown(0))
+            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
                 thisParameter = new SelectionParameter
                 {
@@ -1312,7 +1313,7 @@ JSON Attendu:
 
         public async Task HandlePointerUp()
         {
-            if (Input.GetMouseButtonUp(0))
+            if (Mouse.current != null && Mouse.current.leftButton.wasReleasedThisFrame)
             {
                 thereParameter = new PointParameter
                 {

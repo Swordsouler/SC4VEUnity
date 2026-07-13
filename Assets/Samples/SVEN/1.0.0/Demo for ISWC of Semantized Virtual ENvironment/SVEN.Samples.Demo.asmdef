@@ -6,6 +6,7 @@
         "NaughtyAttributes.Core",
         "PrimeTween.Runtime",
         "Unity.TextMeshPro",
+        "Unity.InputSystem",
         "UnityEngine.UI"
     ],
     "includePlatforms": [],

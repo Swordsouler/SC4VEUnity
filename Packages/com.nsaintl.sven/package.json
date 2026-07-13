@@ -1,0 +1,46 @@
+{
+  "name": "com.nsaintl.sven",
+  "version": "1.1.0",
+  "description": "SVEN is an Unity package that allows to semantize a virtual environment, i.e., to add semantic annotations to a virtual environment, to log user interactions, and to replay them.",
+  "displayName": "SVEN",
+  "unity": "2022.3",
+  "license": "MIT",
+  "keywords": [
+    "unity",
+    "semantic",
+    "virtual",
+    "environment",
+    "logging",
+    "graph",
+    "replay"
+  ],
+  "category": "Tools",
+  "dependencies": {
+    "com.dbrizov.naughtyattributes": "2.1.6",
+    "com.kyrylokuzyk.primetween": "1.3.5",
+    "com.unity.inputsystem": "1.7.0"
+  },
+  "samples": [
+    {
+      "displayName": "Record Semantize Virtual ENvironment",
+      "description": "A simple example of how to record a virtual environment.",
+      "path": "Samples~/Record"
+    },
+    {
+      "displayName": "Replay Semantized Virtual ENvironment",
+      "description": "A simple example of how to replay a virtual environment.",
+      "path": "Samples~/Replay"
+    },
+    {
+      "displayName": "Demo for ISWC of Semantized Virtual ENvironment",
+      "description": "A use case of the SVEN package for the ISWC 2025 conference.",
+      "path": "Samples~/Demo"
+    }
+  ],
+  "author": {
+    "name": "Nicolas Saint-Léger",
+    "url": "https://perso.lisn.upsaclay.fr/nsaintl",
+    "email": "nicolas.saint-leger@universite-paris-saclay.fr"
+  },
+  "_fingerprint": "a534dd545bb3263fae7027402c797f261e615282"
+}

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Whisper;
 
 namespace Sc4ve.Voice
@@ -79,7 +80,7 @@ namespace Sc4ve.Voice
         {
             if (!_pushToTalk) return;
 
-            bool keyPressed = Input.GetKey(KeyCode.T);
+            bool keyPressed = Keyboard.current != null && Keyboard.current.tKey.isPressed;
 
             if (keyPressed && !_pttKeyActive)
             {

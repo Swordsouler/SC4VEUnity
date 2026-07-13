@@ -9,7 +9,8 @@
         "Bunny83.simpleJson",
         "Vosk",
         "QuickOutline",
-        "SVEN.Samples.Demo"
+        "SVEN.Samples.Demo",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -8,6 +8,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Unity.Profiling;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Networking;
 using Vosk;
 
@@ -341,7 +342,7 @@ namespace Sc4ve.Voice
 
             if (_pushToTalk)
             {
-                bool pttKeyIsPressed = Input.GetKey(KeyCode.T);
+                bool pttKeyIsPressed = Keyboard.current != null && Keyboard.current.tKey.isPressed;
 
                 // Key was just pressed
                 if (pttKeyIsPressed && !_pttKeyActive)

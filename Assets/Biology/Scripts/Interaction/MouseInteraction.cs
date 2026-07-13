@@ -2,6 +2,7 @@ using Sven.Context;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 //This script is used to perform every mouse interaction with the molecule :
@@ -63,26 +64,31 @@ public class MouseInteraction : MonoBehaviour, IPointerDownHandler
         SyncPointerTransform();
 
         // if you press R reload the scene
-        if (Input.GetKeyDown(KeyCode.R))
+        if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
         {
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
         // Rotate the molecule depends to the mouse position
         // by applying mouse offset and rotation speed to the selected atom
-        yaw = Input.GetAxis("Mouse X");
-        pitch = Input.GetAxis("Mouse Y");
+        // (0.1f matches the sensitivity of the legacy "Mouse X"/"Mouse Y" axes)
+        Vector2 mouseDelta = Mouse.current != null ? Mouse.current.delta.ReadValue() * 0.1f : Vector2.zero;
+        yaw = mouseDelta.x;
+        pitch = mouseDelta.y;
 
         if (type == InteractionType.None) return;
 
+        bool leftPressed = Mouse.current != null && Mouse.current.leftButton.isPressed;
+        bool rightPressed = Mouse.current != null && Mouse.current.rightButton.isPressed;
+
         // If all the mouse buttons are released, reset the type of interaction
-        if (!Input.GetMouseButton(0) && !Input.GetMouseButton(1))
+        if (!leftPressed && !rightPressed)
         {
             DisableSelection(false);
         }
         else
         {
-            if (Input.GetMouseButton(1))
+            if (rightPressed)
             {
                 // center the mouse cursor
                 Cursor.lockState = CursorLockMode.Locked;
@@ -169,7 +175,7 @@ public class MouseInteraction : MonoBehaviour, IPointerDownHandler
             case PointerEventData.InputButton.Middle:
                 if (currentSelection.tag == "Atom" || currentSelection.tag == "Connection")
                 {
-                    if (Input.GetKey(KeyCode.Space) && currentSelection.tag == "Atom")
+                    if (Keyboard.current != null && Keyboard.current.spaceKey.isPressed && currentSelection.tag == "Atom")
                     {
                         Atom atom = currentSelection.transform.parent.GetComponent<Atom>();
                         atom.ToggleType();
@@ -199,12 +205,12 @@ public class MouseInteraction : MonoBehaviour, IPointerDownHandler
         }
 
         Camera camera = Camera.main;
-        if (camera == null)
+        if (camera == null || Mouse.current == null)
         {
             return;
         }
 
-        Ray ray = camera.ScreenPointToRay(Input.mousePosition);
+        Ray ray = camera.ScreenPointToRay(Mouse.current.position.ReadValue());
         float distance = _pointer.PointerDistance;
         Vector3 pointerPosition = Physics.Raycast(ray, out RaycastHit hit, distance) ? hit.point : ray.GetPoint(distance);
 
@@ -226,8 +232,10 @@ public class MouseInteraction : MonoBehaviour, IPointerDownHandler
     // Setup the mouse offset between the mouse position and the molecule position
     private void SetupMouseOffset()
     {
+        if (Mouse.current == null) return;
         // Get the offset between the mouse position and the molecule position
-        Vector3 newMouseOffset = gameObject.transform.position - Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -Camera.main.transform.position.z));
+        Vector2 mousePosition = Mouse.current.position.ReadValue();
+        Vector3 newMouseOffset = gameObject.transform.position - Camera.main.ScreenToWorldPoint(new Vector3(mousePosition.x, mousePosition.y, -Camera.main.transform.position.z));
         newMouseOffset.z = 0;
         mouseOffset = newMouseOffset;
     }
@@ -269,11 +277,12 @@ public class MouseInteraction : MonoBehaviour, IPointerDownHandler
     // Move the molecule to the mouse position
     private void MoveAtom()
     {
+        if (Mouse.current == null) return;
         Rigidbody rb = gameObject.GetComponent<Rigidbody>();
 
-        // Move the molecule to the mouse position 
+        // Move the molecule to the mouse position
         // by applying mouse offset and movement speed to the selected atom
-        Vector3 pos = Input.mousePosition;
+        Vector3 pos = Mouse.current.position.ReadValue();
         pos.z = -Camera.main.transform.position.z;
         pos = Camera.main.ScreenToWorldPoint(pos);
         if (Atom.transformMode)

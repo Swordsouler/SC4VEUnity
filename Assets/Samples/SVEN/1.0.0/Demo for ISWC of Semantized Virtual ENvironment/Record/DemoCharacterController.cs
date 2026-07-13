@@ -8,6 +8,7 @@ using Sven.Context;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Sven.Demo
 {
@@ -65,24 +66,34 @@ namespace Sven.Demo
         public new void Update()
         {
             base.Update();
-            float xRotation = pointOfView.cameraComponent.transform.localEulerAngles.y + Input.GetAxis("Mouse X") * mouseSensitivity;
+            Keyboard keyboard = Keyboard.current;
+            Mouse mouse = Mouse.current;
 
-            yRotation += Input.GetAxis("Mouse Y") * mouseSensitivity;
+            // 0.1f matches the sensitivity of the legacy "Mouse X"/"Mouse Y" axes
+            Vector2 lookDelta = mouse != null ? mouse.delta.ReadValue() * 0.1f : Vector2.zero;
+            float xRotation = pointOfView.cameraComponent.transform.localEulerAngles.y + lookDelta.x * mouseSensitivity;
+
+            yRotation += lookDelta.y * mouseSensitivity;
             yRotation = Mathf.Clamp(yRotation, -90f, 90f);
 
             pointOfView.cameraComponent.transform.localEulerAngles = new Vector3(-yRotation, xRotation, 0);
 
-            horizontalInput = Input.GetAxisRaw("Horizontal");
-            verticalInput = Input.GetAxisRaw("Vertical");
-            jumpInput = Input.GetButton("Jump");
+            // physical key positions: wKey/aKey = Z/Q on an AZERTY layout
+            horizontalInput = keyboard == null ? 0f
+                : (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed ? 1f : 0f)
+                - (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed ? 1f : 0f);
+            verticalInput = keyboard == null ? 0f
+                : (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed ? 1f : 0f)
+                - (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed ? 1f : 0f);
+            jumpInput = keyboard != null && keyboard.spaceKey.isPressed;
 
             // crouch
-            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.LeftShift))
+            if (keyboard != null && (keyboard.leftCtrlKey.isPressed || keyboard.leftShiftKey.isPressed))
                 pointOfView.cameraComponent.transform.DOLocalMove(new Vector3(0, 0.5f, 0), 0.2f);
             else
                 pointOfView.cameraComponent.transform.DOLocalMove(new Vector3(0, 1f, 0), 0.2f);
 
-            if (Input.GetKeyDown(KeyCode.F))
+            if (keyboard != null && keyboard.fKey.wasPressedThisFrame)
             {
                 if (heldObject == null)
                 {
@@ -173,11 +184,11 @@ namespace Sven.Demo
             {
                 ParticleSystem particleSystem = heldObject.GetComponent<ParticleSystem>();
 
-                if (Input.GetButtonDown("Fire1"))
+                if (mouse != null && mouse.leftButton.wasPressedThisFrame)
                 {
                     particleSystem.Play();
                 }
-                else if (Input.GetButtonUp("Fire1"))
+                else if (mouse != null && mouse.leftButton.wasReleasedThisFrame)
                 {
                     particleSystem.Stop();
                 }
