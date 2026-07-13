@@ -22,14 +22,14 @@
       "url": "https://registry.npmjs.org"
     },
     "com.nsaintl.sven": {
-      "version": "https://github.com/Swordsouler/SVENUnity.git#upm",
+      "version": "file:com.nsaintl.sven",
       "depth": 0,
-      "source": "git",
+      "source": "embedded",
       "dependencies": {
-        "com.dbrizov.naughtyattributes": "2.1.4",
-        "com.kyrylokuzyk.primetween": "1.3.5"
-      },
-      "hash": "a534dd545bb3263fae7027402c797f261e615282"
+        "com.dbrizov.naughtyattributes": "2.1.6",
+        "com.kyrylokuzyk.primetween": "1.3.5",
+        "com.unity.inputsystem": "1.7.0"
+      }
     },
     "com.unity.2d.sprite": {
       "version": "1.0.0",

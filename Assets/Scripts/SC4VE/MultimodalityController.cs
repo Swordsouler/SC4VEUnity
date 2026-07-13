@@ -20,6 +20,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using VDS.RDF;
 using VDS.RDF.Parsing;
+using Pointer = Sven.Context.Pointer;
 
 namespace Sc4ve.Multimodality
 {

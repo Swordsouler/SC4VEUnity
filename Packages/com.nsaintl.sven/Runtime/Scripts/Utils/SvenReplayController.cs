@@ -8,8 +8,10 @@ using System.Globalization;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace Sven.Utils
 {
@@ -202,6 +204,7 @@ namespace Sven.Utils
             }
 
             // keyboard shortcuts
+#if ENABLE_INPUT_SYSTEM
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null) return;
             if (keyboard.spaceKey.wasPressedThisFrame) IsPlaying = !IsPlaying;
@@ -209,6 +212,13 @@ namespace Sven.Utils
             if (keyboard.rightArrowKey.wasPressedThisFrame) StepForward();
             if (keyboard.numpadPlusKey.wasPressedThisFrame) _speedDropdown.value = Mathf.Clamp(_speedDropdown.value - 1, 0, _speedDropdown.options.Count - 1);
             if (keyboard.numpadMinusKey.wasPressedThisFrame) _speedDropdown.value = Mathf.Clamp(_speedDropdown.value + 1, 0, _speedDropdown.options.Count - 1);
+#else
+            if (Input.GetKeyDown(KeyCode.Space)) IsPlaying = !IsPlaying;
+            if (Input.GetKeyDown(KeyCode.LeftArrow)) StepBackward();
+            if (Input.GetKeyDown(KeyCode.RightArrow)) StepForward();
+            if (Input.GetKeyDown(KeyCode.KeypadPlus)) _speedDropdown.value = Mathf.Clamp(_speedDropdown.value - 1, 0, _speedDropdown.options.Count - 1);
+            if (Input.GetKeyDown(KeyCode.KeypadMinus)) _speedDropdown.value = Mathf.Clamp(_speedDropdown.value + 1, 0, _speedDropdown.options.Count - 1);
+#endif
         }
 
         /// <summary>

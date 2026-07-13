@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using Pointer = Sven.Context.Pointer;
 
 //This script is used to perform every mouse interaction with the molecule :
 // - Move the molecule

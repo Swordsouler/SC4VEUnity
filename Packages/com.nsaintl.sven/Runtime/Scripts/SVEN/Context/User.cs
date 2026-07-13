@@ -8,9 +8,11 @@ using Sven.Utils;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
+using VDS.RDF;
+#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
-using VDS.RDF;
+#endif
 
 namespace Sven.Context
 {
@@ -97,6 +99,7 @@ namespace Sven.Context
         {
             // Master switch: when SVEN is disabled, key-press input events are not recorded.
             if (!SvenSettings.Enabled) return;
+#if ENABLE_INPUT_SYSTEM
             // check for input events (press/release) on the keyboard
             Keyboard keyboard = Keyboard.current;
             if (keyboard != null)
@@ -121,6 +124,18 @@ namespace Sven.Context
                 if (mouse.middleButton.wasPressedThisFrame) StartInputEvent("Mouse2");
                 if (mouse.middleButton.wasReleasedThisFrame) EndInputEvent("Mouse2");
             }
+#else
+            // check for input events (press)
+            if (Input.anyKeyDown)
+            {
+                foreach (KeyCode keyCode in System.Enum.GetValues(typeof(KeyCode)))
+                    if (Input.GetKeyDown(keyCode)) StartInputEvent(keyCode.ToString());
+            }
+
+            // check for input events (release)
+            foreach (KeyCode keyCode in System.Enum.GetValues(typeof(KeyCode)))
+                if (Input.GetKeyUp(keyCode)) EndInputEvent(keyCode.ToString());
+#endif
         }
 
         /// <summary>

@@ -27,7 +27,7 @@ namespace Sven.Utils
                 if (_instance == null)
                 {
                     // Tente de trouver une instance existante avant d'en créer une nouvelle.
-                    _instance = FindFirstObjectByType<UnityMainThreadDispatcher>();
+                    _instance = FindAnyObjectByType<UnityMainThreadDispatcher>();
                     if (_instance == null)
                     {
                         var obj = new GameObject("UnityMainThreadDispatcher");

@@ -4,7 +4,9 @@
 
 using NaughtyAttributes;
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
+#endif
 
 namespace Sven.Demo
 {
@@ -34,7 +36,11 @@ namespace Sven.Demo
 
         public void Update()
         {
+#if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) TogglePause();
+#else
+            if (Input.GetKeyDown(KeyCode.Escape)) TogglePause();
+#endif
         }
     }
 }

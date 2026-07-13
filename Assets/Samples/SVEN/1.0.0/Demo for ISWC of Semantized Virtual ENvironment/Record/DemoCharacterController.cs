@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Pointer = Sven.Context.Pointer;
 
 namespace Sven.Demo
 {
