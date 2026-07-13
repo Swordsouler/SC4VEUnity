@@ -10,8 +10,6 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable, CommandDescription("Retire des objets de la sélection. Sans cible (« désélectionne tout »), vide toute la sélection. Paramètres: SelectionParameter (optionnel).")]
     public class UnselectCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         // Désélectionner gère lui-même l'absence de cible (vide toute la sélection) → pas de repli.
         protected override bool FallbackToSelectionWhenEmpty => false;
 

@@ -32,7 +32,7 @@ namespace Sc4ve.Multimodality.Intent
             _store.Clear();
             _objectRefs.Clear();
             foreach (var obj in UnityEngine.Object.FindObjectsByType<SemantizationCore>(
-                         FindObjectsInactive.Include, FindObjectsSortMode.None))
+                         FindObjectsInactive.Include))
                 CaptureInternal(obj);
             Debug.Log($"[OriginalStateStore] {_store.Count} objet(s) capturé(s).");
         }

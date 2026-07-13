@@ -67,7 +67,7 @@ namespace Sc4ve.Multimodality.Intent
             Vector3? destination = PointParameter.Point;
             if (destination == null)
             {
-                Pointer pointer = UnityEngine.Object.FindFirstObjectByType<Pointer>();
+                Pointer pointer = UnityEngine.Object.FindAnyObjectByType<Pointer>();
                 if (pointer != null)
                 {
                     destination = pointer.PointerHitPosition;

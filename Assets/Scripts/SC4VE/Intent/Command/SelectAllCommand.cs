@@ -16,7 +16,7 @@ namespace Sc4ve.Multimodality.Intent
 
         public override List<SemantizationCore> Execute()
         {
-            var all = UnityEngine.Object.FindObjectsByType<SemantizationCore>(FindObjectsSortMode.None)
+            var all = UnityEngine.Object.FindObjectsByType<SemantizationCore>()
                 .ToList();
             Debug.Log($"[SelectAll] {all.Count} objet(s) sélectionné(s).");
             return all;

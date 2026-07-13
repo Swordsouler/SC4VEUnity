@@ -8,7 +8,7 @@ public class TangibleAtom : Atom
 {
     private readonly static string ATOMS_PATH = "Tangible/";
     public float scale;
-    public List<Slot> slots = new List<Slot>();
+    [System.NonSerialized] public List<Slot> slots = new List<Slot>();
 
     // A slot is a way to connect two atoms together
     // To determine the position, we get the center, we give an angle to find the direction of the connection,

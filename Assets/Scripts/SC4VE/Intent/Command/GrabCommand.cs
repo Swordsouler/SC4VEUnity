@@ -13,8 +13,6 @@ namespace Sc4ve.Multimodality.Intent
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
             => new List<Parameter> { ctx.BuildSelectionParameter(), ctx.BuildGrabPointParameter() };
 
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         public override List<SemantizationCore> Execute()
         {
             List<SemantizationCore> objects = SelectionParameter?.Objects;

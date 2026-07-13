@@ -18,7 +18,7 @@ public class Atom : MonoBehaviour
     public string modelName { get; set; }
 
     // List of the connections of the atom
-    public List<Connection> connections = new();
+    [System.NonSerialized] public List<Connection> connections = new();
 
     // Representation mode of the atom
     private Representation.Type representation { get; set; } = Representation.Type.Normal;

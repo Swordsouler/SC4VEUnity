@@ -16,7 +16,7 @@ namespace Sc4ve.Multimodality.Intent
             string text = SentenceParameter?.Value;
             if (string.IsNullOrWhiteSpace(text)) return new();
 
-            PiperTextToSpeech tts = UnityEngine.Object.FindFirstObjectByType<PiperTextToSpeech>();
+            PiperTextToSpeech tts = UnityEngine.Object.FindAnyObjectByType<PiperTextToSpeech>();
             if (tts != null)
                 tts.Speak(text);
             else

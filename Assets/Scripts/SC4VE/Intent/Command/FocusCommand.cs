@@ -10,8 +10,6 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable, CommandDescription("Oriente la caméra principale vers les objets sélectionnés. Paramètres: SelectionParameter.")]
     public class FocusCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         public override List<SemantizationCore> Execute()
         {
             List<SemantizationCore> objects = SelectionParameter.Objects;

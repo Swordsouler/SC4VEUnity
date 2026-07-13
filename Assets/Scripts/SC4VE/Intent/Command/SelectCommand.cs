@@ -9,8 +9,6 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable, CommandDescription("Définit la sélection persistante (contour visuel) sur les objets ciblés. Paramètres: SelectionParameter.")]
     public class SelectCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         // Sélectionner DÉFINIT la cible : pas de repli sur la sélection courante (on demande
         // « Sur quels objets ? » si rien n'est ciblé, plutôt que re-sélectionner l'existant).
         protected override bool FallbackToSelectionWhenEmpty => false;

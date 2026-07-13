@@ -11,8 +11,6 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable, CommandDescription("Affiche les propriétés des objets dans la console. Paramètres: SelectionParameter.")]
     public class DescribeCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         public override List<SemantizationCore> Execute()
         {
             List<SemantizationCore> objects = SelectionParameter.Objects;

@@ -510,7 +510,7 @@ JSON Attendu:
 
             // Suspendre l'écoute pendant que le système parle (Piper) : sinon le micro re-capte
             // la voix de synthèse et la réinterprète comme une commande (boucle de rétroaction).
-            _tts = FindFirstObjectByType<PiperTextToSpeech>();
+            _tts = FindAnyObjectByType<PiperTextToSpeech>();
             if (_tts != null && _speechToText != null)
             {
                 _ttsSpeechStartHandler = () => _speechToText.SetListeningSuspended(true);
@@ -1244,7 +1244,7 @@ JSON Attendu:
         /// <summary>Le candidat le plus proche de la position pointée par le pointeur, ou null.</summary>
         private static SemantizationCore ClosestCandidateToPointer(List<SemantizationCore> candidates)
         {
-            Pointer pointer = UnityEngine.Object.FindFirstObjectByType<Pointer>();
+            Pointer pointer = UnityEngine.Object.FindAnyObjectByType<Pointer>();
             if (pointer == null || candidates == null) return null;
             Vector3 hit = pointer.PointerHitPosition;
             return candidates.Where(c => c != null)

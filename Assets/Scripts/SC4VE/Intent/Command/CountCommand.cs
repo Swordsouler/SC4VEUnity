@@ -9,8 +9,6 @@ namespace Sc4ve.Multimodality.Intent
     [Serializable, CommandDescription("Compte les objets correspondant au filtre et l'affiche dans la console. Paramètres: SelectionParameter.")]
     public class CountCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         public override List<SemantizationCore> Execute()
         {
             List<SemantizationCore> objects = SelectionParameter.Objects;

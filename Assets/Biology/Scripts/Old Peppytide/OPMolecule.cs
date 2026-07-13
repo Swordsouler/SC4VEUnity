@@ -62,7 +62,7 @@ public class OPMolecule : MonoBehaviour
             return atom.transform.position + atom.transform.rotation * offsetPosition;
         }
     }
-    public List<Slot> slots = new List<Slot>();
+    [System.NonSerialized] public List<Slot> slots = new List<Slot>();
     public List<Atom> atoms = new();
 
     private void Start()

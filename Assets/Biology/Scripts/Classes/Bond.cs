@@ -13,7 +13,7 @@ public class Bond : MonoBehaviour
 {
     private const float CylinderRatio = 2f / 1.5f;
     // The connection between the two atoms
-    public Connection connection;
+    [System.NonSerialized] public Connection connection;
     // The local scale of the bond
     // We need this to make the bond scale depending of the representation
     private Vector3 localScale;

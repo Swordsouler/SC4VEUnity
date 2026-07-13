@@ -16,7 +16,7 @@ namespace Sc4ve.Multimodality.Intent
         public override List<SemantizationCore> Execute()
         {
             var selectedIds = new HashSet<string>(SelectionManager.SelectedIds);
-            var inverted = UnityEngine.Object.FindObjectsByType<SemantizationCore>(FindObjectsSortMode.None)
+            var inverted = UnityEngine.Object.FindObjectsByType<SemantizationCore>()
                 .Where(o => !selectedIds.Contains(o.GetUUID()))
                 .ToList();
             Debug.Log($"[InvertSelection] {inverted.Count} objet(s) maintenant sélectionné(s).");

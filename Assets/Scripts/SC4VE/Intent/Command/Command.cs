@@ -140,7 +140,7 @@ namespace Sc4ve.Multimodality.Intent
         public static void Speak(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
-            PiperTextToSpeech tts = UnityEngine.Object.FindFirstObjectByType<PiperTextToSpeech>();
+            PiperTextToSpeech tts = UnityEngine.Object.FindAnyObjectByType<PiperTextToSpeech>();
             if (tts != null) tts.Speak(text);
             else Debug.LogWarning("[TTS] Aucun PiperTextToSpeech dans la scène — texte non énoncé.");
         }

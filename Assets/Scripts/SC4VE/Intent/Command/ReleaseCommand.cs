@@ -10,8 +10,6 @@ namespace Sc4ve.Multimodality.Intent
     [RuleBasedTriggers("lâche", "lâcher", "pose", "poser", "release", "libère", "libérer", "dépose", "déposer")]
     public class ReleaseCommand : Command
     {
-        private SelectionParameter SelectionParameter => GetParameter<SelectionParameter>();
-
         public override List<SemantizationCore> Execute()
         {
             List<SemantizationCore> objects = SelectionParameter.Objects;
