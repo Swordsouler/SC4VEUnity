@@ -21,7 +21,7 @@
                                                           <mailto:nicolas.saint-leger@universite-paris-saclay.fr> ,
                                                           <mailto:patrick.bourdot@universite-paris-saclay.fr> ;
                                           dcterms:license <https://opensource.org/licenses/MIT> ;
-                                          dcterms:modified "2026-05-07"^^xsd:date ;
+                                          dcterms:modified "2026-07-15"^^xsd:date ;
                                           rdfs:comment "OWL ontology that captures both user-centric and technical dimensions of a virtual environment, enabling a structured representation of user interactions and scene content."@en ,
                                                        "Ontologie OWL qui capture à la fois les dimensions centrées sur l'utilisateur et techniques d'un environnement virtuel, permettant une représentation structurée des interactions utilisateur et du contenu de la scène."@fr ;
                                           rdfs:label "SVEN"@en ,
@@ -31,7 +31,8 @@
                                           owl:priorVersion <https://sven.lisn.upsaclay.fr/ontology#1.1.1> ;
                                           skos:changeNote "2025-11-26 - update of SVEN after ISWC 2025 review - renaming base URI." ,
                                                           "2026-01-22 - update of SVEN after ESWC 2026 review - added RigidBody, cardinalities, ontology-level metadata, and change some property name." ,
-                                                          "2026-05-07 - update of SVEN for ISWC 2026 - added some domain ranges. Modified game engine owl:equivalentClass, to label" .
+                                                          "2026-05-07 - update of SVEN for ISWC 2026 - added some domain ranges. Modified game engine owl:equivalentClass, to label" ,
+                                                          "2026-07-15 - added speech events performed by the user: Sentence and Word classes, hasWord object property, text and confidence data properties." .
 
 #################################################################
 #    Annotation properties
@@ -284,6 +285,16 @@ sven:hasTemporalExtent rdf:type owl:ObjectProperty ,
                                     "Relie une entité temporelle à son étendue temporelle."@fr ;
                        rdfs:label "a une étendue temporelle"@fr ,
                                   "has temporal extent"@en .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#hasWord
+sven:hasWord rdf:type owl:ObjectProperty ;
+             rdfs:domain sven:Sentence ;
+             rdfs:range sven:Word ;
+             rdfs:comment "Relates a Sentence to one of its Words."@en ,
+                          "Relie une Phrase à l'un de ses Mots."@fr ;
+             rdfs:label "a pour mot"@fr ,
+                        "has word"@en .
 
 
 ###  https://sven.lisn.upsaclay.fr/ontology#isKinematic
@@ -975,6 +986,16 @@ sven:b rdf:type owl:DatatypeProperty ;
                   "blue"@en .
 
 
+###  https://sven.lisn.upsaclay.fr/ontology#confidence
+sven:confidence rdf:type owl:DatatypeProperty ;
+                rdfs:domain sven:Sentence ;
+                rdfs:range xsd:float ;
+                rdfs:comment "Le score de confiance de la phrase reconnue."@fr ,
+                             "The confidence score of the recognized sentence."@en ;
+                rdfs:label "confiance"@fr ,
+                           "confidence"@en .
+
+
 ###  Propriété déictique déplacée vers l'ontologie sc4ve (sc4ve:deicticWord) — voir sc4ve.ttl.
 
 
@@ -1103,6 +1124,15 @@ sven:z rdf:type owl:DatatypeProperty ;
                     "The z value of the vector."@en ;
        rdfs:label "z"@en ,
                   "z"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#text
+sven:text rdf:type owl:DatatypeProperty ;
+          rdfs:range xsd:string ;
+          rdfs:comment "Le texte du mot ou de la phrase reconnus."@fr ,
+                       "The text of the recognized word or sentence."@en ;
+          rdfs:label "text"@en ,
+                     "texte"@fr .
 
 
 #################################################################
@@ -1349,6 +1379,15 @@ sven:RigidBody rdf:type owl:Class ;
                           "Rigid body"@en .
 
 
+###  https://sven.lisn.upsaclay.fr/ontology#Sentence
+sven:Sentence rdf:type owl:Class ;
+              rdfs:subClassOf sven:Event ;
+              rdfs:comment "A sentence said by the user"@en ,
+                           "Une phrase prononcée par l'utilisateur"@fr ;
+              rdfs:label "Phrase"@fr ,
+                         "Sentence"@en .
+
+
 ###  https://sven.lisn.upsaclay.fr/ontology#Shape
 sven:Shape rdf:type owl:Class ;
            rdfs:subClassOf sven:Component ;
@@ -1430,6 +1469,15 @@ sven:VirtualObject rdf:type owl:Class ;
                                 "Un objet virtuel est un objet qui a une représentation virtuelle."@fr ;
                    rdfs:label "Objet virtuel"@fr ,
                               "Virtual object"@en .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#Word
+sven:Word rdf:type owl:Class ;
+          rdfs:subClassOf sven:Event ;
+          rdfs:comment "A word said by the user"@en ,
+                       "Un mot prononcé par l'utilisateur"@fr ;
+          rdfs:label "Mot"@fr ,
+                     "Word"@en .
 
 
 ###  https://sven.lisn.upsaclay.fr/ontology#2DRender

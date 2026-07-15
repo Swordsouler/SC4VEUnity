@@ -1,6 +1,6 @@
 {
   "name": "com.nsaintl.sven",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "SVEN is an Unity package that allows to semantize a virtual environment, i.e., to add semantic annotations to a virtual environment, to log user interactions, and to replay them.",
   "displayName": "SVEN",
   "unity": "2022.3",

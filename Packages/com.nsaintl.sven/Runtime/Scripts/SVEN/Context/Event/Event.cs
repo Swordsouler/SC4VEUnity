@@ -68,7 +68,7 @@ namespace Sven.Context
         /// Semantizes the event.
         /// </summary>
         /// <param name="graph">The graph to semantize the event.</param>
-        public IUriNode Semanticize()
+        public virtual IUriNode Semanticize()
         {
             IUriNode eventNode = UriNode;
             GraphManager.Assert(new Triple(eventNode, GraphManager.CreateUriNode("rdf:type"), GraphManager.CreateUriNode($"sven:{GetType().Name}")));

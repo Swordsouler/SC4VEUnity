@@ -23,7 +23,7 @@ namespace Sven.Context
         /// Semantizes the event.
         /// </summary>
         /// <param name="graph">The graph to semantize the event.</param>
-        public new IUriNode Semanticize()
+        public override IUriNode Semanticize()
         {
             IUriNode eventNode = base.Semanticize();
             GraphManager.Assert(new Triple(eventNode, GraphManager.CreateUriNode("sven:input"), GraphManager.CreateLiteralNode(_input)));

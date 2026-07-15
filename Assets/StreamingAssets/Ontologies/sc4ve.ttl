@@ -42,38 +42,9 @@ sc4ve:hasParameter rdf:type owl:ObjectProperty ;
                               "has parameter"@en .
 
 
-###  https://sc4ve.lisn.upsaclay.fr/ontology#hasWord
-sc4ve:hasWord rdf:type owl:ObjectProperty ;
-              rdfs:domain sc4ve:Sentence ;
-              rdfs:range sc4ve:Word ;
-              rdfs:comment "Relates a Sentence to one of its Words."@en ,
-                           "Relie une Phrase à l'un de ses Mots."@fr ;
-              rdfs:label "a pour mot"@fr ,
-                         "has word"@en .
-
-
 #################################################################
 #    Data properties
 #################################################################
-
-###  https://sc4ve.lisn.upsaclay.fr/ontology#confidence
-sc4ve:confidence rdf:type owl:DatatypeProperty ;
-                 rdfs:domain sc4ve:Sentence ;
-                 rdfs:range xsd:float ;
-                 rdfs:comment "Le score de confiance de la phrase reconnue."@fr ,
-                              "The confidence score of the recognized sentence."@en ;
-                 rdfs:label "confiance"@fr ,
-                            "confidence"@en .
-
-
-###  https://sc4ve.lisn.upsaclay.fr/ontology#text
-sc4ve:text rdf:type owl:DatatypeProperty ;
-           rdfs:range xsd:string ;
-           rdfs:comment "Le texte du mot reconnu."@fr ,
-                        "The text of the recognized word."@en ;
-           rdfs:label "text"@en ,
-                      "texte"@fr .
-
 
 #################################################################
 #    Classes
@@ -279,15 +250,6 @@ sc4ve:SelectionParameter rdf:type owl:Class ;
                                     "Selection Parameter"@en .
 
 
-###  https://sc4ve.lisn.upsaclay.fr/ontology#Sentence
-sc4ve:Sentence rdf:type owl:Class ;
-               rdfs:subClassOf sven:Event ;
-               rdfs:comment "A sentence said by the user"@en ,
-                            "Une phrase prononcée par l'utilisateur"@fr ;
-               rdfs:label "Phrase"@fr ,
-                          "Sentence"@en .
-
-
 ###  https://sc4ve.lisn.upsaclay.fr/ontology#ShowCommand
 sc4ve:ShowCommand rdf:type owl:Class ;
                   rdfs:subClassOf sc4ve:Command ,
@@ -309,15 +271,6 @@ sc4ve:UnselectCommand rdf:type owl:Class ;
                                    "Une commande pour désélectionner des objets (éventuellement tous)."@fr ;
                       rdfs:label "Commande de Désélection"@fr ,
                                  "Unselect Command"@en .
-
-
-###  https://sc4ve.lisn.upsaclay.fr/ontology#Word
-sc4ve:Word rdf:type owl:Class ;
-           rdfs:subClassOf sven:Event ;
-           rdfs:comment "A word said by the user"@en ,
-                        "Un mot prononcé par l'utilisateur"@fr ;
-           rdfs:label "Mot"@fr ,
-                      "Word"@en .
 
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Color

@@ -1,4 +1,6 @@
+using Sven.Context;
 using System;
+using System.Collections.Generic;
 
 namespace Sc4ve.Voice
 {
@@ -7,6 +9,9 @@ namespace Sc4ve.Voice
         public const string AlternativesKey = "alternatives";
         public const string ResultKey = "result";
         public const string PartialKey = "partial";
+        public const string ConfidenceKey = "confidence";
+        public const string TextKey = "text";
+        public const string WordsKey = "result";
 
         public Sentence[] Phrases;
         public bool Partial;
@@ -22,13 +27,13 @@ namespace Sc4ve.Voice
 
                 for (int i = 0; i < Phrases.Length; i++)
                 {
-                    Phrases[i] = new Sentence(alternatives[i].AsObject, recognizerInitializedAt);
+                    Phrases[i] = ParseSentence(alternatives[i].AsObject, recognizerInitializedAt);
                 }
 
             }
             else if (resultJson.HasKey(ResultKey))
             {
-                Phrases = new Sentence[] { new(resultJson.AsObject, recognizerInitializedAt) };
+                Phrases = new Sentence[] { ParseSentence(resultJson.AsObject, recognizerInitializedAt) };
             }
             else if (resultJson.HasKey(PartialKey))
             {
@@ -39,6 +44,33 @@ namespace Sc4ve.Voice
             {
                 Phrases = new[] { new Sentence() { } };
             }
+        }
+
+        /// <summary>
+        /// Construit une Sentence (modèle SVEN) depuis le JSON au format Vosk :
+        /// clés "text"/"confidence", et "result" contenant les mots ("word"/"start"/"end").
+        /// </summary>
+        private static Sentence ParseSentence(JSONObject json, DateTime recognizerInitializedAt)
+        {
+            float confidence = json.HasKey(ConfidenceKey) ? json[ConfidenceKey].AsFloat : 0f;
+            string text = json.HasKey(TextKey) ? json[TextKey].Value.Trim() : "";
+            List<Word> words = new();
+            if (json.HasKey(WordsKey))
+            {
+                var wordsJson = json[WordsKey].AsArray;
+                for (int i = 0; i < wordsJson.Count; i++)
+                {
+                    var wordJson = wordsJson[i].AsObject;
+                    if (wordJson.HasKey("word") && wordJson.HasKey("start") && wordJson.HasKey("end"))
+                    {
+                        string wordText = wordJson["word"].Value.Trim();
+                        DateTime startedAt = recognizerInitializedAt.AddSeconds(wordJson["start"].AsFloat);
+                        DateTime endedAt = recognizerInitializedAt.AddSeconds(wordJson["end"].AsFloat);
+                        words.Add(new Word(wordText, startedAt, endedAt));
+                    }
+                }
+            }
+            return new Sentence(text, words, confidence);
         }
 
         // to string
