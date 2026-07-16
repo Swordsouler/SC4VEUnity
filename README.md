@@ -459,7 +459,7 @@ Configuration Unity en bref :
 
 | Champ | Stack locale | Via le serveur |
 |-------|--------------|----------------|
-| **Endpoint URL** (SVEN Settings) | `http://localhost:3030/SVEN` | `https://graph.swordsouler.fr/SVEN` |
+| **Endpoint URL** (SVEN Settings) | `http://localhost:3030/SVEN` | `https://sven-apache.swordsouler.fr/SVEN` |
 | **Triple Store** (SVEN Settings) | `ApacheJena` | `ApacheJena` |
 | **Username / Password** (SVEN Settings) | `admin` / `admin` | `admin` / mot de passe du serveur |
 | **Local Llm Url** (MultimodalityController) | `http://localhost:11434/v1` | `https://sven-ollama.swordsouler.fr/v1` |
