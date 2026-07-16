@@ -70,6 +70,9 @@ namespace Sc4ve.Multimodality
         [BoxGroup("LLM Settings"), ShowIf("IsLlmModeLocal"), SerializeField, Tooltip("URL du serveur LLM local (ex: http://localhost:1234/v1).")]
         private string _localLlmUrl = "http://localhost:1234/v1";
 
+        [BoxGroup("LLM Settings"), ShowIf("IsLlmModeLocal"), SerializeField, Tooltip("Clé API optionnelle envoyée en « Authorization: Bearer » au serveur LLM local — requise si celui-ci est derrière un proxy authentifié (cf. README § Serveur). Laisser vide pour un serveur sans authentification, ou pour utiliser la variable d'environnement LOCAL_LLM_API_KEY (recommandé : ce champ est sérialisé dans la scène, donc committé avec elle).")]
+        private string _localLlmApiKey;
+
         private bool IsLlmMode     => _recognizerMode == RecognizerMode.LLM;
         private bool IsLlmModeOpenAI => IsLlmMode && _llmService == LlmService.OpenAI;
         private bool IsLlmModeLocal  => IsLlmMode && _llmService == LlmService.Local;
@@ -83,6 +86,16 @@ namespace Sc4ve.Multimodality
             !string.IsNullOrWhiteSpace(_openAiApiKey)
                 ? _openAiApiKey
                 : Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+
+        /// <summary>
+        /// Clé API optionnelle du serveur LLM local : champ Inspector si renseigné, sinon
+        /// variable d'environnement LOCAL_LLM_API_KEY. Vide → aucun header Authorization
+        /// (serveur local sans authentification).
+        /// </summary>
+        private string LocalLlmApiKey =>
+            !string.IsNullOrWhiteSpace(_localLlmApiKey)
+                ? _localLlmApiKey
+                : Environment.GetEnvironmentVariable("LOCAL_LLM_API_KEY");
 
         private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(60) };
         private RuleBasedIntentRecognizer _ruleBasedRecognizer;
@@ -955,6 +968,9 @@ JSON Attendu:
                 }
                 string localApiUrl = _localLlmUrl.TrimEnd('/') + "/chat/completions";
                 requestMessage = new HttpRequestMessage(HttpMethod.Post, localApiUrl);
+                string localLlmApiKey = LocalLlmApiKey;
+                if (!string.IsNullOrWhiteSpace(localLlmApiKey))
+                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", localLlmApiKey);
                 endpointUrlForLogging = localApiUrl;
             }
 

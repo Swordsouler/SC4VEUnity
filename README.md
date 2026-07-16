@@ -21,7 +21,8 @@ Système de contrôle vocal multimodal pour Unity VR, basé sur le framework SVE
 5. [Commandes disponibles](#commandes-disponibles)
 6. [Configuration Inspector](#configuration-inspector)
 7. [Structure StreamingAssets](#structure-streamingassets)
-8. [Dépendances](#dépendances)
+8. [Serveur (Docker Compose)](#serveur-docker-compose)
+9. [Dépendances](#dépendances)
 
 ---
 
@@ -298,6 +299,7 @@ Tous les modèles ci-dessus sont à télécharger au format **GGUF Q4_K_M**.
 |-------|--------|
 | **Llm Service** | `Local` |
 | **Local Llm Url** | `http://localhost:1234/v1` (LM Studio) ou `http://localhost:11434/v1` (Ollama) |
+| **Local Llm Api Key** | Vide pour un serveur local sans authentification. Si le serveur est derrière un proxy authentifié (cf. [Serveur](#serveur-docker-compose)), la clé à envoyer en `Bearer` — préférer la variable d'environnement `LOCAL_LLM_API_KEY` au champ Inspector |
 
 #### Configuration Ollama (alternative)
 
@@ -446,6 +448,24 @@ Assets/StreamingAssets/
 │       └── en-us-lessac-medium.onnx.json
 └── vosk-model-small-fr-0.22.zip  ← modèle Vosk (si utilisé, ignoré par Git)
 ```
+
+---
+
+## Serveur (Docker Compose)
+
+Tout le déploiement vit dans le dépôt séparé **SC4VEDeploy** (`P:\SC4VEDeploy`) : stack Docker locale (Fuseki, Ollama, GraphDB) et intégration au serveur public `swordsouler.fr` (nginx-proxy). Voir son `README.md` pour la mise en place.
+
+Configuration Unity en bref :
+
+| Champ | Stack locale | Via le serveur |
+|-------|--------------|----------------|
+| **Endpoint URL** (SVEN Settings) | `http://localhost:3030/SVEN` | `https://graph.swordsouler.fr/SVEN` |
+| **Triple Store** (SVEN Settings) | `ApacheJena` | `ApacheJena` |
+| **Username / Password** (SVEN Settings) | `admin` / `admin` | `admin` / mot de passe du serveur |
+| **Local Llm Url** (MultimodalityController) | `http://localhost:11434/v1` | `https://sven-ollama.swordsouler.fr/v1` |
+| **Local Llm Api Key** (MultimodalityController) | vide | clé du proxy (ou variable d'environnement `LOCAL_LLM_API_KEY`) |
+
+Restent locaux (in-process dans Unity, non délégables sans modification du code) : Whisper/Vosk (STT), Piper (TTS), le mode RuleBased et l'inférence RDF côté client (dotNetRDF).
 
 ---
 
