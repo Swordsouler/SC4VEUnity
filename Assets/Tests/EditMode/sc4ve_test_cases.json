@@ -1,0 +1,1734 @@
+{
+  "name": "SC4VE annotated test set",
+  "version": "1.0",
+  "created": "2026-07-30",
+  "description": "Jeu de cas de test annotés pour l'évaluation comparée des deux modes d'extraction d'intention de SC4VE (LLM vs règles), avec et sans pointage. Chaque cas associe une entrée (texte horodaté au mot, contexte de dialogue) à l'issue et à la commande JSON attendues.",
+  "conventions": {
+    "placeholders": {
+      "{pointerTerm}": "nom du composant pointeur de la scène (p. ex. Pointer), substitué au chargement comme dans le prompt système"
+    },
+    "timestamps": "ISO 8601 ; la source d'un déplacement se résout au StartedAt du déictique, la destination au EndedAt du terme de destination",
+    "expected_outcome": [
+      "executed",
+      "clarification",
+      "no_match",
+      "not_understood"
+    ],
+    "ablation": "les cas ablation_sensitive changent d'issue quand PointingEnabled=false ; ablation_expected décrit le comportement attendu",
+    "scene": "les issues executed/no_match supposent la scène de démonstration (sven-fruits : pommes, bananes, citrouilles, carottes)"
+  },
+  "metrics": [
+    "exactitude du type de commande",
+    "rappel et précision des paramètres",
+    "justesse de la résolution des références",
+    "latence"
+  ],
+  "counts": {
+    "total": 35,
+    "par_langue": {
+      "fr": 29,
+      "en": 6
+    },
+    "par_catégorie": {
+      "descriptif": 12,
+      "déictique": 7,
+      "anaphorique": 5,
+      "quantifié": 5,
+      "clarification": 3,
+      "rejet": 2,
+      "no_match": 1
+    },
+    "ablation_sensitive": 8
+  },
+  "cases": [
+    {
+      "id": "FR-01",
+      "lang": "fr",
+      "category": "descriptif",
+      "input": {
+        "Text": "masque la pomme rouge",
+        "Words": [
+          {
+            "Text": "masque",
+            "StartedAt": "2026-03-01T10:00:01.000Z",
+            "EndedAt": "2026-03-01T10:00:01.350Z"
+          },
+          {
+            "Text": "la",
+            "StartedAt": "2026-03-01T10:00:01.470Z",
+            "EndedAt": "2026-03-01T10:00:01.820Z"
+          },
+          {
+            "Text": "pomme",
+            "StartedAt": "2026-03-01T10:00:01.940Z",
+            "EndedAt": "2026-03-01T10:00:02.290Z"
+          },
+          {
+            "Text": "rouge",
+            "StartedAt": "2026-03-01T10:00:02.410Z",
+            "EndedAt": "2026-03-01T10:00:02.760Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "HideCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Pomme",
+                  "timestamp": "2026-03-01T10:00:01.940Z"
+                },
+                "AND",
+                {
+                  "type": "Color",
+                  "value": "Rouge",
+                  "timestamp": "2026-03-01T10:00:02.410Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FR-02",
+      "lang": "fr",
+      "category": "descriptif",
+      "input": {
+        "Text": "sélectionne les citrouilles",
+        "Words": [
+          {
+            "Text": "sélectionne",
+            "StartedAt": "2026-03-01T10:01:01.000Z",
+            "EndedAt": "2026-03-01T10:01:01.350Z"
+          },
+          {
+            "Text": "les",
+            "StartedAt": "2026-03-01T10:01:01.470Z",
+            "EndedAt": "2026-03-01T10:01:01.820Z"
+          },
+          {
+            "Text": "citrouilles",
+            "StartedAt": "2026-03-01T10:01:01.940Z",
+            "EndedAt": "2026-03-01T10:01:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "SelectCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Citrouille",
+                  "timestamp": "2026-03-01T10:01:01.940Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FR-03",
+      "lang": "fr",
+      "category": "descriptif",
+      "input": {
+        "Text": "supprime les carottes",
+        "Words": [
+          {
+            "Text": "supprime",
+            "StartedAt": "2026-03-01T10:02:01.000Z",
+            "EndedAt": "2026-03-01T10:02:01.350Z"
+          },
+          {
+            "Text": "les",
+            "StartedAt": "2026-03-01T10:02:01.470Z",
+            "EndedAt": "2026-03-01T10:02:01.820Z"
+          },
+          {
+            "Text": "carottes",
+            "StartedAt": "2026-03-01T10:02:01.940Z",
+            "EndedAt": "2026-03-01T10:02:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "DeleteCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Carotte",
+                  "timestamp": "2026-03-01T10:02:01.940Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FR-04",
+      "lang": "fr",
+      "category": "descriptif",
+      "input": {
+        "Text": "mets les pommes en bleu",
+        "Words": [
+          {
+            "Text": "mets",
+            "StartedAt": "2026-03-01T10:03:01.000Z",
+            "EndedAt": "2026-03-01T10:03:01.350Z"
+          },
+          {
+            "Text": "les",
+            "StartedAt": "2026-03-01T10:03:01.470Z",
+            "EndedAt": "2026-03-01T10:03:01.820Z"
+          },
+          {
+            "Text": "pommes",
+            "StartedAt": "2026-03-01T10:03:01.940Z",
+            "EndedAt": "2026-03-01T10:03:02.290Z"
+          },
+          {
+            "Text": "en",
+            "StartedAt": "2026-03-01T10:03:02.410Z",
+            "EndedAt": "2026-03-01T10:03:02.760Z"
+          },
+          {
+            "Text": "bleu",
+            "StartedAt": "2026-03-01T10:03:02.880Z",
+            "EndedAt": "2026-03-01T10:03:03.230Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "ColorizeCommand",
+          "parameters": [
+            {
+              "type": "ColorParameter",
+              "value": "Bleu"
+            },
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Pomme",
+                  "timestamp": "2026-03-01T10:03:01.940Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FR-05",
+      "lang": "fr",
+      "category": "descriptif",
+      "input": {
+        "Text": "colorie en rouge cette pomme verte",
+        "Words": [
+          {
+            "Text": "colorie",
+            "StartedAt": "2026-03-01T10:04:01.000Z",
+            "EndedAt": "2026-03-01T10:04:01.350Z"
+          },
+          {
+            "Text": "en",
+            "StartedAt": "2026-03-01T10:04:01.470Z",
+            "EndedAt": "2026-03-01T10:04:01.820Z"
+          },
+          {
+            "Text": "rouge",
+            "StartedAt": "2026-03-01T10:04:01.940Z",
+            "EndedAt": "2026-03-01T10:04:02.290Z"
+          },
+          {
+            "Text": "cette",
+            "StartedAt": "2026-03-01T10:04:02.410Z",
+            "EndedAt": "2026-03-01T10:04:02.760Z"
+          },
+          {
+            "Text": "pomme",
+            "StartedAt": "2026-03-01T10:04:02.880Z",
+            "EndedAt": "2026-03-01T10:04:03.230Z"
+          },
+          {
+            "Text": "verte",
+            "StartedAt": "2026-03-01T10:04:03.350Z",
+            "EndedAt": "2026-03-01T10:04:03.700Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "ColorizeCommand",
+          "parameters": [
+            {
+              "type": "ColorParameter",
+              "value": "Rouge"
+            },
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Pomme",
+                  "timestamp": "2026-03-01T10:04:02.880Z"
+                },
+                "AND",
+                {
+                  "type": "Color",
+                  "value": "Vert",
+                  "timestamp": "2026-03-01T10:04:03.350Z"
+                },
+                "AND",
+                {
+                  "type": "Event",
+                  "value": "{pointerTerm}",
+                  "timestamp": "2026-03-01T10:04:02.410Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ],
+      "ablation_sensitive": true,
+      "ablation_expected": "le filtre Event disparaît ; la résolution retombe sur la description seule"
+    },
+    {
+      "id": "FR-06",
+      "lang": "fr",
+      "category": "descriptif",
+      "input": {
+        "Text": "cache les bananes jaunes",
+        "Words": [
+          {
+            "Text": "cache",
+            "StartedAt": "2026-03-01T10:05:01.000Z",
+            "EndedAt": "2026-03-01T10:05:01.350Z"
+          },
+          {
+            "Text": "les",
+            "StartedAt": "2026-03-01T10:05:01.470Z",
+            "EndedAt": "2026-03-01T10:05:01.820Z"
+          },
+          {
+            "Text": "bananes",
+            "StartedAt": "2026-03-01T10:05:01.940Z",
+            "EndedAt": "2026-03-01T10:05:02.290Z"
+          },
+          {
+            "Text": "jaunes",
+            "StartedAt": "2026-03-01T10:05:02.410Z",
+            "EndedAt": "2026-03-01T10:05:02.760Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "HideCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Banane",
+                  "timestamp": "2026-03-01T10:05:01.940Z"
+                },
+                "AND",
+                {
+                  "type": "Color",
+                  "value": "Jaune",
+                  "timestamp": "2026-03-01T10:05:02.410Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FR-07",
+      "lang": "fr",
+      "category": "descriptif",
+      "input": {
+        "Text": "montre les pommes ou les bananes",
+        "Words": [
+          {
+            "Text": "montre",
+            "StartedAt": "2026-03-01T10:06:01.000Z",
+            "EndedAt": "2026-03-01T10:06:01.350Z"
+          },
+          {
+            "Text": "les",
+            "StartedAt": "2026-03-01T10:06:01.470Z",
+            "EndedAt": "2026-03-01T10:06:01.820Z"
+          },
+          {
+            "Text": "pommes",
+            "StartedAt": "2026-03-01T10:06:01.940Z",
+            "EndedAt": "2026-03-01T10:06:02.290Z"
+          },
+          {
+            "Text": "ou",
+            "StartedAt": "2026-03-01T10:06:02.410Z",
+            "EndedAt": "2026-03-01T10:06:02.760Z"
+          },
+          {
+            "Text": "les",
+            "StartedAt": "2026-03-01T10:06:02.880Z",
+            "EndedAt": "2026-03-01T10:06:03.230Z"
+          },
+          {
+            "Text": "bananes",
+            "StartedAt": "2026-03-01T10:06:03.350Z",
+            "EndedAt": "2026-03-01T10:06:03.700Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "ShowCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Pomme",
+                  "timestamp": "2026-03-01T10:06:01.940Z"
+                },
+                "OR",
+                {
+                  "type": "Annotation",
+                  "value": "Banane",
+                  "timestamp": "2026-03-01T10:06:03.350Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FR-08",
+      "lang": "fr",
+      "category": "descriptif",
+      "input": {
+        "Text": "sélectionne tout",
+        "Words": [
+          {
+            "Text": "sélectionne",
+            "StartedAt": "2026-03-01T10:07:01.000Z",
+            "EndedAt": "2026-03-01T10:07:01.350Z"
+          },
+          {
+            "Text": "tout",
+            "StartedAt": "2026-03-01T10:07:01.470Z",
+            "EndedAt": "2026-03-01T10:07:01.820Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "SelectAllCommand",
+          "parameters": []
+        }
+      ]
+    },
+    {
+      "id": "FR-09",
+      "lang": "fr",
+      "category": "descriptif",
+      "input": {
+        "Text": "annule",
+        "Words": [
+          {
+            "Text": "annule",
+            "StartedAt": "2026-03-01T10:08:01.000Z",
+            "EndedAt": "2026-03-01T10:08:01.350Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "UndoCommand",
+          "parameters": []
+        }
+      ]
+    },
+    {
+      "id": "FR-10",
+      "lang": "fr",
+      "category": "descriptif",
+      "input": {
+        "Text": "rétablis",
+        "Words": [
+          {
+            "Text": "rétablis",
+            "StartedAt": "2026-03-01T10:09:01.000Z",
+            "EndedAt": "2026-03-01T10:09:01.350Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "RedoCommand",
+          "parameters": []
+        }
+      ]
+    },
+    {
+      "id": "FR-11",
+      "lang": "fr",
+      "category": "déictique",
+      "input": {
+        "Text": "colorie ça en rouge",
+        "Words": [
+          {
+            "Text": "colorie",
+            "StartedAt": "2026-03-01T10:10:01.000Z",
+            "EndedAt": "2026-03-01T10:10:01.350Z"
+          },
+          {
+            "Text": "ça",
+            "StartedAt": "2026-03-01T10:10:01.470Z",
+            "EndedAt": "2026-03-01T10:10:01.820Z"
+          },
+          {
+            "Text": "en",
+            "StartedAt": "2026-03-01T10:10:01.940Z",
+            "EndedAt": "2026-03-01T10:10:02.290Z"
+          },
+          {
+            "Text": "rouge",
+            "StartedAt": "2026-03-01T10:10:02.410Z",
+            "EndedAt": "2026-03-01T10:10:02.760Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "ColorizeCommand",
+          "parameters": [
+            {
+              "type": "ColorParameter",
+              "value": "Rouge"
+            },
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Event",
+                  "value": "{pointerTerm}",
+                  "timestamp": "2026-03-01T10:10:01.470Z"
+                }
+              ],
+              "limit": "1"
+            }
+          ]
+        }
+      ],
+      "ablation_sensitive": true,
+      "ablation_expected": "aucun filtre : bascule sur la sélection courante (fallbackToSelection) ou clarification"
+    },
+    {
+      "id": "FR-12",
+      "lang": "fr",
+      "category": "déictique",
+      "input": {
+        "Text": "déplace ça ici",
+        "Words": [
+          {
+            "Text": "déplace",
+            "StartedAt": "2026-03-01T10:11:01.000Z",
+            "EndedAt": "2026-03-01T10:11:01.350Z"
+          },
+          {
+            "Text": "ça",
+            "StartedAt": "2026-03-01T10:11:01.470Z",
+            "EndedAt": "2026-03-01T10:11:01.820Z"
+          },
+          {
+            "Text": "ici",
+            "StartedAt": "2026-03-01T10:11:01.940Z",
+            "EndedAt": "2026-03-01T10:11:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "MoveCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Event",
+                  "value": "{pointerTerm}",
+                  "timestamp": "2026-03-01T10:11:01.470Z"
+                }
+              ],
+              "limit": "1"
+            },
+            {
+              "type": "PointParameter",
+              "value": "{pointerTerm}",
+              "timestamp": "2026-03-01T10:11:02.290Z"
+            }
+          ]
+        }
+      ],
+      "ablation_sensitive": true,
+      "ablation_expected": "ni source ni destination : la commande ne peut pas aboutir",
+      "note": "source résolue au StartedAt de « ça », destination au EndedAt de « ici » (asymétrie début/fin)"
+    },
+    {
+      "id": "FR-13",
+      "lang": "fr",
+      "category": "déictique",
+      "input": {
+        "Text": "attrape ça",
+        "Words": [
+          {
+            "Text": "attrape",
+            "StartedAt": "2026-03-01T10:12:01.000Z",
+            "EndedAt": "2026-03-01T10:12:01.350Z"
+          },
+          {
+            "Text": "ça",
+            "StartedAt": "2026-03-01T10:12:01.470Z",
+            "EndedAt": "2026-03-01T10:12:01.820Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "GrabCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Event",
+                  "value": "{pointerTerm}",
+                  "timestamp": "2026-03-01T10:12:01.470Z"
+                }
+              ],
+              "limit": "1"
+            },
+            {
+              "type": "PointParameter",
+              "value": "{pointerTerm}",
+              "timestamp": "2026-03-01T10:12:01.470Z"
+            }
+          ]
+        }
+      ],
+      "ablation_sensitive": true,
+      "ablation_expected": "pas de cible saisissable"
+    },
+    {
+      "id": "FR-14",
+      "lang": "fr",
+      "category": "déictique",
+      "input": {
+        "Text": "masque cette banane",
+        "Words": [
+          {
+            "Text": "masque",
+            "StartedAt": "2026-03-01T10:13:01.000Z",
+            "EndedAt": "2026-03-01T10:13:01.350Z"
+          },
+          {
+            "Text": "cette",
+            "StartedAt": "2026-03-01T10:13:01.470Z",
+            "EndedAt": "2026-03-01T10:13:01.820Z"
+          },
+          {
+            "Text": "banane",
+            "StartedAt": "2026-03-01T10:13:01.940Z",
+            "EndedAt": "2026-03-01T10:13:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "HideCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Banane",
+                  "timestamp": "2026-03-01T10:13:01.940Z"
+                },
+                "AND",
+                {
+                  "type": "Event",
+                  "value": "{pointerTerm}",
+                  "timestamp": "2026-03-01T10:13:01.470Z"
+                }
+              ],
+              "limit": "1"
+            }
+          ]
+        }
+      ],
+      "ablation_sensitive": true,
+      "ablation_expected": "l'annotation seule reste : toutes les bananes deviennent candidates"
+    },
+    {
+      "id": "FR-15",
+      "lang": "fr",
+      "category": "déictique",
+      "input": {
+        "Text": "agrandis ça là",
+        "Words": [
+          {
+            "Text": "agrandis",
+            "StartedAt": "2026-03-01T10:14:01.000Z",
+            "EndedAt": "2026-03-01T10:14:01.350Z"
+          },
+          {
+            "Text": "ça",
+            "StartedAt": "2026-03-01T10:14:01.470Z",
+            "EndedAt": "2026-03-01T10:14:01.820Z"
+          },
+          {
+            "Text": "là",
+            "StartedAt": "2026-03-01T10:14:01.940Z",
+            "EndedAt": "2026-03-01T10:14:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "ScaleUpCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Event",
+                  "value": "{pointerTerm}",
+                  "timestamp": "2026-03-01T10:14:01.470Z"
+                }
+              ],
+              "limit": "1"
+            }
+          ]
+        }
+      ],
+      "ablation_sensitive": true,
+      "ablation_expected": "pas de cible"
+    },
+    {
+      "id": "FR-16",
+      "lang": "fr",
+      "category": "déictique",
+      "input": {
+        "Text": "relâche",
+        "Words": [
+          {
+            "Text": "relâche",
+            "StartedAt": "2026-03-01T10:15:01.000Z",
+            "EndedAt": "2026-03-01T10:15:01.350Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "ReleaseCommand",
+          "parameters": []
+        }
+      ]
+    },
+    {
+      "id": "FR-17",
+      "lang": "fr",
+      "category": "anaphorique",
+      "input": {
+        "Text": "colorie les en vert",
+        "Words": [
+          {
+            "Text": "colorie",
+            "StartedAt": "2026-03-01T10:16:01.000Z",
+            "EndedAt": "2026-03-01T10:16:01.350Z"
+          },
+          {
+            "Text": "les",
+            "StartedAt": "2026-03-01T10:16:01.470Z",
+            "EndedAt": "2026-03-01T10:16:01.820Z"
+          },
+          {
+            "Text": "en",
+            "StartedAt": "2026-03-01T10:16:01.940Z",
+            "EndedAt": "2026-03-01T10:16:02.290Z"
+          },
+          {
+            "Text": "vert",
+            "StartedAt": "2026-03-01T10:16:02.410Z",
+            "EndedAt": "2026-03-01T10:16:02.760Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "ColorizeCommand",
+          "parameters": [
+            {
+              "type": "ColorParameter",
+              "value": "Vert"
+            },
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Coreference",
+                  "timestamp": "2026-03-01T10:16:01.470Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ],
+      "context": {
+        "history": [
+          {
+            "Text": "sélectionne les pommes",
+            "type": "SelectCommand",
+            "resultCount": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "FR-18",
+      "lang": "fr",
+      "category": "anaphorique",
+      "input": {
+        "Text": "cache les",
+        "Words": [
+          {
+            "Text": "cache",
+            "StartedAt": "2026-03-01T10:17:01.000Z",
+            "EndedAt": "2026-03-01T10:17:01.350Z"
+          },
+          {
+            "Text": "les",
+            "StartedAt": "2026-03-01T10:17:01.470Z",
+            "EndedAt": "2026-03-01T10:17:01.820Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "HideCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Coreference",
+                  "timestamp": "2026-03-01T10:17:01.470Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ],
+      "context": {
+        "history": [
+          {
+            "Text": "sélectionne les pommes",
+            "type": "SelectCommand",
+            "resultCount": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "FR-19",
+      "lang": "fr",
+      "category": "anaphorique",
+      "input": {
+        "Text": "agrandis les",
+        "Words": [
+          {
+            "Text": "agrandis",
+            "StartedAt": "2026-03-01T10:18:01.000Z",
+            "EndedAt": "2026-03-01T10:18:01.350Z"
+          },
+          {
+            "Text": "les",
+            "StartedAt": "2026-03-01T10:18:01.470Z",
+            "EndedAt": "2026-03-01T10:18:01.820Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "ScaleUpCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Coreference",
+                  "timestamp": "2026-03-01T10:18:01.470Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ],
+      "context": {
+        "history": [
+          {
+            "Text": "sélectionne les citrouilles",
+            "type": "SelectCommand",
+            "resultCount": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "FR-20",
+      "lang": "fr",
+      "category": "anaphorique",
+      "input": {
+        "Text": "supprime les",
+        "Words": [
+          {
+            "Text": "supprime",
+            "StartedAt": "2026-03-01T10:19:01.000Z",
+            "EndedAt": "2026-03-01T10:19:01.350Z"
+          },
+          {
+            "Text": "les",
+            "StartedAt": "2026-03-01T10:19:01.470Z",
+            "EndedAt": "2026-03-01T10:19:01.820Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "DeleteCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Coreference",
+                  "timestamp": "2026-03-01T10:19:01.470Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ],
+      "context": {
+        "history": [
+          {
+            "Text": "sélectionne les pommes",
+            "type": "SelectCommand",
+            "resultCount": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "FR-21",
+      "lang": "fr",
+      "category": "quantifié",
+      "input": {
+        "Text": "déplace trois citrouilles ici",
+        "Words": [
+          {
+            "Text": "déplace",
+            "StartedAt": "2026-03-01T10:20:01.000Z",
+            "EndedAt": "2026-03-01T10:20:01.350Z"
+          },
+          {
+            "Text": "trois",
+            "StartedAt": "2026-03-01T10:20:01.470Z",
+            "EndedAt": "2026-03-01T10:20:01.820Z"
+          },
+          {
+            "Text": "citrouilles",
+            "StartedAt": "2026-03-01T10:20:01.940Z",
+            "EndedAt": "2026-03-01T10:20:02.290Z"
+          },
+          {
+            "Text": "ici",
+            "StartedAt": "2026-03-01T10:20:02.410Z",
+            "EndedAt": "2026-03-01T10:20:02.760Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "MoveCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Citrouille",
+                  "timestamp": "2026-03-01T10:20:01.940Z"
+                }
+              ],
+              "limit": "3"
+            },
+            {
+              "type": "PointParameter",
+              "value": "{pointerTerm}",
+              "timestamp": "2026-03-01T10:20:02.760Z"
+            }
+          ]
+        }
+      ],
+      "ablation_sensitive": true,
+      "ablation_expected": "la destination disparaît : la commande ne peut pas aboutir"
+    },
+    {
+      "id": "FR-22",
+      "lang": "fr",
+      "category": "quantifié",
+      "input": {
+        "Text": "sélectionne deux bananes",
+        "Words": [
+          {
+            "Text": "sélectionne",
+            "StartedAt": "2026-03-01T10:21:01.000Z",
+            "EndedAt": "2026-03-01T10:21:01.350Z"
+          },
+          {
+            "Text": "deux",
+            "StartedAt": "2026-03-01T10:21:01.470Z",
+            "EndedAt": "2026-03-01T10:21:01.820Z"
+          },
+          {
+            "Text": "bananes",
+            "StartedAt": "2026-03-01T10:21:01.940Z",
+            "EndedAt": "2026-03-01T10:21:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "SelectCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Banane",
+                  "timestamp": "2026-03-01T10:21:01.940Z"
+                }
+              ],
+              "limit": "2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FR-23",
+      "lang": "fr",
+      "category": "quantifié",
+      "input": {
+        "Text": "sélectionne les 3 plus petites pommes",
+        "Words": [
+          {
+            "Text": "sélectionne",
+            "StartedAt": "2026-03-01T10:22:01.000Z",
+            "EndedAt": "2026-03-01T10:22:01.350Z"
+          },
+          {
+            "Text": "les",
+            "StartedAt": "2026-03-01T10:22:01.470Z",
+            "EndedAt": "2026-03-01T10:22:01.820Z"
+          },
+          {
+            "Text": "3",
+            "StartedAt": "2026-03-01T10:22:01.940Z",
+            "EndedAt": "2026-03-01T10:22:02.290Z"
+          },
+          {
+            "Text": "plus",
+            "StartedAt": "2026-03-01T10:22:02.410Z",
+            "EndedAt": "2026-03-01T10:22:02.760Z"
+          },
+          {
+            "Text": "petites",
+            "StartedAt": "2026-03-01T10:22:02.880Z",
+            "EndedAt": "2026-03-01T10:22:03.230Z"
+          },
+          {
+            "Text": "pommes",
+            "StartedAt": "2026-03-01T10:22:03.350Z",
+            "EndedAt": "2026-03-01T10:22:03.700Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "SelectCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Pomme",
+                  "timestamp": "2026-03-01T10:22:03.350Z"
+                }
+              ],
+              "limit": "3",
+              "order": {
+                "criterias": [
+                  {
+                    "type": "size",
+                    "desc": false
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FR-24",
+      "lang": "fr",
+      "category": "quantifié",
+      "input": {
+        "Text": "compte les carottes",
+        "Words": [
+          {
+            "Text": "compte",
+            "StartedAt": "2026-03-01T10:23:01.000Z",
+            "EndedAt": "2026-03-01T10:23:01.350Z"
+          },
+          {
+            "Text": "les",
+            "StartedAt": "2026-03-01T10:23:01.470Z",
+            "EndedAt": "2026-03-01T10:23:01.820Z"
+          },
+          {
+            "Text": "carottes",
+            "StartedAt": "2026-03-01T10:23:01.940Z",
+            "EndedAt": "2026-03-01T10:23:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "CountCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Carotte",
+                  "timestamp": "2026-03-01T10:23:01.940Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FR-25",
+      "lang": "fr",
+      "category": "clarification",
+      "input": {
+        "Text": "colorie cette pomme",
+        "Words": [
+          {
+            "Text": "colorie",
+            "StartedAt": "2026-03-01T10:24:01.000Z",
+            "EndedAt": "2026-03-01T10:24:01.350Z"
+          },
+          {
+            "Text": "cette",
+            "StartedAt": "2026-03-01T10:24:01.470Z",
+            "EndedAt": "2026-03-01T10:24:01.820Z"
+          },
+          {
+            "Text": "pomme",
+            "StartedAt": "2026-03-01T10:24:01.940Z",
+            "EndedAt": "2026-03-01T10:24:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "clarification",
+      "expected_commands": [
+        {
+          "type": "ColorizeCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Pomme",
+                  "timestamp": "2026-03-01T10:24:01.940Z"
+                },
+                "AND",
+                {
+                  "type": "Event",
+                  "value": "{pointerTerm}",
+                  "timestamp": "2026-03-01T10:24:01.470Z"
+                }
+              ],
+              "limit": "1"
+            }
+          ]
+        }
+      ],
+      "note": "ColorParameter requis manquant : question « En quelle couleur ? » attendue"
+    },
+    {
+      "id": "FR-26",
+      "lang": "fr",
+      "category": "clarification",
+      "input": {
+        "Text": "déplace la pomme",
+        "Words": [
+          {
+            "Text": "déplace",
+            "StartedAt": "2026-03-01T10:25:01.000Z",
+            "EndedAt": "2026-03-01T10:25:01.350Z"
+          },
+          {
+            "Text": "la",
+            "StartedAt": "2026-03-01T10:25:01.470Z",
+            "EndedAt": "2026-03-01T10:25:01.820Z"
+          },
+          {
+            "Text": "pomme",
+            "StartedAt": "2026-03-01T10:25:01.940Z",
+            "EndedAt": "2026-03-01T10:25:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "clarification",
+      "expected_commands": [
+        {
+          "type": "MoveCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Pomme",
+                  "timestamp": "2026-03-01T10:25:01.940Z"
+                }
+              ],
+              "limit": "1"
+            }
+          ]
+        }
+      ],
+      "note": "PointParameter requis manquant : destination à demander"
+    },
+    {
+      "id": "FR-27",
+      "lang": "fr",
+      "category": "rejet",
+      "input": {
+        "Text": "chante une chanson",
+        "Words": [
+          {
+            "Text": "chante",
+            "StartedAt": "2026-03-01T10:26:01.000Z",
+            "EndedAt": "2026-03-01T10:26:01.350Z"
+          },
+          {
+            "Text": "une",
+            "StartedAt": "2026-03-01T10:26:01.470Z",
+            "EndedAt": "2026-03-01T10:26:01.820Z"
+          },
+          {
+            "Text": "chanson",
+            "StartedAt": "2026-03-01T10:26:01.940Z",
+            "EndedAt": "2026-03-01T10:26:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "not_understood",
+      "expected_commands": [],
+      "note": "aucune commande du catalogue ne correspond"
+    },
+    {
+      "id": "FR-28",
+      "lang": "fr",
+      "category": "rejet",
+      "input": {
+        "Text": "quelle heure est-il",
+        "Words": [
+          {
+            "Text": "quelle",
+            "StartedAt": "2026-03-01T10:27:01.000Z",
+            "EndedAt": "2026-03-01T10:27:01.350Z"
+          },
+          {
+            "Text": "heure",
+            "StartedAt": "2026-03-01T10:27:01.470Z",
+            "EndedAt": "2026-03-01T10:27:01.820Z"
+          },
+          {
+            "Text": "est-il",
+            "StartedAt": "2026-03-01T10:27:01.940Z",
+            "EndedAt": "2026-03-01T10:27:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "not_understood",
+      "expected_commands": []
+    },
+    {
+      "id": "FR-29",
+      "lang": "fr",
+      "category": "no_match",
+      "input": {
+        "Text": "masque la pomme cyan",
+        "Words": [
+          {
+            "Text": "masque",
+            "StartedAt": "2026-03-01T10:28:01.000Z",
+            "EndedAt": "2026-03-01T10:28:01.350Z"
+          },
+          {
+            "Text": "la",
+            "StartedAt": "2026-03-01T10:28:01.470Z",
+            "EndedAt": "2026-03-01T10:28:01.820Z"
+          },
+          {
+            "Text": "pomme",
+            "StartedAt": "2026-03-01T10:28:01.940Z",
+            "EndedAt": "2026-03-01T10:28:02.290Z"
+          },
+          {
+            "Text": "cyan",
+            "StartedAt": "2026-03-01T10:28:02.410Z",
+            "EndedAt": "2026-03-01T10:28:02.760Z"
+          }
+        ]
+      },
+      "expected_outcome": "no_match",
+      "expected_commands": [
+        {
+          "type": "HideCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Pomme",
+                  "timestamp": "2026-03-01T10:28:01.940Z"
+                },
+                "AND",
+                {
+                  "type": "Color",
+                  "value": "Cyan",
+                  "timestamp": "2026-03-01T10:28:02.410Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ],
+      "note": "commande bien formée mais aucun objet ne satisfait les filtres dans la scène de démonstration"
+    },
+    {
+      "id": "EN-01",
+      "lang": "en",
+      "category": "descriptif",
+      "input": {
+        "Text": "hide the red apple",
+        "Words": [
+          {
+            "Text": "hide",
+            "StartedAt": "2026-03-01T10:29:01.000Z",
+            "EndedAt": "2026-03-01T10:29:01.350Z"
+          },
+          {
+            "Text": "the",
+            "StartedAt": "2026-03-01T10:29:01.470Z",
+            "EndedAt": "2026-03-01T10:29:01.820Z"
+          },
+          {
+            "Text": "red",
+            "StartedAt": "2026-03-01T10:29:01.940Z",
+            "EndedAt": "2026-03-01T10:29:02.290Z"
+          },
+          {
+            "Text": "apple",
+            "StartedAt": "2026-03-01T10:29:02.410Z",
+            "EndedAt": "2026-03-01T10:29:02.760Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "HideCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Apple",
+                  "timestamp": "2026-03-01T10:29:02.410Z"
+                },
+                "AND",
+                {
+                  "type": "Color",
+                  "value": "Red",
+                  "timestamp": "2026-03-01T10:29:01.940Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EN-02",
+      "lang": "en",
+      "category": "descriptif",
+      "input": {
+        "Text": "make the pumpkins blue",
+        "Words": [
+          {
+            "Text": "make",
+            "StartedAt": "2026-03-01T10:30:01.000Z",
+            "EndedAt": "2026-03-01T10:30:01.350Z"
+          },
+          {
+            "Text": "the",
+            "StartedAt": "2026-03-01T10:30:01.470Z",
+            "EndedAt": "2026-03-01T10:30:01.820Z"
+          },
+          {
+            "Text": "pumpkins",
+            "StartedAt": "2026-03-01T10:30:01.940Z",
+            "EndedAt": "2026-03-01T10:30:02.290Z"
+          },
+          {
+            "Text": "blue",
+            "StartedAt": "2026-03-01T10:30:02.410Z",
+            "EndedAt": "2026-03-01T10:30:02.760Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "ColorizeCommand",
+          "parameters": [
+            {
+              "type": "ColorParameter",
+              "value": "Blue"
+            },
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Pumpkin",
+                  "timestamp": "2026-03-01T10:30:01.940Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EN-03",
+      "lang": "en",
+      "category": "déictique",
+      "input": {
+        "Text": "move that here",
+        "Words": [
+          {
+            "Text": "move",
+            "StartedAt": "2026-03-01T10:31:01.000Z",
+            "EndedAt": "2026-03-01T10:31:01.350Z"
+          },
+          {
+            "Text": "that",
+            "StartedAt": "2026-03-01T10:31:01.470Z",
+            "EndedAt": "2026-03-01T10:31:01.820Z"
+          },
+          {
+            "Text": "here",
+            "StartedAt": "2026-03-01T10:31:01.940Z",
+            "EndedAt": "2026-03-01T10:31:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "MoveCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Event",
+                  "value": "{pointerTerm}",
+                  "timestamp": "2026-03-01T10:31:01.470Z"
+                }
+              ],
+              "limit": "1"
+            },
+            {
+              "type": "PointParameter",
+              "value": "{pointerTerm}",
+              "timestamp": "2026-03-01T10:31:02.290Z"
+            }
+          ]
+        }
+      ],
+      "ablation_sensitive": true,
+      "ablation_expected": "ni source ni destination"
+    },
+    {
+      "id": "EN-04",
+      "lang": "en",
+      "category": "anaphorique",
+      "input": {
+        "Text": "color them green",
+        "Words": [
+          {
+            "Text": "color",
+            "StartedAt": "2026-03-01T10:32:01.000Z",
+            "EndedAt": "2026-03-01T10:32:01.350Z"
+          },
+          {
+            "Text": "them",
+            "StartedAt": "2026-03-01T10:32:01.470Z",
+            "EndedAt": "2026-03-01T10:32:01.820Z"
+          },
+          {
+            "Text": "green",
+            "StartedAt": "2026-03-01T10:32:01.940Z",
+            "EndedAt": "2026-03-01T10:32:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "ColorizeCommand",
+          "parameters": [
+            {
+              "type": "ColorParameter",
+              "value": "Green"
+            },
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Coreference",
+                  "timestamp": "2026-03-01T10:32:01.470Z"
+                }
+              ],
+              "limit": "-1"
+            }
+          ]
+        }
+      ],
+      "context": {
+        "history": [
+          {
+            "Text": "select the apples",
+            "type": "SelectCommand",
+            "resultCount": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "EN-05",
+      "lang": "en",
+      "category": "quantifié",
+      "input": {
+        "Text": "select the 2 biggest bananas",
+        "Words": [
+          {
+            "Text": "select",
+            "StartedAt": "2026-03-01T10:33:01.000Z",
+            "EndedAt": "2026-03-01T10:33:01.350Z"
+          },
+          {
+            "Text": "the",
+            "StartedAt": "2026-03-01T10:33:01.470Z",
+            "EndedAt": "2026-03-01T10:33:01.820Z"
+          },
+          {
+            "Text": "2",
+            "StartedAt": "2026-03-01T10:33:01.940Z",
+            "EndedAt": "2026-03-01T10:33:02.290Z"
+          },
+          {
+            "Text": "biggest",
+            "StartedAt": "2026-03-01T10:33:02.410Z",
+            "EndedAt": "2026-03-01T10:33:02.760Z"
+          },
+          {
+            "Text": "bananas",
+            "StartedAt": "2026-03-01T10:33:02.880Z",
+            "EndedAt": "2026-03-01T10:33:03.230Z"
+          }
+        ]
+      },
+      "expected_outcome": "executed",
+      "expected_commands": [
+        {
+          "type": "SelectCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Banana",
+                  "timestamp": "2026-03-01T10:33:02.880Z"
+                }
+              ],
+              "limit": "2",
+              "order": {
+                "criterias": [
+                  {
+                    "type": "size",
+                    "desc": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EN-06",
+      "lang": "en",
+      "category": "clarification",
+      "input": {
+        "Text": "colorize this apple",
+        "Words": [
+          {
+            "Text": "colorize",
+            "StartedAt": "2026-03-01T10:34:01.000Z",
+            "EndedAt": "2026-03-01T10:34:01.350Z"
+          },
+          {
+            "Text": "this",
+            "StartedAt": "2026-03-01T10:34:01.470Z",
+            "EndedAt": "2026-03-01T10:34:01.820Z"
+          },
+          {
+            "Text": "apple",
+            "StartedAt": "2026-03-01T10:34:01.940Z",
+            "EndedAt": "2026-03-01T10:34:02.290Z"
+          }
+        ]
+      },
+      "expected_outcome": "clarification",
+      "expected_commands": [
+        {
+          "type": "ColorizeCommand",
+          "parameters": [
+            {
+              "type": "SelectionParameter",
+              "filters": [
+                {
+                  "type": "Annotation",
+                  "value": "Apple",
+                  "timestamp": "2026-03-01T10:34:01.940Z"
+                },
+                "AND",
+                {
+                  "type": "Event",
+                  "value": "{pointerTerm}",
+                  "timestamp": "2026-03-01T10:34:01.470Z"
+                }
+              ],
+              "limit": "1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

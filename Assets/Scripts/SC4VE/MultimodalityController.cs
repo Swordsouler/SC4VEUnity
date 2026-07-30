@@ -13,8 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -118,378 +116,8 @@ namespace Sc4ve.Multimodality
         private static readonly HashSet<string> _noDisambiguation =
             new() { "CountCommand", "DescribeCommand", "MeasureCommand" };
 
-        // LLama-7b, qwen-3.5, mistral-nemo 
-        // Le corps principal et statique du prompt est maintenant une constante.
-        private const string SYSTEM_PROMPT_TEMPLATE = @"Tu es un système expert qui convertit le langage naturel en un format de commande JSON pour un environnement 3D.
-Ta seule et unique réponse doit être le contenu JSON brut, sans explication ou formatage markdown.
-
---- FORMAT D'ENTRÉE ---
-L'entrée utilisateur sera un objet JSON contenant le texte et une liste de mots avec leur horodatage.
-{{
-  ""Text"": ""Texte de la phrase"",
-  ""Words"": [
-    {{ ""Text"": ""mot1"", ""StartedAt"": ""2026-01-27T10:00:00.100Z"", ""EndedAt"": ""2026-01-27T10:00:00.500Z"" }},
-    {{ ""Text"": ""mot2"", ""StartedAt"": ""2026-01-27T10:00:00.600Z"", ""EndedAt"": ""2026-01-27T10:00:00.900Z"" }}
-  ]
-}}
-
---- FORMAT DE SORTIE ---
-Ta réponse est UNIQUEMENT un tableau JSON. Structure exacte et obligatoire :
-[
-  {{
-    ""type"": ""NomDeLaCommande"",
-    ""parameters"": [
-      {{ ""type"": ""SelectionParameter"", ""filters"": [ ... ], ""limit"": ""1"" }},
-      {{ ""type"": ""PointParameter"",     ""value"": ""{pointerTerm}"", ""timestamp"": ""..."" }}
-    ]
-  }}
-]
-Erreurs de structure à ne JAMAIS commettre :
-- La clé de commande est TOUJOURS ""type"" (jamais ""Command"", ""command"", ""name"" ou autre).
-- Les paramètres sont TOUJOURS dans un tableau ""parameters"" ; chaque élément a sa propre clé ""type"".
-- Ne jamais mettre les paramètres comme propriétés directes de l'objet commande.
-- ""limit"" est TOUJOURS une chaîne : ""1"", ""-1"", ""3"" — JAMAIS un entier JSON.
-- Pour PointParameter : ""value"" = nom du composant pointeur (ex: ""{pointerTerm}"") — JAMAIS le mot déictique (""ici"", ""là"", ""ça"", etc.).
-
---- ERREURS FRÉQUENTES À ÉVITER ---
-1.  RÈGLE D'OR (COLORIZECOMMAND) : Pour une commande 'ColorizeCommand', la distinction entre couleur SOURCE et CIBLE est cruciale.
-- La couleur CIBLE (ex: '... en rouge') va TOUJOURS et UNIQUEMENT dans le 'ColorParameter'.
-- Une couleur SOURCE, qui décrit les objets à modifier (ex: 'les pommes vertes'), va dans un filtre 'Color' à l'intérieur du 'SelectionParameter'.
-- Ne jamais mettre la couleur CIBLE dans un filtre 'Color' du 'SelectionParameter'.
-2.  Pour une phrase comme 'colorie les légumes', NE PAS ajouter de filtre 'Event' pour '{pointerTerm}'. Il n'y a pas de mot déictique ('ce', 'cette', etc.), donc il n'y a pas de pointage.
-3.  CORÉFÉRENCE EXCLUSIVE : Si la phrase contient UNIQUEMENT une commande suivie d'un pronom ('le', 'la', 'les', 'eux', 'celui-ci', etc.) sans description d'objet, c'est une coréférence. Le filtre 'Coreference' doit être SEUL dans la liste des filtres. AUCUN filtre 'Annotation' ne doit être ajouté.
-4.  VOCABULAIRE STRICT : Les valeurs pour les filtres 'Annotation' et 'Color' DOIVENT provenir EXCLUSIVEMENT des listes de vocabulaire fournies. N'invente JAMAIS de termes. Si un mot comme 'objet' est utilisé par l'utilisateur mais ne figure pas dans le vocabulaire d'annotation, ne génère PAS de filtre 'Annotation' pour ce mot. Filtre uniquement sur les autres aspects décrits (comme la couleur, si applicable).
-5.  STRUCTURE OBLIGATOIRE DU TABLEAU 'filters' : Le tableau 'filters' ne doit JAMAIS, en aucun cas, contenir deux objets de filtre JSON l'un après l'autre. Chaque objet de filtre DOIT être séparé du suivant par une chaîne de caractères : soit ""AND"", soit ""OR"". Si la logique de la phrase est une conjonction (ex: 'les voitures rouges'), utilise ""AND"". C'est le cas par défaut.
-- **EXEMPLE INCORRECT** : `""filters"": [ {{ ""type"": ""Annotation"", ... }}, {{ ""type"": ""Color"", ... }} ]`
-- **EXEMPLE CORRECT** : `""filters"": [ {{ ""type"": ""Annotation"", ... }}, ""AND"", {{ ""type"": ""Color"", ... }} ]`
-- Omettre l'opérateur est une **erreur critique** qui rend le JSON invalide.
-6.  PAS DE FILTRE D'ANNOTATION PAR DÉFAUT : Si la phrase de l'utilisateur est générale et ne spécifie pas de type d'objet (par exemple, 'tout', 'tout ce qui est...', 'les éléments'), ne génère PAS de filtre 'Annotation' par défaut. Si la phrase est 'colorie tout ce qui est bleu en rouge', le 'SelectionParameter' doit contenir UNIQUEMENT un filtre de type 'Color' pour la valeur 'Bleu', sans aucun filtre 'Annotation'.
-7.  TIMESTAMPS OBLIGATOIRES : Chaque paramètre ou condition de filtre qui se rapporte à un mot ou un moment précis de la phrase DOIT IMPÉRATIVEMENT contenir une propriété ""timestamp"". La valeur doit correspondre à la propriété ""EndedAt"" du mot le plus pertinent, SAUF EXCEPTION.
-- **Exception pour MoveCommand** : Pour un 'MoveCommand', le 'SelectionParameter' source (l'objet à déplacer) doit utiliser le 'StartedAt' du mot pertinent (ex: 'ça'). Le 'PointParameter' de destination (ex: 'ici') continue d'utiliser 'EndedAt'.
-- S'applique à : 'Annotation', 'Color', 'Event', 'Coreference', 'PointParameter'.
-- Par exemple, pour 'déplace ça ici', le 'SelectionParameter' (via son filtre 'Event' pour 'ça') aura un 'timestamp' basé sur le 'StartedAt' du mot 'ça', et le 'PointParameter' (pour 'ici') aura un 'timestamp' basé sur le 'EndedAt' du mot 'ici'.
-8.  GESTION DES QUANTITÉS NUMÉRIQUES : Lorsque l'utilisateur spécifie une quantité explicite (ex: 'trois citrouilles', 'les 5 plus petites voitures'), tu DOIS utiliser cette quantité pour la propriété 'limit' du 'SelectionParameter'.
-- Une quantité explicite (ex: 'trois', 'trois citrouilles') définit le nombre exact d'objets à sélectionner : `""limit"": ""3""`.
-- Sans quantité explicite ou avec des quantificateurs généraux (ex: 'les', 'les citrouilles'), utilise : `""limit"": ""-1""` (tous les objets).
-- La quantité s'applique UNIQUEMENT au 'SelectionParameter', JAMAIS au nombre de commandes générées (sauf pour l'enchaînement 'X fois').
-9.  DÉICTIQUE vs CORÉFÉRENCE — RÈGLE ABSOLUE : Le mot 'ça' (et tout autre mot déictique) combiné avec un mot de destination (ici, là, là-bas, là-haut, dessus, etc.) est TOUJOURS un déictique. Utilise un filtre 'Event' avec le StartedAt de 'ça'. Ne génère JAMAIS un filtre 'Coreference' dans ce cas.
-- 'ça' + destination spatiale → MoveCommand, filtre 'Event', timestamp = StartedAt de 'ça'.
-- 'Coreference' uniquement si 'ça' / 'les' / 'eux' désigne des objets d'une commande précédente, SANS mot de destination spatiale.
-
---- COMMANDES DISPONIBLES ---
-{availableCommandsString}
-
---- TYPES DE PARAMÈTRES ---
-- 'SelectionParameter': Pour sélectionner des objets. Contient des filtres.
-- 'PointParameter': Pour définir un point dans l'espace (souvent via un pointage).
-- 'ColorParameter': Pour définir une couleur cible.
-- 'SentenceParameter': Contient la phrase à prononcer par le système pour demander une clarification.
-
---- TYPES DE FILTRES ---
-- 'Annotation': Pour filtrer par le nom ou le type général d'un objet (ex: 'Voiture', 'Pomme').
-- 'Color': Pour filtrer des objets par leur couleur actuelle (ex: trouver une 'Pomme' qui est 'Verte').
-- 'Event': Pour les événements système. Les valeurs valides sont '{pointerTerm}' et '{cameraTerm}'.
-- 'Coreference': Pour faire référence à des objets d'une commande précédente (par exemple, en utilisant des pronoms comme 'les', 'eux', 'le'). La seule valeur valide est '{lastResultTerm}'.
-
---- VOCABULAIRE D'ANNOTATION CONNU ---
-Lorsque tu utilises un filtre de type 'Annotation', la 'value' DOIT correspondre EXACTEMENT à l'un des termes de la liste {annotationTypesString}, sans le modifier (pas de pluriel, pas de changement de casse).
-
---- VOCABULAIRE DE COULEUR CONNU ---
-Lorsque tu utilises un 'ColorParameter' ou un filtre de type 'Color', la 'value' DOIT être l'une des suivantes : {availableColorsString}.
-
---- MOTS DÉICTIQUES DE POINTAGE CONNUS ---
-Les mots déictiques valides pour faire référence au pointage sont : {pointerDeicticsString}
-
---- ENCHAÎNEMENT DE COMMANDES ---
-Lorsque l'utilisateur demande d'effectuer une action plusieurs fois (ex: 'trois fois', 'deux fois', etc.), tu DOIS générer plusieurs commandes successives dans le tableau JSON principal.
-- **Règle importante** : Chaque commande est un objet JSON complet et distinct dans le tableau de sortie.
-- Le nombre de répétitions doit correspondre exactement au nombre demandé par l'utilisateur.
-- Les paramètres doivent être répétés.
-- **Distinction critique** : 'trois fois' (répète la même commande 3 fois) est DIFFÉRENT de 'trois citrouilles' (sélectionne 3 citrouilles dans une seule commande).
-
-NOTE: Dans les exemples suivants, la propriété 'StartedAt' est généralement omise pour des raisons de concision, mais elle sera présente dans l'entrée utilisateur réelle. Elle est explicitement montrée dans les cas où elle est cruciale (ex: MoveCommand).
-
---- EXEMPLES ---
-
-## EXEMPLE 1: Masquer un objet spécifique (décrit par sa couleur)
-Entrée utilisateur:
-{{""Text"":""masque la voiture rouge"",""Words"":[{{""Text"":""masque"",""EndedAt"":""2026-01-27T12:30:01.500Z""}},{{""Text"":""la"",""EndedAt"":""2026-01-27T12:30:01.650Z""}},{{""Text"":""voiture"",""EndedAt"":""2026-01-27T12:30:02.100Z""}},{{""Text"":""rouge"",""EndedAt"":""2026-01-27T12:30:02.500Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""HideCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Voiture"", ""timestamp"": ""2026-01-27T12:30:02.100Z"" }},
-          ""AND"",
-          {{ ""type"": ""Color"", ""value"": ""Rouge"", ""timestamp"": ""2026-01-27T12:30:02.500Z"" }}
-        ],
-        ""limit"": ""1""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 5: Filtre combiné (Annotation ET Couleur)
-Entrée utilisateur:
-{{""Text"":""colorie en rouge cette pomme verte"",""Words"":[{{""Text"":""colorie"",""EndedAt"":""2026-01-27T12:34:01.500Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-27T12:34:01.600Z""}},{{""Text"":""rouge"",""EndedAt"":""2026-01-27T12:34:02.000Z""}},{{""Text"":""cette"",""EndedAt"":""2026-01-27T12:34:02.300Z""}},{{""Text"":""pomme"",""EndedAt"":""2026-01-27T12:34:02.700Z""}},{{""Text"":""verte"",""EndedAt"":""2026-01-27T12:34:03.100Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""ColorizeCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""ColorParameter"",
-        ""value"": ""Rouge""
-      }},
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Pomme"", ""timestamp"": ""2026-01-27T12:34:02.700Z"" }},
-          ""AND"",
-          {{ ""type"": ""Color"", ""value"": ""Vert"", ""timestamp"": ""2026-01-27T12:34:03.100Z"" }}
-        ],
-        ""limit"": ""1""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 9: Commande de colorisation simple (CIBLE)
-Entrée utilisateur:
-{{""Text"":""mets les pommes en bleu"",""Words"":[{{""Text"":""mets"",""EndedAt"":""2026-01-29T17:42:52.051Z""}},{{""Text"":""les"",""EndedAt"":""2026-01-29T17:42:52.211Z""}},{{""Text"":""pommes"",""EndedAt"":""2026-01-29T17:42:52.601Z""}},{{""Text"":""en"",""EndedAt"":""2026-01-29T17:42:52.751Z""}},{{""Text"":""bleu"",""EndedAt"":""2026-01-29T17:42:53.101Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""ColorizeCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""ColorParameter"",
-        ""value"": ""Bleu""
-      }},
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Pomme"", ""timestamp"": ""2026-01-29T17:42:52.601Z"" }}
-        ],
-        ""limit"": ""-1""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 10: Commande de colorisation avec 'toutes' et 'couleur' (CIBLE)
-Entrée utilisateur:
-{{""Text"":""coloris toutes les citrouilles en couleur verte"",""Words"":[{{""Text"":""coloris"",""EndedAt"":""2026-02-02T16:10:01.000Z""}},{{""Text"":""toutes"",""EndedAt"":""2026-02-02T16:10:01.400Z""}},{{""Text"":""les"",""EndedAt"":""2026-02-02T16:10:01.600Z""}},{{""Text"":""citrouilles"",""EndedAt"":""2026-02-02T16:10:02.200Z""}},{{""Text"":""en"",""EndedAt"":""2026-02-02T16:10:02.300Z""}},{{""Text"":""couleur"",""EndedAt"":""2026-02-02T16:10:02.700Z""}},{{""Text"":""verte"",""EndedAt"":""2026-02-02T16:10:03.100Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""ColorizeCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""ColorParameter"",
-        ""value"": ""Vert""
-      }},
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Citrouille"", ""timestamp"": ""2026-02-02T16:10:02.200Z"" }}
-        ],
-        ""limit"": ""-1""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 11: Commande de déplacement avec double déictique ('ça', 'ici')
-Entrée utilisateur:
-{{""Text"":""déplace ça ici"",""Words"":[{{""Text"":""déplace"",""StartedAt"":""2026-02-02T17:20:00.800Z"",""EndedAt"":""2026-02-02T17:20:01.000Z""}},{{""Text"":""ça"",""StartedAt"":""2026-02-02T17:20:01.100Z"",""EndedAt"":""2026-02-02T17:20:01.500Z""}},{{""Text"":""ici"",""StartedAt"":""2026-02-02T17:20:01.800Z"",""EndedAt"":""2026-02-02T17:20:02.000Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""MoveCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Event"", ""value"": ""{pointerTerm}"", ""timestamp"": ""2026-02-02T17:20:01.100Z"" }}
-        ],
-        ""limit"": ""1""
-      }},
-      {{
-        ""type"": ""PointParameter"",
-        ""value"": ""{pointerTerm}"",
-        ""timestamp"": ""2026-02-02T17:20:02.000Z""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 12: Déplacement avec quantité numérique (QUANTITÉ DANS LA SÉLECTION)
-Entrée utilisateur:
-{{""Text"":""déplace trois citrouilles ici"",""Words"":[{{""Text"":""déplace"",""StartedAt"":""2026-02-02T17:20:00.800Z"",""EndedAt"":""2026-02-02T17:20:01.000Z""}},{{""Text"":""trois"",""EndedAt"":""2026-02-02T17:20:01.300Z""}},{{""Text"":""citrouilles"",""EndedAt"":""2026-02-02T17:20:01.800Z""}},{{""Text"":""ici"",""StartedAt"":""2026-02-02T17:20:02.000Z"",""EndedAt"":""2026-02-02T17:20:02.200Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""MoveCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Citrouille"", ""timestamp"": ""2026-02-02T17:20:01.800Z"" }}
-        ],
-        ""limit"": ""3""
-      }},
-      {{
-        ""type"": ""PointParameter"",
-        ""value"": ""{pointerTerm}"",
-        ""timestamp"": ""2026-02-02T17:20:02.200Z""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 13: Coréférence pour colorier des objets précédemment sélectionnés
-Contexte: L'utilisateur a d'abord dit ""sélectionne les pommes"". Maintenant il dit :
-Entrée utilisateur:
-{{""Text"":""colorie les en vert"",""Words"":[{{""Text"":""colorie"",""EndedAt"":""2026-02-04T11:00:01.000Z""}},{{""Text"":""les"",""EndedAt"":""2026-02-04T11:00:01.500Z""}},{{""Text"":""en"",""EndedAt"":""2026-02-04T11:00:01.700Z""}},{{""Text"":""vert"",""EndedAt"":""2026-02-04T11:00:02.200Z""}}]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""ColorizeCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""ColorParameter"",
-        ""value"": ""Vert""
-      }},
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Coreference"", ""timestamp"": ""2026-02-04T11:00:01.500Z"" }}
-        ],
-        ""limit"": ""-1""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 14: Sélection avec ordre et limite
-Entrée utilisateur:
-{{""Text"":""sélectionne les 3 plus petites voitures"",""Words"":[]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""SelectCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Voiture"", ""timestamp"": ""..."" }}
-        ],
-        ""limit"": ""3"",
-        ""order"": {{
-          ""criterias"": [
-            {{ ""type"": ""size"", ""desc"": false }}
-          ]
-        }}
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 15: Agrandissement avec filtre OR
-Entrée utilisateur:
-{{""Text"":""agrandis les pommes ou les citrouilles"",""Words"":[]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""ScaleUpCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Pomme"", ""timestamp"": ""..."" }},
-          ""OR"",
-          {{ ""type"": ""Annotation"", ""value"": ""Citrouille"", ""timestamp"": ""..."" }}
-        ],
-        ""limit"": ""-1""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 16: Mesure de distance avec double déictique
-Entrée utilisateur:
-{{""Text"":""mesure la distance entre ça et ça"",""Words"":[]}}
-JSON Attendu:
-[
-  {{
-    ""type"": ""MeasureCommand"",
-    ""parameters"": [
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Event"", ""value"": ""{pointerTerm}"", ""timestamp"": ""..."" }}
-        ],
-        ""limit"": ""1""
-      }},
-      {{
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Event"", ""value"": ""{pointerTerm}"", ""timestamp"": ""..."" }}
-        ],
-        ""limit"": ""1""
-      }}
-    ]
-  }}
-]
-
-## EXEMPLE 17: Enchaînement de commandes (répétition multiple)
-Entrée utilisateur:
-{{""Text"":""assombris trois fois les légumes"",""Words"":[{{""Text"":""assombris"",""EndedAt"":""2026-03-05T14:20:01.000Z""}},{{""Text"":""trois"",""EndedAt"":""2026-03-05T14:20:01.500Z""}},{{""Text"":""fois"",""EndedAt"":""2026-03-05T14:20:01.800Z""}},{{""Text"":""les"",""EndedAt"":""2026-03-05T14:20:02.000Z""}},{{""Text"":""légumes"",""EndedAt"":""2026-03-05T14:20:02.500Z""}}]}}
-JSON Attendu:
-[
-  {
-    ""type"": ""ColorizeDarkerCommand"",
-    ""parameters"": [
-      {
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Légume"", ""timestamp"": ""2026-03-05T14:20:02.500Z"" }}
-        ],
-        ""limit"": ""-1""
-      }}
-    ]
-  },
-  {
-    ""type"": ""ColorizeDarkerCommand"",
-    ""parameters"": [
-      {
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Légume"", ""timestamp"": ""2026-03-05T14:20:02.500Z"" }}
-        ],
-        ""limit"": ""-1""
-      }}
-    ]
-  },
-  {
-    ""type"": ""ColorizeDarkerCommand"",
-    ""parameters"": [
-      {
-        ""type"": ""SelectionParameter"",
-        ""filters"": [
-          {{ ""type"": ""Annotation"", ""value"": ""Légume"", ""timestamp"": ""2026-03-05T14:20:02.500Z"" }}
-        ],
-        ""limit"": ""-1""
-      }}
-    ]
-  }
-]
---- FIN DES EXEMPLES ---
-";
+        // Le modèle du prompt système et sa compilation vivent dans LlmIntentService
+        // (classe sans dépendance UnityEngine, partagée avec le harnais EditMode).
 
         [BoxGroup("LLM Settings"), ShowIf("IsLlmModeOpenAI"), SerializeField,
          Tooltip("Modèle rapide pour les requêtes simples. gpt-4o-mini est recommandé.")]
@@ -793,23 +421,17 @@ JSON Attendu:
             // Compilation du prompt système définitif (fait une seule fois par session).
             // Le résultat est identique entre tous les appels → OpenAI peut le mettre en
             // cache côté serveur (prompt caching automatique pour les prompts > 1024 tokens).
-            _cachedSystemPrompt = SYSTEM_PROMPT_TEMPLATE
-                // Les exemples JSON du template utilisent des accolades doublées ({{ }}),
-                // vestige d'un ancien usage de string.Format. On les normalise en accolades
-                // simples (JSON valide) AVANT d'injecter les vocabulaires, pour ne jamais
-                // altérer les valeurs substituées (qui ne contiennent pas d'accolades).
-                .Replace("{{", "{")
-                .Replace("}}", "}")
-                .Replace("{annotationTypesString}", _annotationTypesString)
-                .Replace("{availableColorsString}", _availableColorsString)
-                .Replace("{cameraTerm}", _cameraNamesString)
-                .Replace("{pointerTerm}", _pointerNamesString)
-                .Replace("{pointerDeicticsString}", _pointerDeicticsString)
-                .Replace("{availableCommandsString}", _availableCommandsString);
+            _cachedSystemPrompt = LlmIntentService.BuildSystemPrompt(
+                _annotationTypesString,
+                _availableColorsString,
+                _cameraNamesString,
+                _pointerNamesString,
+                _pointerDeicticsString,
+                _availableCommandsString);
 
             // Version locale : on retire la section EXEMPLES pour réduire la taille du prompt
             // (~6 500 → ~3 000 tokens) et permettre de fonctionner avec n_ctx = 4 096.
-            _cachedSystemPromptLocal = TrimExamplesSection(_cachedSystemPrompt);
+            _cachedSystemPromptLocal = LlmIntentService.TrimExamplesSection(_cachedSystemPrompt);
 
             Debug.Log($"[LLM] Vocabularies cached. Prompt: {_cachedSystemPrompt.Length} chars (full), " +
                       $"{_cachedSystemPromptLocal.Length} chars (local/no-examples).");
@@ -916,6 +538,8 @@ JSON Attendu:
 
         /// <summary>
         /// Appelle l'API LLM (OpenAI ou locale) avec le modèle et la phrase spécifiés.
+        /// La construction de la requête et l'appel HTTP vivent dans LlmIntentService
+        /// (classe sans dépendance UnityEngine, partagée avec le harnais EditMode).
         /// </summary>
         private async Task<string> CallLlmApiAsync(Sentence sentence, string model)
         {
@@ -925,39 +549,20 @@ JSON Attendu:
                 ? _cachedSystemPromptLocal
                 : _cachedSystemPrompt;
 
-            var userInput = new { sentence.Text, sentence.Words };
-            var requestObject = new JObject
-            {
-                ["model"]       = model,
-                ["messages"]    = new JArray(
-                    new JObject { ["role"] = "system", ["content"] = finalSystemPrompt },
-                    new JObject { ["role"] = "user",   ["content"] = JsonConvert.SerializeObject(userInput) }
-                ),
-                ["temperature"] = 0.0,
-                ["max_tokens"]  = 2048
-            };
-            // json_object est supporté par OpenAI gpt-4o/mini mais pas par tous les serveurs locaux.
-            // On l'omet côté local pour éviter les erreurs de compatibilité ;
-            // StripMarkdownJson() gère le cas où le modèle emballe quand même en markdown.
-            if (_llmService == LlmService.OpenAI)
-                requestObject["response_format"] = new JObject { ["type"] = "json_object" };
-            Debug.Log(JsonConvert.SerializeObject(userInput) + "\n\n" + finalSystemPrompt);
+            string userContent = JsonConvert.SerializeObject(new { sentence.Text, sentence.Words });
+            Debug.Log(userContent + "\n\n" + finalSystemPrompt);
 
-            HttpRequestMessage requestMessage;
-            string endpointUrlForLogging;
-
+            string endpointBaseUrl;
+            string apiKey;
             if (_llmService == LlmService.OpenAI)
             {
-                string apiKey = OpenAiApiKey;
+                apiKey = OpenAiApiKey;
                 if (string.IsNullOrWhiteSpace(apiKey))
                 {
                     Debug.LogError("[LLM] Clé API OpenAI absente : définir la variable d'environnement OPENAI_API_KEY (recommandé) ou le champ Inspector.");
                     return null;
                 }
-                const string openAiUrl = "https://api.openai.com/v1/chat/completions";
-                requestMessage = new HttpRequestMessage(HttpMethod.Post, openAiUrl);
-                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-                endpointUrlForLogging = openAiUrl;
+                endpointBaseUrl = null; // null → API OpenAI
             }
             else // LlmService.Local
             {
@@ -966,104 +571,25 @@ JSON Attendu:
                     Debug.LogError("[LLM] Local LLM URL is not set. Please set it in the inspector.");
                     return null;
                 }
-                string localApiUrl = _localLlmUrl.TrimEnd('/') + "/chat/completions";
-                requestMessage = new HttpRequestMessage(HttpMethod.Post, localApiUrl);
-                string localLlmApiKey = LocalLlmApiKey;
-                if (!string.IsNullOrWhiteSpace(localLlmApiKey))
-                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", localLlmApiKey);
-                endpointUrlForLogging = localApiUrl;
+                endpointBaseUrl = _localLlmUrl;
+                apiKey = LocalLlmApiKey; // vide → aucun header Authorization
             }
 
-            requestMessage.Content = new StringContent(JsonConvert.SerializeObject(requestObject), Encoding.UTF8, "application/json");
+            LlmIntentService.CallResult result = await LlmIntentService.CallChatCompletionsAsync(
+                _httpClient, endpointBaseUrl, apiKey, model, finalSystemPrompt, userContent,
+                // json_object est supporté par OpenAI gpt-4o/mini mais pas par tous les serveurs
+                // locaux ; on l'omet côté local pour éviter les erreurs de compatibilité.
+                jsonObjectFormat: _llmService == LlmService.OpenAI);
 
-            try
+            if (result.Error != null)
             {
-                var response = await _httpClient.SendAsync(requestMessage);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    string errorBody = await response.Content.ReadAsStringAsync();
-                    Debug.LogError($"[LLM] API Error ({model} @ {endpointUrlForLogging}): {response.StatusCode}\n{errorBody}");
-                    return null;
-                }
-
-                string responseBody = await response.Content.ReadAsStringAsync();
-                var openAiResponse = JsonConvert.DeserializeObject<OpenAiResponse>(responseBody);
-
-                if (openAiResponse?.Usage != null)
-                {
-                    var usage = openAiResponse.Usage;
-                    Debug.Log($"[LLM] Token Usage ({model}): Prompt={usage.PromptTokens}, Completion={usage.CompletionTokens}, Total={usage.TotalTokens}");
-                }
-
-                if (openAiResponse?.Choices == null || openAiResponse.Choices.Count == 0)
-                {
-                    // Un « choices »: [] arrive (filtre de contenu, certains serveurs locaux) :
-                    // sans cette garde, l'indexation lève et court-circuite le repli gracieux.
-                    Debug.LogError($"[LLM] Réponse sans 'choices' exploitable ({model} @ {endpointUrlForLogging}) : {responseBody}");
-                    return null;
-                }
-                return StripMarkdownJson(openAiResponse.Choices[0]?.Message?.Content);
-            }
-            catch (HttpRequestException e)
-            {
-                Debug.LogError($"[LLM] Network Error when calling {endpointUrlForLogging}: {e.Message}");
+                Debug.LogError($"[LLM] Appel {model} échoué : {result.Error}");
                 return null;
             }
-            catch (TaskCanceledException)
-            {
-                // Le timeout HttpClient est surfacé en TaskCanceledException, pas en
-                // HttpRequestException : sans ce catch, il remonte comme erreur générique.
-                Debug.LogError($"[LLM] Timeout après {_httpClient.Timeout.TotalSeconds:0} s en appelant {endpointUrlForLogging}.");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Remplace la section EXEMPLES complète par le seul EXEMPLE 11 (MoveCommand déictique).
-        /// EXEMPLE 11 illustre directement la règle 9 : "ça" → filtre Event + StartedAt.
-        /// Réduit le prompt de ~6 500 à ~3 200 tokens pour les serveurs locaux à n_ctx limité.
-        /// </summary>
-        private static string TrimExamplesSection(string prompt)
-        {
-            const string examplesMarker = "--- EXEMPLES ---";
-            int startIdx = prompt.IndexOf(examplesMarker, StringComparison.Ordinal);
-            if (startIdx < 0) return prompt;
-
-            // Supprimer le paragraphe "NOTE:" qui décrit les raccourcis propres aux exemples
-            string before = prompt[..startIdx];
-            const string notePrefix = "\nNOTE:";
-            int noteIdx = before.LastIndexOf(notePrefix, StringComparison.Ordinal);
-            if (noteIdx >= 0)
-                before = before[..noteIdx];
-
-            // Conserver uniquement EXEMPLE 11 (MoveCommand avec déictique 'ça' + 'ici').
-            // C'est l'exemple le plus critique : sans lui, les petits modèles confondent
-            // 'ça' déictique (→ filtre Event, StartedAt) avec 'ça' coréférentiel.
-            const string ex11Marker = "## EXEMPLE 11:";
-            const string ex12Marker = "## EXEMPLE 12:";
-            int ex11Idx = prompt.IndexOf(ex11Marker, StringComparison.Ordinal);
-            int ex12Idx = prompt.IndexOf(ex12Marker, StringComparison.Ordinal);
-
-            if (ex11Idx > 0 && ex12Idx > ex11Idx)
-            {
-                string example11 = prompt[ex11Idx..ex12Idx].TrimEnd();
-                return before.TrimEnd() + "\n\n--- EXEMPLE DE RÉFÉRENCE ---\n" + example11 + "\n";
-            }
-
-            return before.TrimEnd() + "\n";
-        }
-
-        /// <summary>
-        /// Retire les balises markdown (```json … ```) qu'OpenAI insère parfois autour du JSON.
-        /// </summary>
-        private static string StripMarkdownJson(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return text;
-            var match = System.Text.RegularExpressions.Regex.Match(
-                text, @"```(?:json)?\s*([\s\S]*?)```",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            return match.Success ? match.Groups[1].Value.Trim() : text.Trim();
+            if (result.PromptTokens > 0 || result.CompletionTokens > 0)
+                Debug.Log($"[LLM] Token Usage ({model}): Prompt={result.PromptTokens}, " +
+                          $"Completion={result.CompletionTokens}, Total={result.PromptTokens + result.CompletionTokens}");
+            return result.Content;
         }
 
         private List<Command> DeserializeCommand(string json)
@@ -1268,24 +794,6 @@ JSON Attendu:
             return candidates.Where(c => c != null)
                              .OrderBy(c => Vector3.Distance(c.transform.position, hit))
                              .FirstOrDefault();
-        }
-
-        // Classes d'aide pour désérialiser la réponse d'OpenAI
-        private class OpenAiResponse
-        {
-            public List<Choice> Choices { get; set; }
-            public Usage Usage { get; set; }
-        }
-        private class Choice { public Message Message { get; set; } }
-        private class Message { public string Role { get; set; } public string Content { get; set; } }
-        private class Usage
-        {
-            [JsonProperty("prompt_tokens")]
-            public int PromptTokens { get; set; }
-            [JsonProperty("completion_tokens")]
-            public int CompletionTokens { get; set; }
-            [JsonProperty("total_tokens")]
-            public int TotalTokens { get; set; }
         }
 
         #region TestCommands

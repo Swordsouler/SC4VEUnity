@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
 {
-    [Serializable, CommandDescription("Change la taille (agrandissement). Paramètres: SelectionParameter.")]
+    [Serializable, CommandDescription("Change la taille (agrandissement). Le facteur multiplicatif se règle via la propriété « factor » de la commande (1.1 par défaut ; « double » → 2, « triple » → 3 ; « un peu » → 1.05, « beaucoup » → 1.2). Paramètres: SelectionParameter.")]
     [RuleBasedTriggers("augmente la taille", "scale up", "grossis", "grossit", "agrandis",
                        "agrandit", "grandit", "grandir", "grossir", "agrandir",
                        "double", "doubler", "triple", "tripler")]
@@ -22,6 +22,10 @@ namespace Sc4ve.Multimodality.Intent
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
         {
             if (ctx.ScaleFactor > 0f) Factor = ctx.ScaleFactor;
+            // Adverbe graduable : il module l'ÉCART du facteur à la taille neutre (×1), pas le
+            // facteur brut — « agrandis-le un peu » doit rester un agrandissement (×1.05 ; un
+            // ×0.55 serait une réduction). « beaucoup » → ×1.2, plus marqué que le ×1.1 par défaut.
+            else if (ctx.MagnitudeModifier != 1f) Factor = 1f + (Factor - 1f) * ctx.MagnitudeModifier;
             return new List<Parameter> { ctx.BuildSelectionParameter(fallbackToSelection: FallbackToSelectionWhenEmpty) };
         }
 

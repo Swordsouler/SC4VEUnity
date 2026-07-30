@@ -349,17 +349,24 @@ Les commandes sont découvertes automatiquement par réflexion (attribut `[Comma
 
 | Commande | Description | Exemple |
 |----------|-------------|---------|
-| `ScaleUpCommand` | Agrandit les objets | « Agrandis les pommes » |
-| `ScaleDownCommand` | Réduit les objets | « Réduis les pommes » |
+| `ScaleUpCommand` | Agrandit les objets (facteur 1.1 par défaut ; « double » ×2, « triple » ×3) | « Agrandis les pommes », « Double la citrouille » |
+| `ScaleDownCommand` | Réduit les objets (facteur 1.1 par défaut) | « Réduis les pommes » |
 | `ScaleToCommand` | Règle la taille à une valeur absolue | « Mets la taille de la citrouille à 2 » |
 | `ResetScaleCommand` | Remet la taille à (1, 1, 1) | « Taille normale pour les pommes » |
-| `RotateLeftCommand` | Pivote de 45° vers la gauche | « Tourne les pommes à gauche » |
-| `RotateRightCommand` | Pivote de 45° vers la droite (« tourne » par défaut) | « Tourne les pommes à droite » |
+| `RotateLeftCommand` | Pivote vers la gauche (45° par défaut, angle réglable) | « Tourne les pommes à gauche de 90 degrés » |
+| `RotateRightCommand` | Pivote vers la droite (« tourne » par défaut ; 45° par défaut, angle réglable) | « Tourne la pomme d'un quart de tour » |
 | `FlipCommand` | Retourne les objets de 180° | « Retourne les pommes » |
 | `MoveCommand` | Déplace les objets vers la position pointée | « 👆 Déplace la pomme ici » |
 | `SnapToGroundCommand` | Pose les objets sur le sol | « Pose les pommes au sol » |
 | `AlignCommand` | Aligne à la même hauteur (Y) | « Aligne les pommes » |
 | `ResetTransformCommand` | Remet position/rotation/taille d'origine | « Réinitialise les pommes » |
+
+> **Modulation de magnitude** : les transformations acceptent une grandeur discrète
+> (« de 90 degrés », « d'un quart de tour », « d'un demi-tour », « double », « triple »)
+> **ou** un adverbe graduable qui module l'incrément par défaut — « un peu »/« légèrement »
+> (moitié : 45° → 22,5°, ×1.1 → ×1.05) et « beaucoup »/« fortement » (double : 45° → 90°,
+> ×1.1 → ×1.2). En anglais : « a bit »/« slightly », « a lot »/« much », « by 90 degrees »,
+> « quarter turn », « half turn ».
 
 **Manipulation (VR)**
 

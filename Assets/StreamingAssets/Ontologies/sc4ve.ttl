@@ -192,8 +192,8 @@ sc4ve:ScaleDownCommand rdf:type owl:Class ;
                                          owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                                          owl:onClass sc4ve:SelectionParameter
                                        ] ;
-                       rdfs:comment "A command to scale down selected objects."@en ,
-                                    "Une commande pour réduire la taille des objets sélectionnés."@fr ;
+                       rdfs:comment "A command to scale down selected objects. Division factor set via the command property « factor » (default 1.1; « a bit » → 1.05, « a lot » → 1.2)."@en ,
+                                    "Une commande pour réduire la taille des objets sélectionnés. Facteur de division réglable via la propriété « factor » de la commande (1.1 par défaut ; « un peu » → 1.05, « beaucoup » → 1.2)."@fr ;
                        rdfs:label "Commande de Réduction de taille"@fr ,
                                   "Scale Down Command"@en .
 
@@ -206,8 +206,8 @@ sc4ve:ScaleUpCommand rdf:type owl:Class ;
                                        owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
                                        owl:onClass sc4ve:SelectionParameter
                                      ] ;
-                     rdfs:comment "A command to scale up selected objects."@en ,
-                                  "Une commande pour agrandir la taille des objets sélectionnés."@fr ;
+                     rdfs:comment "A command to scale up selected objects. Multiplicative factor set via the command property « factor » (default 1.1; « double » → 2, « triple » → 3; « a bit » → 1.05, « a lot » → 1.2)."@en ,
+                                  "Une commande pour agrandir la taille des objets sélectionnés. Facteur multiplicatif réglable via la propriété « factor » de la commande (1.1 par défaut ; « double » → 2, « triple » → 3 ; « un peu » → 1.05, « beaucoup » → 1.2)."@fr ;
                      rdfs:label "Commande d'Agrandissement de taille"@fr ,
                                 "Scale Up Command"@en .
 
@@ -537,8 +537,8 @@ sc4ve:RotateLeftCommand sc4ve:trigger
     "rotate left"@en , "turn left"@en , "rotate to the left"@en .
 
 sc4ve:RotateRightCommand sc4ve:trigger
-    "tourne à droite"@fr , "pivote à droite"@fr , "rotation droite"@fr , "tourne droite"@fr , "tourne"@fr , "pivote"@fr , "faire pivoter"@fr , "rotation"@fr ,
-    "rotate right"@en , "turn right"@en , "rotate to the right"@en , "rotate"@en , "turn"@en .
+    "tourne à droite"@fr , "pivote à droite"@fr , "rotation droite"@fr , "tourne droite"@fr , "tourne"@fr , "pivote"@fr , "faire pivoter"@fr , "rotation"@fr , "quart de tour"@fr , "demi-tour"@fr ,
+    "rotate right"@en , "turn right"@en , "rotate to the right"@en , "rotate"@en , "turn"@en , "quarter turn"@en , "half turn"@en .
 
 sc4ve:FlipCommand sc4ve:trigger
     "retourne"@fr , "retourner"@fr , "inverse"@fr , "inverser"@fr , "miroir"@fr , "flip"@fr ,
@@ -648,8 +648,8 @@ sc4ve:HighlightCommand rdfs:comment "Active ou désactive la mise en évidence d
 sc4ve:ResetColorCommand rdfs:comment "Remet les objets à leur couleur d'origine."@fr , "Restores the objects' original color."@en .
 sc4ve:ResetScaleCommand rdfs:comment "Remet la taille des objets à (1,1,1)."@fr , "Resets the objects' scale to (1,1,1)."@en .
 sc4ve:ResetTransformCommand rdfs:comment "Remet position, rotation et taille des objets à leur valeur d'origine."@fr , "Resets the objects' position, rotation and scale to their original values."@en .
-sc4ve:RotateLeftCommand rdfs:comment "Fait pivoter les objets de 45° vers la gauche (axe Y)."@fr , "Rotates objects 45° to the left (Y axis)."@en .
-sc4ve:RotateRightCommand rdfs:comment "Fait pivoter les objets de 45° vers la droite (axe Y)."@fr , "Rotates objects 45° to the right (Y axis)."@en .
+sc4ve:RotateLeftCommand rdfs:comment "Fait pivoter les objets vers la gauche (axe Y). Angle en degrés réglable via la propriété « angle » de la commande (45 par défaut ; « de 90 degrés » → angle 90 ; « un peu » → 22.5, « beaucoup » → 90)."@fr , "Rotates objects to the left (Y axis). Angle in degrees set via the command property « angle » (default 45; « by 90 degrees » → angle 90; « a bit » → 22.5, « a lot » → 90)."@en .
+sc4ve:RotateRightCommand rdfs:comment "Fait pivoter les objets vers la droite (axe Y). Angle en degrés réglable via la propriété « angle » de la commande (45 par défaut ; « de 90 degrés » → angle 90 ; « un peu » → 22.5, « beaucoup » → 90)."@fr , "Rotates objects to the right (Y axis). Angle in degrees set via the command property « angle » (default 45; « by 90 degrees » → angle 90; « a bit » → 22.5, « a lot » → 90)."@en .
 sc4ve:SetOpaqueCommand rdfs:comment "Rend les objets entièrement opaques."@fr , "Makes the objects fully opaque."@en .
 sc4ve:SetTransparentCommand rdfs:comment "Rend les objets semi-transparents."@fr , "Makes the objects semi-transparent."@en .
 sc4ve:SnapToGroundCommand rdfs:comment "Pose les objets sur le sol (raycast vers le bas)."@fr , "Drops the objects onto the ground (downward raycast)."@en .

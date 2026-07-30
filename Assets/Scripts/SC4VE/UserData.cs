@@ -11,11 +11,17 @@ namespace Sc4ve.Multimodality
         private static UserData Instance => _instanceService.Instance;
 
         [BoxGroup("Settings"), SerializeField] private Language _language;
+        // Langue de repli quand aucune instance n'existe : hors Play mode (tests EditMode,
+        // harnais d'évaluation), le service ne peut pas instancier de MonoBehaviour et le
+        // setter était sans effet — la locale restait figée en anglais. En Play mode,
+        // l'instance reste la source de vérité.
+        private static Language _fallbackLanguage = Language.English;
         public static Language Language
         {
-            get => Instance == null ? Language.English : Instance._language;
+            get => Instance == null ? _fallbackLanguage : Instance._language;
             set
             {
+                _fallbackLanguage = value;
                 if (Instance == null) return;
                 Instance._language = value;
             }

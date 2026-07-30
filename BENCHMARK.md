@@ -300,14 +300,15 @@ Déterminés en priorité par CASE + FUS + TMP (les axes qui « font » la fusio
 | **REF** | **3** | Descriptive (annotation/couleur) + déictique (pointeur/regard) + anaphorique (coréférence) + quantifiée/ordinale (`limit`, « les 3 plus petites »). |
 | **CARE** | **2** | Equivalence (plusieurs façons de désigner une cible) + Complementarity (voix+pointage). Redundancy non exploitée. |
 | **OUT** | **3** | Retour visuel (contour de sélection) + vocal (TTS) + **dialogue de clarification** piloté par l'ontologie (« Sur quels objets ? »). |
-| **PAR** | **0** | Transforms à incréments fixes (rotation 45°, facteur d'échelle constant) ; la quantité n'agit que sur la sélection (`limit`), jamais sur l'amplitude de l'action. |
+| **PAR** | **2** | Grandeur discrète : angle de rotation libre (« tourne-le de 90° », « d'un quart de tour » — propriété `angle`, `DetectAngle`) et facteur d'échelle (« double » ×2, « triple » ×3, « mets la taille à N »). Graduable : les adverbes d'intensité modulent l'incrément par défaut (« un peu » → ×0.5, « beaucoup » → ×2 de l'écart à l'identité : 45° → 22,5°/90°, ×1.1 → ×1.05/×1.2 — `DetectMagnitudeModifier`). La magnitude relative à un référent (« deux fois plus que ça ») manque pour le palier 3. |
 
-**DMI = 20 / 24 ≈ 0.83** · **Niveau = N4** (synergique avancé : P6 désambiguïsation + P8 clarification présents).
+**DMI = 22 / 24 ≈ 0.92** · **Niveau = N4** (synergique avancé : P6 désambiguïsation + P8 clarification présents — le niveau dépend de CASE/FUS/TMP et des capacités inter-tours, pas de PAR).
 
-> Lecture : SC4VE est un EV multimodal *mûr*. Les axes non saturés sont **CARE** (2/3 — pas de
+> Lecture : SC4VE est un EV multimodal *mûr*. Le seul axe non saturé est **CARE** (2/3 — pas de
 > redondance/confirmation mutuelle : on ne combine pas « la pomme rouge » **et** un pointage
-> simultané) et **PAR** (0/3 — transforms à incréments fixes). Ce sont les deux pistes d'extension
-> les plus concrètes (cf. §7, manques #10 et #4) et des points de comparaison utiles entre EV.
+> simultané) ; c'est la piste d'extension la plus concrète (cf. §7, manque #10) et un point de
+> comparaison utile entre EV. PAR atteint 2/3 : il resterait la magnitude relative à un référent
+> (cf. §7, manque #4).
 
 ---
 
@@ -336,7 +337,7 @@ Chaque manque indique l'**axe de la grille (§5)** qu'il ferait progresser et so
 | 1 | Navigation / téléportation déictique | « emmène-moi **ici** », « tourne autour de **ça** », « zoome », « vue de dessus » | MOD (cible : point de vue égocentrique) | Bowman |
 | 2 | Référence relationnelle / topologique | « la pomme **à côté de** la voiture », « celle **entre** les deux », « mets-le **derrière** la citrouille » | REF (5ᵉ type → relève le plafond) | Levinson |
 | 3 | Cadre spatial relatif / égocentrique | « pousse-le **un peu à gauche** », « **vers moi** », « tourne-le **face à la caméra** » | REF (cadre de référence) | Levinson, Bowman |
-| 4 | Modulation paramétrique vocale | « tourne-le **de 90°** », « **deux fois** plus grand », « un **tout petit peu** » | **PAR (nouvel axe, §5.1)** | Cohen et al. (QuickSet) |
+| 4 | Modulation paramétrique vocale — *couvert jusqu'au palier 2 (grandeur discrète + graduable)* ; reste la magnitude **relative à un référent** | « **deux fois** plus grand **que ça** » (« de 90° » et « un peu » sont désormais couverts) | **PAR (nouvel axe, §5.1)** | Cohen et al. (QuickSet) |
 | 5 | Désignation par région (geste continu) | « tout **dans cette zone** » ⟨lasso⟩, « **d'ici à là** » | MOD/REF (geste surfacique) | Bowman |
 | 6 | Geste iconique / mimétique | « tourne-le **comme ça** » ⟨geste⟩, « grand **comme ça** » ⟨écart des mains⟩ | MOD (geste dépictif ≠ déictique) | McNeill |
 | 7 | Création / authoring & étiquetage | « **crée un cube ici** », « ajoute une pomme là », « **appelle ça** une chaise » | CASE/FUS (instanciation synergique, écriture du graphe) | Cohen et al., Bolt |

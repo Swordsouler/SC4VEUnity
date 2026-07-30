@@ -151,7 +151,8 @@ public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
 
 | Commande | Paramètres à construire | Exemple existant |
 |----------|------------------------|------------------|
-| Action simple sur des objets | *(défaut)* `SelectionParameter` | `ScaleUpCommand`, `HideCommand` |
+| Action simple sur des objets | *(défaut)* `SelectionParameter` | `HideCommand`, `ShowCommand` |
+| Transformation à amplitude réglable | *(défaut)* `SelectionParameter` + propriété scalaire (`Angle`, `Factor`) alimentée depuis `ctx.Angle` / `ctx.ScaleFactor` / `ctx.MagnitudeModifier` | `RotateLeftCommand`, `ScaleUpCommand` |
 | Colorisation | `ColorParameter` + `SelectionParameter` | `ColorizeCommand` |
 | Déplacement | `SelectionParameter(useStartedAt: true)` + `BuildDestinationParameter()` | `MoveCommand` |
 | Saisie | `SelectionParameter` + `BuildGrabPointParameter()` | `GrabCommand` |
@@ -246,6 +247,29 @@ sc4ve:YourParameter sc4ve:clarification "Question ?"@fr , "Question?"@en .
 | `ColorParameter` | `"ColorParameter"` | Couleur cible (nom de couleur ontologique, ex: `"Rouge"`) |
 | `PointParameter` | `"PointParameter"` | Position 3D récupérée dans le graphe via un timestamp |
 | `SentenceParameter` | `"SentenceParameter"` | Phrase texte (pour `SpeechCommand`) |
+
+### Propriétés scalaires de commande (amplitude de l'action)
+
+Certaines commandes portent en plus une **propriété scalaire directement sur l'objet commande**
+(pas dans `parameters`) qui règle l'amplitude de la transformation. Côté JSON, la valeur est
+acceptée en chaîne (`"angle": "90"`, comme `"limit"`) ou en nombre.
+
+| Commande | Clé JSON | Défaut | Alimentation en mode RuleBased |
+|----------|----------|--------|--------------------------------|
+| `RotateLeftCommand` / `RotateRightCommand` | `"angle"` (degrés) | `45` | `DetectAngle` : « de 90 degrés », « de 90° », « d'un quart de tour » (90), « d'un demi-tour » (180) → `ctx.Angle` |
+| `ScaleUpCommand` | `"factor"` (multiplicateur) | `1.1` | `DetectScaleFactor` : « double » → 2, « triple » → 3 → `ctx.ScaleFactor` |
+| `ScaleDownCommand` | `"factor"` (diviseur) | `1.1` | — |
+| `ScaleToCommand` | `"value"` (taille absolue) | `1` | nombre de la phrase → `ctx.ScaleValue` |
+
+Sans grandeur explicite, les **adverbes graduables** modulent l'incrément par défaut
+(`DetectMagnitudeModifier` → `ctx.MagnitudeModifier`) : « un peu »/« légèrement » → ×0.5,
+« beaucoup »/« fortement » → ×2 — appliqués à l'**écart à l'identité** de la transformation
+(45° → 22,5°/90° ; ×1.1 → ×1.05/×1.2), jamais à la valeur brute.
+
+> ⚠️ Ces propriétés sont **optionnelles** : ne déclare **aucune restriction OWL** pour elles dans
+> `sc4ve.ttl` (une restriction déclencherait une clarification à tort, cf. §5.2). Attention aussi
+> au piège `DetectLimit` : un nombre d'amplitude (« de 90 degrés ») doit être retiré de la limite
+> de sélection — voir le cas particulier dans `RuleBasedIntentRecognizer.Recognize`.
 
 ### Récupérer un paramètre dans `Execute()`
 

@@ -3,6 +3,7 @@ using Sven.Context;
 using Sven.Utils;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -178,6 +179,18 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 limit = -1;
             }
 
+            // « tourne-le de 90 degrés » : le nombre est l'ANGLE de rotation, pas une limite de
+            // sélection — sans ce cas particulier, DetectLimit sélectionnerait 90 objets. Même
+            // traitement que ScaleToCommand (et même limitation : « tourne 3 pommes de 90° »
+            // perd le compte, le premier nombre étant réinterprété).
+            float angle = 0f;
+            if (commandType == "RotateLeftCommand" || commandType == "RotateRightCommand")
+            {
+                angle = DetectAngle(text);
+                if (angle > 0f && limit > 0)
+                    limit = -1;
+            }
+
             Debug.Log(
                 $"[RuleBased] Annotations : [{string.Join(", ", annotations.Select(a => a.Value))}] | " +
                 $"Couleurs : [{string.Join(", ", colors.Select(c => $"{c.Value}(cible={c.IsTarget})"))}] | " +
@@ -198,6 +211,8 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 Limit            = limit,
                 ScaleFactor      = DetectScaleFactor(text),
                 ScaleValue       = scaleValue,
+                Angle            = angle,
+                MagnitudeModifier = DetectMagnitudeModifier(text),
                 SingularIntent   = singularIntent
             };
 
@@ -500,9 +515,20 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // Nombres en lettres (français)
             string[] tokens = text.Split(
                 new[] { ' ', ',', '.', '!', '?' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (string token in tokens)
+            for (int i = 0; i < tokens.Length; i++)
             {
-                if (Numbers.TryGetValue(token, out int num))
+                // « un peu » : « un » appartient à la locution d'intensité (cf.
+                // DetectMagnitudeModifier), ce n'est pas un compte d'objets — sans cette garde,
+                // « agrandis-les un peu » limiterait la sélection à 1 objet.
+                if (i + 1 < tokens.Length &&
+                    (tokens[i].Equals("un", StringComparison.OrdinalIgnoreCase) ||
+                     tokens[i].Equals("une", StringComparison.OrdinalIgnoreCase)) &&
+                    tokens[i + 1].Equals("peu", StringComparison.OrdinalIgnoreCase))
+                {
+                    i++;
+                    continue;
+                }
+                if (Numbers.TryGetValue(tokens[i], out int num))
                     return num;
             }
 
@@ -520,6 +546,41 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             if (Regex.IsMatch(n, @"\bdoubl")) return 2f;
             if (Regex.IsMatch(n, @"\btripl")) return 3f;
             return 0f;
+        }
+
+        /// <summary>
+        /// Angle de rotation explicite en degrés : « de 90 degrés », « de 90° », « d'un quart
+        /// de tour » (90°), « d'un demi-tour » (180°), en français et en anglais ; 0 si non
+        /// spécifié (la commande applique alors son incrément par défaut, éventuellement modulé
+        /// par <see cref="DetectMagnitudeModifier"/>).
+        /// </summary>
+        private static float DetectAngle(string text)
+        {
+            string n = FrenchStemmer.NormalizeAccents(text);
+            // Fractions de tour d'abord : pas de chiffre à extraire.
+            if (Regex.IsMatch(n, @"\bquart de tour\b|\bquarter[- ]?turn\b")) return 90f;
+            if (Regex.IsMatch(n, @"\bdemi[- ]?tour\b|\bhalf[- ]?turn\b")) return 180f;
+            // « de 90 degrés » / « 90° » / "by 90 degrees" — décimales acceptées (« 22,5 degrés »).
+            Match m = Regex.Match(n, @"\b(\d+(?:[.,]\d+)?)\s*(?:°|degres?\b|degrees?\b)");
+            if (m.Success && float.TryParse(m.Groups[1].Value.Replace(',', '.'),
+                                            NumberStyles.Float, CultureInfo.InvariantCulture, out float degrees))
+                return degrees;
+            return 0f;
+        }
+
+        /// <summary>
+        /// Coefficient d'intensité des adverbes graduables : « un peu »/« légèrement »/
+        /// « a bit »/« slightly » → 0.5 ; « beaucoup »/« fortement »/« a lot »/« much » → 2 ;
+        /// 1 sinon. Coefficients arbitraires (moitié/double) mais cohérents entre rotation et
+        /// échelle : ils s'appliquent à l'ÉCART de la transformation à l'identité (45° →
+        /// 22,5°/90° ; ×1.1 → ×1.05/×1.2), jamais à la valeur brute.
+        /// </summary>
+        private static float DetectMagnitudeModifier(string text)
+        {
+            string n = FrenchStemmer.NormalizeAccents(text);
+            if (Regex.IsMatch(n, @"\bun peu\b|\blegerement\b|\ba bit\b|\bslightly\b")) return 0.5f;
+            if (Regex.IsMatch(n, @"\bbeaucoup\b|\bfortement\b|\ba lot\b|\bmuch\b")) return 2f;
+            return 1f;
         }
 
         /// <summary>

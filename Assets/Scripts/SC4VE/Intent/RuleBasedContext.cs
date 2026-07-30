@@ -26,6 +26,12 @@ namespace Sc4ve.Multimodality.Intent
         public float ScaleFactor   { get; init; }
         // Taille absolue cible (« mets la taille à 50 » → 50) ; 0 = non spécifié.
         public float ScaleValue    { get; init; }
+        // Angle de rotation explicite en degrés (« de 90° » → 90, « d'un quart de tour » → 90) ;
+        // 0 = non spécifié (la commande applique son incrément par défaut, éventuellement modulé).
+        public float Angle         { get; init; }
+        // Coefficient d'intensité des adverbes graduables (« un peu » → 0.5, « beaucoup » → 2) ;
+        // 1 = neutre. Les commandes l'appliquent à l'ÉCART de leur transformation à l'identité.
+        public float MagnitudeModifier { get; init; } = 1f;
         // Référence au singulier (« la pomme ») → candidate à la désambiguïsation si plusieurs cibles.
         public bool SingularIntent { get; init; }
 

@@ -1,0 +1,2 @@
+config;date;exactitude_type;param_precision;param_rappel;param_f1;param_f1_sans_ts;param_f1_sans_ts_non_ordonne;clarif_legitimes;clarif_a_tort;clarif_manquees;exactitude_issue;latence_mediane_ms;latence_http_mediane_ms;erreurs;cas
+rulebased;2026-07-30 16:26;0.943;0.216;0.205;0.211;0.632;0.632;3;0;0;0.943;2.8;;0;35

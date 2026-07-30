@@ -14,7 +14,17 @@ namespace Sc4ve.Service
             {
                 if (!IsInstantiated)
                 {
-                    if (!Application.isPlaying) return default;
+                    // Application.isPlaying n'est lisible que sur le thread principal : appelé
+                    // depuis un thread de fond (continuations des initialisations de vocabulaires
+                    // en EditMode), on se comporte comme hors Play mode → pas d'instanciation.
+                    try
+                    {
+                        if (!Application.isPlaying) return default;
+                    }
+                    catch (UnityException)
+                    {
+                        return default;
+                    }
                     var service = new TService();
                     _instance = service.Instantiate();
                 }
