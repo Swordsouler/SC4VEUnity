@@ -236,8 +236,12 @@ namespace Sc4ve.Tests.EditMode
                 "mode règles (RuleBasedIntentRecognizer), sans réseau ; latence = Recognize() seul");
         }
 
-        [Test, Explicit("Appelle un LLM (API OpenAI ou serveur local) — configurer SC4VE_BENCH_LLM_MODEL, " +
-                        "SC4VE_BENCH_LLM_URL (vide → OpenAI), OPENAI_API_KEY / LOCAL_LLM_API_KEY.")]
+        // Timeout NUnit relevé (défaut : 3 min) : 35 appels × jusqu'à 120 s de timeout HTTP
+        // chacun — un modèle local lent (~30 s/cas observé avec Qwen3-4B sur prompt ~3 200
+        // tokens) dépasse largement le défaut alors que le run est valide.
+        [Test, Timeout(7_200_000),
+         Explicit("Appelle un LLM (API OpenAI ou serveur local) — configurer SC4VE_BENCH_LLM_MODEL, " +
+                  "SC4VE_BENCH_LLM_URL (vide → OpenAI), OPENAI_API_KEY / LOCAL_LLM_API_KEY.")]
         public void Llm_Benchmark()
         {
             string model = Environment.GetEnvironmentVariable("SC4VE_BENCH_LLM_MODEL");
