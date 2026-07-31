@@ -1,5 +1,5 @@
-config;date;exactitude_type;param_precision;param_rappel;param_f1;param_f1_sans_ts;param_f1_sans_ts_non_ordonne;clarif_legitimes;clarif_a_tort;clarif_manquees;exactitude_issue;latence_mediane_ms;latence_http_mediane_ms;erreurs;cas
-rulebased;2026-07-30 16:26;0.943;0.216;0.205;0.211;0.632;0.632;3;0;0;0.943;2.8;;0;35
-llm_Qwen3-4B-Instruct;2026-07-30 17:37;0.914;0.298;0.359;0.326;0.512;0.512;0;2;3;0.800;7932.4;7932.2;0;35
-llm_gpt-4o-mini;2026-07-31 11:07;0.857;0.341;0.385;0.361;0.651;0.651;0;2;3;0.771;1723.8;1723.3;0;35
-llm_gpt-4o;2026-07-31 11:17;1.000;0.326;0.359;0.341;0.780;0.780;0;0;3;0.914;1324.5;1324.0;0;35
+config;date;exactitude_type;param_corrects_stricts;param_corrects_sans_ts;param_total;param_precision;param_rappel;param_f1;param_f1_sans_ts;param_f1_sans_ts_non_ordonne;clarif_legitimes;clarif_a_tort;clarif_manquees;exactitude_issue;latence_mediane_ms;latence_http_mediane_ms;erreurs;cas
+llm_Qwen3-4B-Instruct;2026-07-30 17:37;0.914;14;22;39;0.298;0.359;0.326;0.512;0.512;0;2;3;0.800;7932.4;7932.2;0;35
+llm_gpt-4o-mini;2026-07-31 11:07;0.857;15;27;39;0.341;0.385;0.361;0.651;0.651;0;2;3;0.771;1723.8;1723.3;0;35
+llm_gpt-4o;2026-07-31 11:17;1.000;14;32;39;0.326;0.359;0.341;0.780;0.780;0;0;3;0.914;1324.5;1324.0;0;35
+rulebased;2026-07-31 12:18;0.943;8;24;39;0.216;0.205;0.211;0.632;0.632;3;0;0;0.943;2.6;;0;35

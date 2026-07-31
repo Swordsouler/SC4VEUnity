@@ -693,6 +693,10 @@ namespace Sc4ve.Tests.EditMode
             (double precision, double recall, double f1) = Prf(tp, fp, fn);
             (_, _, double f1NoTs) = Prf(tpNoTs, fpNoTs, fnNoTs);
             (_, _, double f1Relax) = Prf(tpRelax, fpRelax, fnRelax);
+            // Total de paramètres attendus du jeu (VP + FN) — constant quelle que soit la
+            // variante de comparaison ; sert au décompte « X/total », homologue du « x/35 »
+            // de l'exactitude du type.
+            int expectedParams = tp + fn;
 
             int clarifLegit = results.Count(r => r.Case.ExpectedOutcome == "clarification" && r.PredictedOutcome == "clarification");
             int clarifWrong = results.Count(r => r.Case.ExpectedOutcome != "clarification" && r.PredictedOutcome == "clarification");
@@ -748,6 +752,8 @@ namespace Sc4ve.Tests.EditMode
                 "| Métrique | Valeur |",
                 "|---|---|",
                 $"| Exactitude du type | {typeOk}/{total} = {Pct((double)typeOk / total)} |",
+                $"| Paramètres corrects — appariement strict | {tp}/{expectedParams} |",
+                $"| Paramètres corrects — sans horodatages | {tpNoTs}/{expectedParams} |",
                 $"| Paramètres — précision (stricte) | {Pct(precision)} ({tp} VP / {fp} FP / {fn} FN) |",
                 $"| Paramètres — rappel (strict) | {Pct(recall)} |",
                 $"| Paramètres — F-mesure (stricte) | {Pct(f1)} |",
@@ -762,8 +768,8 @@ namespace Sc4ve.Tests.EditMode
                 "",
                 "## Détail par catégorie",
                 "",
-                "| Catégorie | n | Type OK | F1 stricte | F1 sans horodatages | Issue OK | Latence médiane (ms) |",
-                "|---|---|---|---|---|---|---|"
+                "| Catégorie | n | Type OK | Params OK (strict) | Params OK (sans ts) | F1 stricte | F1 sans horodatages | Issue OK | Latence médiane (ms) |",
+                "|---|---|---|---|---|---|---|---|---|"
             };
             foreach (var group in results.GroupBy(r => r.Case.Category).OrderBy(g => g.Key, StringComparer.Ordinal))
             {
@@ -771,7 +777,9 @@ namespace Sc4ve.Tests.EditMode
                 int gTpNoTs = group.Sum(r => r.TpNoTs), gFpNoTs = group.Sum(r => r.FpNoTs), gFnNoTs = group.Sum(r => r.FnNoTs);
                 (_, _, double gF1) = Prf(gTp, gFp, gFn);
                 (_, _, double gF1NoTs) = Prf(gTpNoTs, gFpNoTs, gFnNoTs);
+                int gExpected = gTp + gFn;
                 md.Add($"| {group.Key} | {group.Count()} | {group.Count(r => r.TypeOk)}/{group.Count()} " +
+                       $"| {gTp}/{gExpected} | {gTpNoTs}/{gExpected} " +
                        $"| {Pct(gF1, 0)} | {Pct(gF1NoTs, 0)} | {group.Count(r => r.OutcomeOk)}/{group.Count()} " +
                        $"| {Median(group.Where(r => r.Run.Error == null).Select(r => r.Run.TotalMs)).ToString("F1", inv)} |");
             }
@@ -794,16 +802,20 @@ namespace Sc4ve.Tests.EditMode
 
             // ── Résumé cumulatif : une ligne par configuration ───────────────
             string summaryPath = Path.Combine(ResultsDir, "intent_extraction_summary.csv");
-            const string header = "config;date;exactitude_type;param_precision;param_rappel;param_f1;" +
+            const string header = "config;date;exactitude_type;param_corrects_stricts;param_corrects_sans_ts;param_total;" +
+                                  "param_precision;param_rappel;param_f1;" +
                                   "param_f1_sans_ts;param_f1_sans_ts_non_ordonne;clarif_legitimes;clarif_a_tort;" +
                                   "clarif_manquees;exactitude_issue;latence_mediane_ms;latence_http_mediane_ms;erreurs;cas";
             var summaryLines = File.Exists(summaryPath)
-                ? File.ReadAllLines(summaryPath).Where(l => l.Length > 0 && !l.StartsWith(config + ";") && l != header).ToList()
+                // « config; » exclut l'en-tête même s'il date d'un format antérieur (colonnes
+                // ajoutées depuis) — sans quoi l'ancien en-tête survivrait comme ligne de données.
+                ? File.ReadAllLines(summaryPath).Where(l => l.Length > 0 && !l.StartsWith(config + ";") && !l.StartsWith("config;")).ToList()
                 : new List<string>();
             summaryLines.Insert(0, header);
             summaryLines.Add(string.Join(";",
                 config, DateTime.Now.ToString("yyyy-MM-dd HH:mm", inv),
                 ((double)typeOk / total).ToString("F3", inv),
+                tp, tpNoTs, expectedParams,
                 precision.ToString("F3", inv), recall.ToString("F3", inv), f1.ToString("F3", inv),
                 f1NoTs.ToString("F3", inv), f1Relax.ToString("F3", inv),
                 clarifLegit, clarifWrong, clarifMissed,
@@ -816,7 +828,8 @@ namespace Sc4ve.Tests.EditMode
             // ── Résumé console ───────────────────────────────────────────────
             Debug.Log(
                 $"[Benchmark:{config}] type {typeOk}/{total} ({Pct((double)typeOk / total)}) | " +
-                $"paramètres P={Pct(precision)} R={Pct(recall)} F1={Pct(f1)} (sans ts : {Pct(f1NoTs)} ; " +
+                $"paramètres corrects {tp}/{expectedParams} stricts, {tpNoTs}/{expectedParams} sans ts | " +
+                $"P={Pct(precision)} R={Pct(recall)} F1={Pct(f1)} (sans ts : {Pct(f1NoTs)} ; " +
                 $"sans ts, non ordonné : {Pct(f1Relax)}) | clarifications légitimes {clarifLegit}, à tort {clarifWrong}, " +
                 $"manquées {clarifMissed} | issue {outcomeOk}/{total} | latence médiane {medianMs:F1} ms" +
                 (httpTimes.Count > 0 ? $" (HTTP {medianHttpMs:F1} ms)" : "") +

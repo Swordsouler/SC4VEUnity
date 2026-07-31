@@ -9,6 +9,8 @@
 | Métrique | Valeur |
 |---|---|
 | Exactitude du type | 30/35 = 85.7 % |
+| Paramètres corrects — appariement strict | 15/39 |
+| Paramètres corrects — sans horodatages | 27/39 |
 | Paramètres — précision (stricte) | 34.1 % (15 VP / 29 FP / 24 FN) |
 | Paramètres — rappel (strict) | 38.5 % |
 | Paramètres — F-mesure (stricte) | 36.1 % |
@@ -23,15 +25,15 @@
 
 ## Détail par catégorie
 
-| Catégorie | n | Type OK | F1 stricte | F1 sans horodatages | Issue OK | Latence médiane (ms) |
-|---|---|---|---|---|---|---|
-| anaphorique | 5 | 4/5 | 31 % | 77 % | 4/5 | 1761.0 |
-| clarification | 3 | 3/3 | 0 % | 0 % | 0/3 | 1723.8 |
-| descriptif | 12 | 10/12 | 24 % | 64 % | 10/12 | 1839.3 |
-| déictique | 7 | 6/7 | 76 % | 76 % | 6/7 | 1435.9 |
-| no_match | 1 | 1/1 | 0 % | 0 % | 1/1 | 2239.1 |
-| quantifié | 5 | 5/5 | 33 % | 100 % | 5/5 | 1621.2 |
-| rejet | 2 | 1/2 | 0 % | 0 % | 1/2 | 2035.5 |
+| Catégorie | n | Type OK | Params OK (strict) | Params OK (sans ts) | F1 stricte | F1 sans horodatages | Issue OK | Latence médiane (ms) |
+|---|---|---|---|---|---|---|---|---|
+| anaphorique | 5 | 4/5 | 2/7 | 5/7 | 31 % | 77 % | 4/5 | 1761.0 |
+| clarification | 3 | 3/3 | 0/3 | 0/3 | 0 % | 0 % | 0/3 | 1723.8 |
+| descriptif | 12 | 10/12 | 3/12 | 8/12 | 24 % | 64 % | 10/12 | 1839.3 |
+| déictique | 7 | 6/7 | 8/10 | 8/10 | 76 % | 76 % | 6/7 | 1435.9 |
+| no_match | 1 | 1/1 | 0/1 | 0/1 | 0 % | 0 % | 1/1 | 2239.1 |
+| quantifié | 5 | 5/5 | 2/6 | 6/6 | 33 % | 100 % | 5/5 | 1621.2 |
+| rejet | 2 | 1/2 | 0/0 | 0/0 | 0 % | 0 % | 1/2 | 2035.5 |
 
 ## Causes d'écart les plus fréquentes
 
