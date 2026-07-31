@@ -604,10 +604,21 @@ namespace Sc4ve.Multimodality
                 if (!string.IsNullOrEmpty(trimmed) && trimmed.StartsWith("{"))
                 {
                     JObject wrapper = JObject.Parse(json);
-                    JToken array = wrapper.Properties().Select(p => p.Value)
-                                          .FirstOrDefault(v => v.Type == JTokenType.Array);
-                    if (array != null) commands = array.ToObject<List<Command>>();
-                    else if (wrapper["type"] != null) commands = new List<Command> { wrapper.ToObject<Command>() };
+                    // Une commande seule se reconnaît à sa propriété "type" — à tester AVANT la
+                    // recherche générique d'un tableau : sinon son tableau "parameters" serait
+                    // pris pour la liste de commandes (chaque paramètre → UnknownCommand →
+                    // « not understood » à tort). C'est la forme dominante de gpt-4o/mini en
+                    // mode json_object pour une phrase à commande unique.
+                    if (wrapper["type"] != null)
+                    {
+                        commands = new List<Command> { wrapper.ToObject<Command>() };
+                    }
+                    else
+                    {
+                        JToken array = wrapper.Properties().Select(p => p.Value)
+                                              .FirstOrDefault(v => v.Type == JTokenType.Array);
+                        if (array != null) commands = array.ToObject<List<Command>>();
+                    }
                 }
                 commands ??= JsonConvert.DeserializeObject<List<Command>>(json);
                 // Le tableau peut contenir des éléments null ([null, {…}]) : on les retire,

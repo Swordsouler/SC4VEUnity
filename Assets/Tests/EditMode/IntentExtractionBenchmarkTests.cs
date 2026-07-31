@@ -64,6 +64,8 @@ namespace Sc4ve.Tests.EditMode
             public double TotalMs;
             public double? HttpMs;
             public string Error;
+            // Relances effectuées après un 429 (rate limit) — informatif, sans effet sur les métriques.
+            public int Retries;
         }
 
         private class CaseResult
@@ -291,19 +293,35 @@ namespace Sc4ve.Tests.EditMode
                     // Même sérialisation du message utilisateur que le contrôleur.
                     string userContent = JsonConvert.SerializeObject(new { sentence.Text, sentence.Words });
 
-                    var stopwatch = Stopwatch.StartNew();
-                    LlmIntentService.CallResult call = EditModeSync.RunSync(() =>
-                        LlmIntentService.CallChatCompletionsAsync(
-                            http, local ? url : null, apiKey, model, systemPrompt, userContent,
-                            jsonObjectFormat: !local));
-                    stopwatch.Stop();
+                    // Reprise sur 429 : le quota OpenAI (TPM) est une fenêtre glissante par
+                    // minute — avec ~6 000 tokens par appel, un palier bas (30k TPM) sature
+                    // après quelques cas. On attend puis on retente ; seule la tentative
+                    // réussie est chronométrée (l'attente de quota n'est pas de l'inférence).
+                    LlmIntentService.CallResult call = null;
+                    var stopwatch = new Stopwatch();
+                    int retries = 0;
+                    for (int attempt = 0; attempt < 5; attempt++)
+                    {
+                        stopwatch.Restart();
+                        call = EditModeSync.RunSync(() =>
+                            LlmIntentService.CallChatCompletionsAsync(
+                                http, local ? url : null, apiKey, model, systemPrompt, userContent,
+                                jsonObjectFormat: !local));
+                        stopwatch.Stop();
+                        bool rateLimited = call.Error != null &&
+                            (call.Error.Contains("429") || call.Error.Contains("TooManyRequests"));
+                        if (!rateLimited) break;
+                        retries++;
+                        System.Threading.Thread.Sleep(20_000);
+                    }
 
                     return new CaseRun
                     {
                         ProducedJson = call.Content,
                         TotalMs      = stopwatch.Elapsed.TotalMilliseconds,
                         HttpMs       = call.HttpMs,
-                        Error        = call.Error
+                        Error        = call.Error,
+                        Retries      = retries
                     };
                 },
                 conditions);
@@ -355,6 +373,8 @@ namespace Sc4ve.Tests.EditMode
             List<Command> expected = DeserializeCommands(expectedJson) ?? new List<Command>();
             List<Command> produced = null;
 
+            if (run.Retries > 0)
+                result.Notes.Add($"{run.Retries} relance(s) après 429 (rate limit)");
             if (run.Error != null)
             {
                 result.PredictedOutcome = "error";
@@ -412,10 +432,19 @@ namespace Sc4ve.Tests.EditMode
                 if (trimmed.StartsWith("{"))
                 {
                     JObject wrapper = JObject.Parse(json);
-                    JToken array = wrapper.Properties().Select(p => p.Value)
-                                          .FirstOrDefault(v => v.Type == JTokenType.Array);
-                    if (array != null) commands = array.ToObject<List<Command>>();
-                    else if (wrapper["type"] != null) commands = new List<Command> { wrapper.ToObject<Command>() };
+                    // Commande seule ({"type": …, "parameters": […]}) testée AVANT la recherche
+                    // générique d'un tableau — même correctif que DeserializeCommand du
+                    // contrôleur : sinon "parameters" est pris pour la liste de commandes.
+                    if (wrapper["type"] != null)
+                    {
+                        commands = new List<Command> { wrapper.ToObject<Command>() };
+                    }
+                    else
+                    {
+                        JToken array = wrapper.Properties().Select(p => p.Value)
+                                              .FirstOrDefault(v => v.Type == JTokenType.Array);
+                        if (array != null) commands = array.ToObject<List<Command>>();
+                    }
                 }
                 commands ??= JsonConvert.DeserializeObject<List<Command>>(json);
                 return commands?.Where(c => c != null).ToList();
@@ -751,7 +780,9 @@ namespace Sc4ve.Tests.EditMode
             md.Add("## Causes d'écart les plus fréquentes");
             md.Add("");
             var causes = results.SelectMany(r => r.Notes)
-                                .Where(n => !n.StartsWith("type:"))
+                                // Les notes d'infrastructure (relances 429, erreurs d'appel) ne sont
+                                // pas des causes d'écart d'extraction — déjà visibles par ailleurs.
+                                .Where(n => !n.StartsWith("type:") && !n.Contains("429") && !n.StartsWith("erreur d'appel"))
                                 .GroupBy(n => n).OrderByDescending(g => g.Count()).Take(12);
             foreach (var cause in causes)
                 md.Add($"- {cause.Count()} × {cause.Key}");
