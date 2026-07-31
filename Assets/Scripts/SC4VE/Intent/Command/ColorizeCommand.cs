@@ -10,7 +10,7 @@ namespace Sc4ve.Multimodality.Intent
         "colorie", "coloris", "colorise", "colorisez", "coloriez",
         "peins", "peinez", "recolore", "recolorez",
         "colorier", "coloriser",
-        "met", "mets", "mettre")]
+        "met", "mets", "mettre", "make")]
     [Serializable, CommandDescription("Applique une couleur. Paramètres: ColorParameter, SelectionParameter.")]
     public class ColorizeCommand : Command
     {

@@ -191,6 +191,14 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                     limit = -1;
             }
 
+            // Convention déictique : une référence pointée au singulier (« ça », « cette
+            // banane ») cible UN objet → limit 1, comme l'enseigne le prompt LLM du système.
+            // SANS pointage (« déplace la pomme »), on conserve -1 + SingularIntent : la
+            // désambiguïsation (« laquelle ? ») doit pouvoir s'exécuter, un LIMIT 1 SPARQL
+            // prendrait un objet arbitraire. « ces pommes » (pluriel) n'est pas concerné.
+            if (deictics.Count > 0 && singularIntent && limit <= 0)
+                limit = 1;
+
             Debug.Log(
                 $"[RuleBased] Annotations : [{string.Join(", ", annotations.Select(a => a.Value))}] | " +
                 $"Couleurs : [{string.Join(", ", colors.Select(c => $"{c.Value}(cible={c.IsTarget})"))}] | " +
@@ -213,6 +221,10 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 ScaleValue       = scaleValue,
                 Angle            = angle,
                 MagnitudeModifier = DetectMagnitudeModifier(text),
+                // « les pommes ou les bananes » : la conjonction bascule les filtres
+                // d'annotation en OR (UNION SPARQL) au lieu du AND par défaut.
+                HasDisjunction   = Regex.IsMatch(text, @"\b(ou|or)\b", RegexOptions.IgnoreCase),
+                Order            = DetectOrder(text),
                 SingularIntent   = singularIntent
             };
 
@@ -584,6 +596,22 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         }
 
         /// <summary>
+        /// Tri ordinal superlatif : « plus petit(e)(s) » / "smallest" → taille croissante ;
+        /// « plus grand(e)(s) »/« plus gros(se)(s) » / "biggest"/"largest" → décroissante ;
+        /// null sinon. Combiné à la limite (« les 3 plus petites pommes » → limit 3 + tri),
+        /// il produit le critère « size » consommé par SelectionParameter.Order en SPARQL.
+        /// </summary>
+        private static Order DetectOrder(string text)
+        {
+            string n = FrenchStemmer.NormalizeAccents(text);
+            if (Regex.IsMatch(n, @"\bplus\s+petite?s?\b|\bsmallest\b"))
+                return new Order { Criterias = new List<Criteria> { new() { Type = "size", Desc = false } } };
+            if (Regex.IsMatch(n, @"\bplus\s+(grande?s?|grosse?s?)\b|\bbiggest\b|\blargest\b"))
+                return new Order { Criterias = new List<Criteria> { new() { Type = "size", Desc = true } } };
+            return null;
+        }
+
+        /// <summary>
         /// Vrai si la phrase contient un marqueur de pluralité / collectif (« les », « tous »… ;
         /// « all », « every »… ou « the …s ») → intention « tous les objets de ce type », pas une
         /// cible unique. L'anglais reste approximatif (pluriel du nom mal détecté hors collectifs).
@@ -675,6 +703,16 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                     forms.Add(baseForm[..^3] + "eaux"); // gâteau → gâteaux
                 else if (baseForm.EndsWith("al"))
                     forms.Add(baseForm[..^2] + "aux");  // cheval → chevaux
+
+                // Accord féminin régulier (« pomme verte », « bananes vertes ») : sans lui, une
+                // couleur accordée au féminin passait inaperçue. Les formes déjà en -e (rouge,
+                // jaune, rose) ont un féminin identique ; les irréguliers (blanc → blanche)
+                // restent non couverts.
+                if (!baseForm.EndsWith("e"))
+                {
+                    forms.Add(baseForm + "e");   // vert → verte
+                    forms.Add(baseForm + "es");  // vert → vertes
+                }
             }
 
             return forms;

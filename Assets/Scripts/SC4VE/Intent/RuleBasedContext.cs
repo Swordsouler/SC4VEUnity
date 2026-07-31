@@ -32,6 +32,10 @@ namespace Sc4ve.Multimodality.Intent
         // Coefficient d'intensité des adverbes graduables (« un peu » → 0.5, « beaucoup » → 2) ;
         // 1 = neutre. Les commandes l'appliquent à l'ÉCART de leur transformation à l'identité.
         public float MagnitudeModifier { get; init; } = 1f;
+        // « les pommes OU les bananes » : les filtres d'annotation sont joints par OR (UNION).
+        public bool HasDisjunction { get; init; }
+        // Tri ordinal superlatif (« les 3 plus petites » → size croissant) ; null = aucun tri.
+        public Order Order { get; init; }
         // Référence au singulier (« la pomme ») → candidate à la désambiguïsation si plusieurs cibles.
         public bool SingularIntent { get; init; }
 
@@ -95,7 +99,44 @@ namespace Sc4ve.Multimodality.Intent
             }
             else
             {
+                // Ordre des conditions : annotations → couleurs source → pointage (Event en
+                // DERNIER) — même convention que les exemples du prompt LLM et le jeu de test
+                // annoté. Sémantiquement neutre en SPARQL (conjonction), mais la position des
+                // éléments compte pour la comparaison structurelle du benchmark.
                 bool needsOp = false;
+                bool firstAnnotation = true;
+
+                // Tri par horodatage = ordre de PRONONCIATION : sans lui, l'ordre suivrait celui
+                // du vocabulaire ontologique (arbitraire), et « les pommes ou les bananes »
+                // pourrait produire [Banane OR Pomme].
+                foreach (RuleBasedAnnotation a in (Annotations ?? Enumerable.Empty<RuleBasedAnnotation>()).OrderBy(x => x.Timestamp))
+                {
+                    // « les pommes ou les bananes » : OR entre annotations (UNION SPARQL) ;
+                    // les autres jonctions (annotation-couleur, -pointage) restent des AND.
+                    if (needsOp) filters.Add(new FilterElement
+                    {
+                        IsOperator = true,
+                        Operator   = !firstAnnotation && HasDisjunction ? "OR" : "AND"
+                    });
+                    filters.Add(new FilterElement
+                    {
+                        IsOperator = false,
+                        Condition  = new Condition { Type = "Annotation", Value = a.Value, Timestamp = a.Timestamp }
+                    });
+                    needsOp = true;
+                    firstAnnotation = false;
+                }
+
+                foreach (RuleBasedColor c in SourceColors.OrderBy(x => x.Timestamp))
+                {
+                    if (needsOp) filters.Add(new FilterElement { IsOperator = true, Operator = "AND" });
+                    filters.Add(new FilterElement
+                    {
+                        IsOperator = false,
+                        Condition  = new Condition { Type = "Color", Value = c.Value, Timestamp = c.Timestamp }
+                    });
+                    needsOp = true;
+                }
 
                 foreach (RuleBasedAnnotation d in Deictics ?? Enumerable.Empty<RuleBasedAnnotation>())
                 {
@@ -104,28 +145,6 @@ namespace Sc4ve.Multimodality.Intent
                     {
                         IsOperator = false,
                         Condition  = new Condition { Type = "Event", Value = d.Value, Timestamp = d.Timestamp }
-                    });
-                    needsOp = true;
-                }
-
-                foreach (RuleBasedAnnotation a in Annotations ?? Enumerable.Empty<RuleBasedAnnotation>())
-                {
-                    if (needsOp) filters.Add(new FilterElement { IsOperator = true, Operator = "AND" });
-                    filters.Add(new FilterElement
-                    {
-                        IsOperator = false,
-                        Condition  = new Condition { Type = "Annotation", Value = a.Value, Timestamp = a.Timestamp }
-                    });
-                    needsOp = true;
-                }
-
-                foreach (RuleBasedColor c in SourceColors)
-                {
-                    if (needsOp) filters.Add(new FilterElement { IsOperator = true, Operator = "AND" });
-                    filters.Add(new FilterElement
-                    {
-                        IsOperator = false,
-                        Condition  = new Condition { Type = "Color", Value = c.Value, Timestamp = c.Timestamp }
                     });
                     needsOp = true;
                 }
@@ -142,6 +161,7 @@ namespace Sc4ve.Multimodality.Intent
                 Type = "SelectionParameter",
                 Filters = filters,
                 Limit = Limit,
+                Order = Order,
                 FallbackToSelection = fallbackToSelection && !explicitTypeTarget,
                 SingularIntent = SingularIntent
             };

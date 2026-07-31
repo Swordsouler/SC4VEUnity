@@ -497,7 +497,7 @@ sc4ve:SelectCommand sc4ve:trigger
 
 sc4ve:ColorizeCommand sc4ve:trigger
     "colorie"@fr , "colorise"@fr , "coloriser"@fr , "peins"@fr , "recolore"@fr , "change la couleur"@fr , "mets en couleur"@fr , "met"@fr , "mets"@fr , "mettre"@fr ,
-    "colorize"@en , "colour"@en , "color"@en , "paint"@en , "recolor"@en .
+    "colorize"@en , "colour"@en , "color"@en , "paint"@en , "recolor"@en , "make"@en .
 
 
 sc4ve:SelectAllCommand sc4ve:trigger
@@ -525,7 +525,7 @@ sc4ve:GrabCommand sc4ve:trigger
     "grab"@en , "take"@en , "pick up"@en , "grasp"@en .
 
 sc4ve:ReleaseCommand sc4ve:trigger
-    "lâche"@fr , "lâcher"@fr , "pose"@fr , "poser"@fr , "libère"@fr , "libérer"@fr , "dépose"@fr , "déposer"@fr ,
+    "lâche"@fr , "lâcher"@fr , "relâche"@fr , "relâcher"@fr , "pose"@fr , "poser"@fr , "libère"@fr , "libérer"@fr , "dépose"@fr , "déposer"@fr ,
     "release"@en , "drop"@en , "let go"@en , "put down"@en .
 
 sc4ve:MoveCommand sc4ve:trigger
