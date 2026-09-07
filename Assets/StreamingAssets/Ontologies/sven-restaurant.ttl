@@ -76,6 +76,16 @@ sven:forbidsState rdf:type owl:AnnotationProperty ;
 #    Object Properties
 #################################################################
 
+###  https://sven.lisn.upsaclay.fr/ontology#appliesState
+#    Ce qu'une station donne à ce qu'on y pose. Déclaré ici plutôt que codé dans le composant :
+#    ajouter une station revient alors à écrire une ligne de Turtle, pas à toucher au C#.
+sven:appliesState rdf:type owl:AnnotationProperty ;
+                  rdfs:comment "The food state a station gives to what is put in it."@en ,
+                               "L'état d'aliment qu'une station donne à ce qu'on y pose."@fr ;
+                  rdfs:label "applies state"@en ,
+                             "donne l'état"@fr .
+
+
 ###  https://sven.lisn.upsaclay.fr/ontology#content
 sven:content rdf:type owl:ObjectProperty ;
              rdfs:comment "Relates a container to an object it holds. Emitted at runtime by the Container component, one triple per held object."@en ,
@@ -593,6 +603,7 @@ sven:CuttingBoard rdf:type owl:Class ;
                           ]
                       )
                   ] ;
+                  sven:appliesState sven:Sliced ;
                   rdfs:comment "Gives the Sliced state."@en ,
                                "Donne l'état Coupé."@fr ;
                   rdfs:label "Cutting board"@en ,
@@ -621,6 +632,7 @@ sven:Stove rdf:type owl:Class ;
                    ]
                )
            ] ;
+           sven:appliesState sven:Cooked ;
            rdfs:comment "Gives the Cooked state."@en ,
                         "Donne l'état Cuit."@fr ;
            rdfs:label "Stove"@en ,

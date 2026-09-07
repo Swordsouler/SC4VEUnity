@@ -155,8 +155,14 @@ namespace Sc4ve.Multimodality.Intent
 
                 Vector3 target = DropPosition(container, obj);
 
+                // Un objet n'est que dans un seul contenant à la fois : sans ce retrait, une
+                // pomme passée de la planche à l'assiette figurerait dans les deux, et la
+                // planche continuerait de la « couper » indéfiniment.
+                ContainerContent previousContainer = ContainerOf(obj);
+
                 void Put()
                 {
+                    previousContainer?.Remove(obj);
                     t.SetParent(container.transform);
                     t.position = target;
                     Rest(obj);
@@ -166,6 +172,7 @@ namespace Sc4ve.Multimodality.Intent
                 void Undo()
                 {
                     container.Remove(obj);
+                    previousContainer?.Add(obj);
                     t.SetParent(previousParent);
                     t.position = previousPosition;
                 }
@@ -191,6 +198,12 @@ namespace Sc4ve.Multimodality.Intent
                                bounds.center.y + height,
                                container.transform.position.z);
         }
+
+        /// <summary>Le contenant qui détient actuellement cet objet, s'il y en a un.</summary>
+        private static ContainerContent ContainerOf(SemantizationCore obj)
+            => UnityEngine.Object
+                .FindObjectsByType<ContainerContent>(FindObjectsInactive.Exclude)
+                .FirstOrDefault(c => c.Contains(obj));
 
         /// <summary>Coupe l'élan de l'objet, sinon il roule hors du contenant juste après y avoir été posé.</summary>
         private static void Rest(SemantizationCore obj)

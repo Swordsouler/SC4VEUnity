@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Sc4ve.Multimodality;
@@ -327,7 +328,7 @@ namespace Sc4ve.Demonstration.EditorTools
             new("sven:Tomato",  0.07f, PrimitiveType.Sphere,   new Vector3(1f, 0.9f, 1f),     new Color(0.85f, 0.18f, 0.15f)),
             new("sven:Beef",    0.14f, PrimitiveType.Cube,     new Vector3(1f, 0.25f, 0.7f),  new Color(0.55f, 0.18f, 0.16f)),
             new("sven:Chicken", 0.12f, PrimitiveType.Capsule,  new Vector3(0.6f, 1f, 0.6f),   new Color(0.93f, 0.85f, 0.68f)),
-            new("sven:Salmon",  0.18f, PrimitiveType.Cube,     new Vector3(1f, 0.18f, 0.5f),  new Color(0.95f, 0.55f, 0.42f)),
+            new("sven:Salmon",  0.13f, PrimitiveType.Cube,     new Vector3(1f, 0.18f, 0.5f),  new Color(0.95f, 0.55f, 0.42f)),
             new("sven:Cheese",  0.10f, PrimitiveType.Cube,     new Vector3(1f, 0.5f, 0.9f),   new Color(0.97f, 0.83f, 0.35f)),
             new("sven:Bread",   0.20f, PrimitiveType.Capsule,  new Vector3(0.4f, 1f, 0.4f),   new Color(0.80f, 0.62f, 0.36f)),
         };
@@ -355,20 +356,44 @@ namespace Sc4ve.Demonstration.EditorTools
             string name = ShortName(ingredient.Semantic);
             string path = $"{PrefabsPath}/{name}.prefab";
 
-            GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (asset != null) return asset;
+            // Les meshes d'abord : c'est le corps qui décide si un prefab déjà là est valable.
+            List<IngredientMeshFactory.Part> parts = IngredientMeshFactory.Parts(name);
+            Mesh mesh = parts.Count > 0 ? parts[0].Mesh : null;
+
+            // Le prefab est TOUJOURS reconstruit.
+            //
+            // J'ai d'abord tenté de ne le refaire que s'il paraissait périmé — encore sur un
+            // primitif, ou à court de pièces. Cette heuristique s'est trompée deux fois : elle
+            // a gardé un steak à l'os parce que l'ancienne pièce et la nouvelle se comptaient
+            // pareil. Un test de fraîcheur qui échoue en silence coûte plus cher que la
+            // reconstruction qu'il évite.
+            //
+            // Ce dossier appartient donc entièrement à l'outil. Pour garder un modèle fait
+            // main, le sortir d'ici et le référencer comme un prefab existant (cf. le champ
+            // ExistingPrefab des ingrédients).
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(path) != null)
+                AssetDatabase.DeleteAsset(path);
 
             Directory.CreateDirectory(PrefabsPath);
 
-            GameObject temporary = Semantized(
-                null, name, ingredient.Shape, Vector3.zero, ingredient.Proportions,
-                ingredient.Color, ingredient.Semantic, grabbable: true);
+            // Le mesh généré porte DÉJÀ sa forme : lui réappliquer les proportions l'écraserait
+            // une seconde fois. Elles ne servent donc qu'au primitif de repli.
+            Vector3 shape = mesh != null ? Vector3.one : ingredient.Proportions;
 
-            asset = PrefabUtility.SaveAsPrefabAsset(temporary, path);
+            GameObject temporary = Semantized(
+                null, name, ingredient.Shape, Vector3.zero, shape,
+                ingredient.Color, ingredient.Semantic, grabbable: true, mesh);
+
+            // Les traits distinctifs — os, queue, pédoncule, grignes — deviennent des enfants,
+            // avec leur propre couleur. C'est ce qui rend l'aliment reconnaissable ; le corps
+            // seul n'est qu'un galet coloré.
+            AddDistinctiveParts(temporary, parts);
+
+            GameObject asset = PrefabUtility.SaveAsPrefabAsset(temporary, path);
             UnityEngine.Object.DestroyImmediate(temporary);
 
-            Debug.Log($"[DemoSceneBuilder] Prefab fabriqué : {path} (primitif de remplacement, " +
-                      "à remplacer par un vrai modèle avant toute présentation publique).");
+            Debug.Log($"[DemoSceneBuilder] Prefab fabriqué : {path}" +
+                      (mesh != null ? "." : " (primitif de remplacement, aucun mesh généré)."));
             return asset;
         }
 
@@ -418,13 +443,20 @@ namespace Sc4ve.Demonstration.EditorTools
             var stations = new GameObject("Stations").transform;
             stations.SetParent(parent);
 
-            RestOnSurface(Semantized(stations, "Planche à découper", PrimitiveType.Cube,
+            GameObject board = Semantized(stations, "Planche à découper", PrimitiveType.Cube,
                 new Vector3(-0.85f, CounterY, 0.70f), new Vector3(0.40f, 0.04f, 0.30f),
-                new Color(0.72f, 0.55f, 0.35f), "sven:CuttingBoard", grabbable: false), CounterY);
+                new Color(0.72f, 0.55f, 0.35f), "sven:CuttingBoard", grabbable: false);
+            RestOnSurface(board, CounterY);
+            board.AddComponent<TransformationStation>();
 
-            RestOnSurface(Semantized(stations, "Plaque de cuisson", PrimitiveType.Cube,
+            GameObject stove = Semantized(stations, "Plaque de cuisson", PrimitiveType.Cube,
                 new Vector3(-0.35f, CounterY, 0.70f), new Vector3(0.36f, 0.04f, 0.30f),
-                new Color(0.18f, 0.18f, 0.20f), "sven:Stove", grabbable: false), CounterY);
+                new Color(0.18f, 0.18f, 0.20f), "sven:Stove", grabbable: false);
+            RestOnSurface(stove, CounterY);
+            stove.AddComponent<TransformationStation>();
+
+            // Aucun état n'est passé en paramètre : chaque station lit le sien dans l'ontologie
+            // (sven:appliesState). Une troisième station ne demanderait qu'une ligne de Turtle.
         }
 
         /// <summary>Six assiettes identiques et interchangeables — un seul type de contenant (§5).</summary>
@@ -733,7 +765,7 @@ namespace Sc4ve.Demonstration.EditorTools
         /// </summary>
         private static GameObject Semantized(Transform parent, string name, PrimitiveType shape,
                                              Vector3 position, Vector3 scale, Color color,
-                                             string semanticType, bool grabbable)
+                                             string semanticType, bool grabbable, Mesh mesh = null)
         {
             GameObject go = GameObject.CreatePrimitive(shape);
             go.name = name;
@@ -741,6 +773,8 @@ namespace Sc4ve.Demonstration.EditorTools
             go.transform.position = position;
             go.transform.localScale = scale;
             go.GetComponent<Renderer>().sharedMaterial = GetMaterial(ShortName(semanticType), color);
+
+            if (mesh != null) ReplaceMesh(go, mesh);
 
             string[] hierarchy = SemanticHierarchy(semanticType);
             Type annotationType = ResolveAnnotationType(semanticType);
@@ -773,6 +807,47 @@ namespace Sc4ve.Demonstration.EditorTools
             }
 
             return go;
+        }
+
+        /// <summary>
+        /// Monte les pièces annexes en enfants du corps.
+        ///
+        /// Elles n'ont ni collider ni sémantisation : ce sont des détails de silhouette, pas
+        /// des objets. Le collider du corps suffit à la saisie, et un os qui serait un objet
+        /// distinct polluerait le graphe comme les sélections.
+        /// </summary>
+        private static void AddDistinctiveParts(GameObject body, List<IngredientMeshFactory.Part> parts)
+        {
+            // La première pièce est le corps, déjà posée.
+            for (int i = 1; i < parts.Count; i++)
+            {
+                IngredientMeshFactory.Part part = parts[i];
+                if (part.Mesh == null) continue;
+
+                var piece = new GameObject(part.Name);
+                piece.transform.SetParent(body.transform, false);
+                piece.transform.localPosition = part.Position;
+                piece.transform.localEulerAngles = part.Rotation;
+
+                piece.AddComponent<MeshFilter>().sharedMesh = part.Mesh;
+                piece.AddComponent<MeshRenderer>().sharedMaterial =
+                    GetMaterial($"{body.name}{part.Name}", part.Color);
+            }
+        }
+
+        /// <summary>
+        /// Remplace la forme primitive par un mesh généré, et son collider par un MeshCollider
+        /// convexe — un collider convexe est exigé dès qu'un Rigidbody est en jeu, et c'est le
+        /// cas de tous les ingrédients, qui sont saisissables.
+        /// </summary>
+        private static void ReplaceMesh(GameObject go, Mesh mesh)
+        {
+            go.GetComponent<MeshFilter>().sharedMesh = mesh;
+
+            UnityEngine.Object.DestroyImmediate(go.GetComponent<Collider>());
+            var collider = go.AddComponent<MeshCollider>();
+            collider.sharedMesh = mesh;
+            collider.convex = true;
         }
 
         private static SemanticComponent Entry(Component component, SemanticProcessingMode mode)
