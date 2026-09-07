@@ -51,9 +51,13 @@ placer soi-même sous cette racine.**
 Le rig XR suit la même logique : créé s'il manque, laissé intact s'il existe, et toujours hors
 de la racine générée.
 
-Ce que l'outil ne fait pas, et qui reste manuel : cuire le NavMesh, poser le
-`MultimodalityController` et le pipeline vocal, remplacer les 8 primitives colorées par de
-vrais modèles (§6.1).
+L'outil **cuit aussi le NavMesh** (une `NavMeshSurface` sous la racine générée). C'est
+délibéré : le contenu se reconstruit à chaque exécution, donc un NavMesh cuit à la main serait
+périmé dès la reconstruction suivante — et un NavMesh périmé ne produit aucune erreur, seulement
+des serveurs qui refusent de bouger.
+
+Ce que l'outil ne fait pas, et qui reste manuel : poser le `MultimodalityController` et le
+pipeline vocal.
 
 ### Ce qui ne doit PAS venir ici
 
@@ -85,8 +89,18 @@ accède librement aux types SC4VE et SVEN sans asmdef ni configuration.
 | `Assets/Scripts/SC4VE/ListeningTimeScale.cs` | ralenti pendant la parole (§2) |
 | `Assets/Scripts/SC4VE/Intent/Command/XRGrabSupport.cs` | accès XRI pour `GrabCommand` / `ReleaseCommand` |
 | `Assets/Scripts/SC4VE/Voice/VoiceProcessor.cs` | ajout de l'événement `OnSpeechStart` |
+| `Assets/Scripts/SC4VE/ContainerContent.cs` | la contenance, que SVEN ne modélise pas (§6.3) |
+| `Assets/Scripts/SC4VE/Waiter.cs` | le registre de délégation (§8) |
+| `Assets/Scripts/SC4VE/Intent/RecipeConformity.cs` | la vérification de conformité (§6.5) |
+| `Assets/Scripts/SC4VE/Intent/DelegationRoles.cs` | qui est l'agent, qui est la table |
+| `Assets/Scripts/SC4VE/Intent/Command/*.cs` | les onze commandes du §7 déjà écrites |
 
-Aucun de ces fichiers n'a été compilé ni testé.
+**Pourquoi `ContainerContent` et `Waiter` sont dans SC4VE et non ici.** Ce sont des composants
+de jeu, leur place naturelle serait `Demonstration/Scripts/`. Mais les commandes les
+référencent, et les commandes doivent rester dans SC4VE (voir ci-dessus) : or Assembly-CSharp
+dépend de SC4VE, pas l'inverse. Un composant de jeu que les commandes touchent doit donc vivre
+avec elles. Les composants que personne ne référence — `TransformationStation`,
+`FoodStateMeshes` — restent bien ici.
 
 ---
 
@@ -769,10 +783,25 @@ réellement (parentage dans le contenant + rangement, pas une téléportation à
 corriger la description de `MoveCommand` pour qu'elle cesse de promettre ce qu'elle ne fait
 pas — c'est une correction séparée, à ne pas mélanger au chantier.
 
-**Deux `SelectionParameter` dans la même commande.** `GetParameter<T>()` renvoie le premier,
-`GetParameter<T>(2)` le second : la mécanique existe déjà. Ce qui compte est que **l'ordre
-soit stable** et que la description `CommandDescription` l'énonce sans ambiguïté pour le LLM
-(« le premier `SelectionParameter` est l'agent, le second est la destination »).
+**Deux `SelectionParameter` dans la même commande — et deux stratégies, pas une.**
+`GetParameter<T>()` renvoie le premier, `GetParameter<T>(2)` le second : la mécanique existe
+déjà. Mais s'appuyer sur l'ordre ne marche que là où la phrase le fixe.
+
+- **`PutInCommand` se fie à l'ordre**, parce qu'une préposition le fixe : ce qui est dit avant
+  « dans » désigne les objets, ce qui est dit après désigne le contenant. Le découpage se fait
+  par horodatage autour de ce pivot.
+- **Les commandes de délégation ne s'y fient pas.** « Toi 👆 va servir cette table-là 👆 » n'a
+  aucun mot pivot entre ses deux pointages, et les deux modes ne produisent pas le même
+  découpage : le LLM émet deux `SelectionParameter`, le mode RuleBased un seul contenant les
+  deux. `DelegationRoles` lit donc les rôles dans les OBJETS — un serveur porte un composant
+  `Waiter`, une table porte l'annotation `sven:Table` — ce qui rend l'ordre sans importance et
+  fait marcher l'énoncé inversé sans une ligne de plus.
+
+Conséquence sur `sc4ve.ttl` : `PutInCommand` déclare une cardinalité de 2 sur
+`SelectionParameter`, les commandes de délégation une cardinalité de 1. La restriction OWL est
+un **minimum** (`ClarificationVocabulary` teste `satisfied < cardinality`) : exiger 2 sur une
+commande de délégation déclencherait une clarification à tort en mode RuleBased, qui n'en émet
+qu'un.
 
 **`TakeOrderCommand` et `ServeCommand` ont la même signature** (agent + table) et ne diffèrent
 que par la macro exécutée. Les écrire ensemble ; si l'une marche, l'autre marche.
@@ -902,6 +931,29 @@ requête ne sait pas dire ce que contient une assiette. Puis `PutInCommand`, les
 
 NavMesh, machine à états, exposition de l'état dans le graphe, `GoToCommand`,
 `TakeOrderCommand`, `ServeCommand`, `StopCommand`, portage du contenant, retours vocaux.
+
+**Écrit, compilé, non joué.** Le composant `Waiter` (§8) tient la machine à états à un seul
+créneau, la marche par `NavMeshAgent`, le portage réel du plat et la parole à chaque transition.
+Les quatre commandes sont déclarées dans `sc4ve.ttl` — le test
+`OntologyCommandConsistencyTests` le vérifie — et le NavMesh est cuit par l'outil 1.
+
+Trois décisions à retenir :
+
+- **Les rôles se lisent dans les objets, pas dans la phrase.** « Toi 👆 va servir cette
+  table-là 👆 » désigne deux objets sans mot pivot entre eux, et les deux modes ne les
+  découpent pas pareil : le LLM émet deux `SelectionParameter`, le mode RuleBased un seul.
+  `DelegationRoles` tranche sur ce que SONT les objets — un serveur porte un composant `Waiter`,
+  une table porte l'annotation `sven:Table` — ce qui rend l'ordre des mots sans importance et
+  fait marcher l'énoncé inversé sans une ligne de plus.
+- **Cardinalité 1 et non 2** sur ces commandes, pour la même raison : la restriction OWL est un
+  minimum, et exiger 2 déclencherait une clarification à tort en mode RuleBased.
+- **Le composant s'appelle `sven:Delegation` dans le graphe, pas `sven:Waiter`** : cette
+  dernière est déjà la classe d'objet « serveur ». Un composant typé `a sven:Waiter` ferait
+  répondre « ?x a sven:Waiter » avec des composants au lieu de personnes.
+
+Le paquet `com.unity.ai.navigation` (2.0.14) a été ajouté au manifeste : la fenêtre Navigation
+historique n'existe plus dans Unity 6, `NavMeshSurface` la remplace. **La version 2.0.8 ne
+compile pas** sous 6000.5 (`GetInstanceID` y est obsolète au rang d'erreur) — ne pas rétrograder.
 
 > **Vérifier :**
 > 1. « toi 👆, va servir cette table-là 👆 » aboutit à un plat déposé sur la bonne table ;

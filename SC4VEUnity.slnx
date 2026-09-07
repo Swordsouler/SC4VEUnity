@@ -1,10 +1,10 @@
 ﻿<Solution>
   <Project Path="com.nsaintl.sven.csproj" />
   <Project Path="ControllerSample.csproj" />
+  <Project Path="SC4VE.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.csproj" />
   <Project Path="SC4VE.Tests.EditMode.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
-  <Project Path="SC4VE.csproj" />
   <Project Path="Vosk.csproj" />
   <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.Editor.csproj" />
   <Project Path="Bunny83.simpleJson.csproj" />

@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using Sc4ve.Multimodality;
 using Sven.Content;
+using Unity.AI.Navigation;
+using UnityEngine.AI;
 using Sven.Context;
 using Sven.GraphManagement;
 using Sven.Multimodality;
@@ -90,6 +92,7 @@ namespace Sc4ve.Demonstration.EditorTools
             // où le rig existait déjà avant cette version de l'outil.
             RemoveStrayMainCamera(FindRigRoot());
             EnsureGraphController();
+            BakeNavMesh(root);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -102,8 +105,8 @@ namespace Sc4ve.Demonstration.EditorTools
                     ? "Rig XR complet mis en place (contrôleurs + Pointer + PointOfView), " +
                       "locomotion désactivée.\n\n"
                     : "Rig XR déjà utilisable, laissé tel quel ; interactors SVEN vérifiés.\n\n") +
-                "Restent à faire à la main :\n" +
-                "• cuire le NavMesh (Window > AI > Navigation)\n" +
+                "NavMesh cuit : les serveurs peuvent circuler.\n\n" +
+                "Reste à faire à la main :\n" +
                 "• ajouter le MultimodalityController et le pipeline vocal",
                 "OK");
         }
@@ -572,8 +575,33 @@ namespace Sc4ve.Demonstration.EditorTools
 
             // Deux serveurs délibérément identiques : sans une paire indiscernable,
             // la clarification ne se déclenche jamais (§3 du README).
-            RestOnSurface(Prop(room, "Serveur 1", "sven:Waiter", new Vector3(-0.7f, 0f, 2.6f), 1.75f), 0f);
-            RestOnSurface(Prop(room, "Serveur 2", "sven:Waiter", new Vector3(0.7f, 0f, 2.6f), 1.75f), 0f);
+            MakeWaiter(Prop(room, "Serveur 1", "sven:Waiter", new Vector3(-0.7f, 0f, 2.6f), 1.75f));
+            MakeWaiter(Prop(room, "Serveur 2", "sven:Waiter", new Vector3(0.7f, 0f, 2.6f), 1.75f));
+        }
+
+        /// <summary>
+        /// Rend un serveur délégable : agent de navigation, machine à états, et exposition de
+        /// son état de tâche au graphe.
+        ///
+        /// La sémantisation est **Dynamic** et non Static : l'activité change en cours de
+        /// partie, et en Static elle serait observée une fois au démarrage puis figée — le
+        /// graphe montrerait tous les serveurs éternellement disponibles.
+        /// </summary>
+        private static void MakeWaiter(GameObject waiter)
+        {
+            RestOnSurface(waiter, 0f);
+
+            // Le gabarit est réglé par Waiter.Awake, qui seul connaît l'échelle appliquée au
+            // modèle : Unity multiplie rayon et hauteur par la transform, et le modèle est mis
+            // à l'échelle pour faire 1,75 m. Poser des valeurs ici les ferait écraser — ou pire,
+            // paraître correctes dans l'inspecteur tout en étant fausses en jeu.
+            NavMeshAgent agent = waiter.AddComponent<NavMeshAgent>();
+            agent.obstacleAvoidanceType = ObstacleAvoidanceType.GoodQualityObstacleAvoidance;
+
+            Waiter delegation = waiter.AddComponent<Waiter>();
+
+            if (waiter.TryGetComponent(out SemantizationCore core))
+                Register(core, delegation, SemanticProcessingMode.Dynamic);
         }
 
         #endregion
@@ -767,6 +795,42 @@ namespace Sc4ve.Demonstration.EditorTools
                 if (found != null) return found;
             }
             return null;
+        }
+
+        /// <summary>
+        /// Cuit le NavMesh sur lequel les serveurs circulent.
+        ///
+        /// Cuire ici plutôt que de le laisser à la main : le contenu se reconstruit à chaque
+        /// exécution de l'outil, donc un NavMesh cuit une fois serait périmé dès la
+        /// reconstruction suivante — et un NavMesh périmé ne produit aucune erreur, seulement
+        /// des serveurs qui refusent de bouger.
+        ///
+        /// La surface est posée SUR la racine générée : elle est donc détruite et recuite avec
+        /// le reste, ce qui est exactement ce qu'on veut.
+        /// </summary>
+        private static void BakeNavMesh(Transform root)
+        {
+            NavMeshSurface surface = root.gameObject.AddComponent<NavMeshSurface>();
+
+            // Children et non All : « All » ratisserait TOUTE la scène, rig XR compris, et le
+            // capsule collider du joueur creuserait un trou dans le NavMesh là où il se tient.
+            // Limiter aux enfants de la racine générée revient à cuire exactement le décor —
+            // et rien de ce que l'utilisateur a posé à la main autour.
+            surface.collectObjects = CollectObjects.Children;
+
+            // Les colliders plutôt que les meshes de rendu : les tables, le plan de travail et
+            // la poubelle deviennent des obstacles sans qu'on ait à les marquer un par un.
+            // Les serveurs, eux, portent un NavMeshAgent — NavMeshSurface les exclut d'office,
+            // sans quoi chacun se creuserait un trou sous les pieds.
+            surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
+
+            // Type d'agent par défaut : c'est celui que porte le NavMeshAgent des serveurs.
+            // Cuire pour un autre gabarit laisserait croire à des passages qu'ils ne peuvent
+            // pas emprunter.
+            surface.agentTypeID = 0;
+            surface.BuildNavMesh();
+
+            Debug.Log("[DemoSceneBuilder] NavMesh cuit sur la géométrie générée.");
         }
 
         /// <summary>

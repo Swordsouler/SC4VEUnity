@@ -448,6 +448,34 @@ sc4ve:CheckCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
     [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
     rdfs:label "Check Command"@en , "Commande de Vérification"@fr .
 
+###  Commandes de délégation (lot 3)
+###
+###  Cardinalité 1 et non 2, bien que ces commandes désignent DEUX objets — le serveur et la
+###  table. La restriction est un MINIMUM (ClarificationVocabulary teste satisfied < cardinality),
+###  et les deux modes ne produisent pas le même découpage : le LLM émet deux SelectionParameter,
+###  le mode RuleBased un seul contenant les deux pointages, faute de mot pivot entre eux.
+###  Exiger 2 déclencherait donc une clarification à tort en mode RuleBased. Les rôles se lisent
+###  dans les objets (DelegationRoles), pas dans leur position, et Execute réclame lui-même ce
+###  qui manque (« Quelle table ? »).
+sc4ve:GoToCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:PointParameter ] ;
+    rdfs:label "Go To Command"@en , "Commande de Déplacement d'Agent"@fr .
+
+sc4ve:ServeCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Serve Command"@en , "Commande de Service"@fr .
+
+sc4ve:TakeOrderCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Take Order Command"@en , "Commande de Prise de Commande"@fr .
+
+###  AUCUNE restriction : « stop » sans cible arrête tous les serveurs occupés. Exiger une
+###  sélection ferait demander « sur quels objets ? » au moment précis où le joueur veut que
+###  tout s'arrête.
+sc4ve:StopCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ;
+    rdfs:label "Stop Command"@en , "Commande d'Arrêt"@fr .
+
 ###  Deux SelectionParameter : le 1er désigne les objets, le 2nd le contenant qui les reçoit.
 sc4ve:PutInCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
     [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "2"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
@@ -793,5 +821,24 @@ sc4ve:CheckCommand sc4ve:trigger
     "est-ce que c'est prêt"@fr , "c'est prêt"@fr , "est-ce conforme"@fr , "vérifie"@fr , "vérifier"@fr ,
     "is it ready"@en , "is it correct"@en , "check"@en .
 
+sc4ve:GoToCommand sc4ve:trigger
+    "va là"@fr , "va là-bas"@fr , "va ici"@fr , "rejoins"@fr , "rejoindre"@fr ,
+    "go there"@en , "go here"@en , "go to"@en .
+
+sc4ve:ServeCommand sc4ve:trigger
+    "va servir"@fr , "sers"@fr , "servir"@fr , "apporte le plat"@fr ,
+    "go serve"@en , "serve"@en , "bring the dish"@en .
+
+sc4ve:TakeOrderCommand sc4ve:trigger
+    "prends la commande"@fr , "prendre la commande"@fr , "va prendre la commande"@fr ,
+    "take the order"@en , "go take the order"@en .
+
+sc4ve:StopCommand sc4ve:trigger
+    "stop"@fr , "attends"@fr , "attendre"@fr , "arrête"@fr , "arrêter"@fr ,
+    "stop"@en , "wait"@en , "halt"@en .
+
+###  Pas de grounding sur les commandes de délégation : le serveur parle lui-même à chaque
+###  transition (accusé de réception, refus, échec, fin de tâche). Un « 1 objet » générique
+###  par-dessus sa réponse ferait deux voix pour un seul événement.
 sc4ve:PrepareCommand          sc4ve:grounding "Recette en cours"@fr , "Recipe started"@en .
 sc4ve:CheckCommand            sc4ve:grounding "Vérification"@fr , "Checked"@en .

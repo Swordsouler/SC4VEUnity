@@ -94,6 +94,23 @@ sven:content rdf:type owl:ObjectProperty ;
                         "contenu"@fr .
 
 
+###  https://sven.lisn.upsaclay.fr/ontology#activity
+sven:activity rdf:type owl:ObjectProperty ;
+              rdfs:range sven:WaiterActivity ;
+              rdfs:comment "Relates a delegation component to the agent's current task state."@en ,
+                           "Relie un composant de délégation à l'état de tâche courant de l'agent."@fr ;
+              rdfs:label "activity"@en ,
+                         "activité"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#carrying
+sven:carrying rdf:type owl:ObjectProperty ;
+              rdfs:comment "Relates a delegation component to the container the agent carries. Absent when it carries nothing."@en ,
+                           "Relie un composant de délégation au contenant que l'agent porte. Absent s'il ne porte rien."@fr ;
+              rdfs:label "carrying"@en ,
+                         "porte"@fr .
+
+
 #################################################################
 #    Ingrédients — branches
 #################################################################
@@ -492,6 +509,52 @@ sven:ContainerContent rdf:type owl:Class ;
                                    "Un composant exposant ce que contient un contenant, une valeur sven:content par objet contenu."@fr ;
                       rdfs:label "Container content"@en ,
                                  "Contenu de contenant"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#Delegation
+#    Composant qui expose au graphe l'état de tâche d'un serveur.
+#
+#    Il s'appelle Delegation et non Waiter parce que sven:Waiter est déjà la CLASSE d'objet
+#    « serveur » : un composant typé a sven:Waiter ferait répondre « ?x a sven:Waiter » avec
+#    des composants au lieu de personnes. Ce que ce composant décrit n'est pas ce qu'est
+#    l'objet, c'est ce qu'il est en train de faire.
+#
+#    Sans lui, « qui est libre ? » n'est pas répondable et DescribeCommand sur un serveur ne
+#    dit rien d'intéressant (§8 du README).
+sven:Delegation rdf:type owl:Class ;
+                rdfs:subClassOf sven:Component ;
+                rdfs:comment "A component exposing an agent's task state and what it carries."@en ,
+                             "Un composant exposant l'état de tâche d'un agent et ce qu'il porte."@fr ;
+                rdfs:label "Delegation"@en ,
+                           "Délégation"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#WaiterActivity
+#    Les trois états du registre de délégation. Volontairement grossiers : ce que le joueur
+#    doit lire, c'est « libre ou pas ».
+sven:WaiterActivity rdf:type owl:Class ;
+                    rdfs:comment "A task state of a delegated agent."@en ,
+                                 "Un état de tâche d'un agent à qui l'on délègue."@fr ;
+                    rdfs:label "Waiter activity"@en ,
+                               "Activité de serveur"@fr .
+
+sven:Idle rdf:type owl:NamedIndividual , sven:WaiterActivity ;
+          rdfs:comment "Available: accepts a new order."@en ,
+                       "Disponible : accepte un nouvel ordre."@fr ;
+          rdfs:label "Idle"@en ,
+                     "Disponible"@fr .
+
+sven:Moving rdf:type owl:NamedIndividual , sven:WaiterActivity ;
+            rdfs:comment "On the way; refuses a new order."@en ,
+                         "En chemin ; refuse un nouvel ordre."@fr ;
+            rdfs:label "Moving"@en ,
+                       "En chemin"@fr .
+
+sven:Acting rdf:type owl:NamedIndividual , sven:WaiterActivity ;
+            rdfs:comment "Acting on the spot; refuses a new order."@en ,
+                         "En train d'agir sur place ; refuse un nouvel ordre."@fr ;
+            rdfs:label "Acting"@en ,
+                       "En action"@fr .
 
 
 ###  https://sven.lisn.upsaclay.fr/ontology#ContainerComponent
