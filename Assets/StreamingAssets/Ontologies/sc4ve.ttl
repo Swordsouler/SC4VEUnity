@@ -412,6 +412,11 @@ sc4ve:HighlightCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
     [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
     rdfs:label "Highlight Command"@en , "Commande de Mise en Évidence"@fr .
 
+###  Deux SelectionParameter : le 1er désigne les objets, le 2nd le contenant qui les reçoit.
+sc4ve:PutInCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "2"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Put In Command"@en , "Commande de Rangement"@fr .
+
 sc4ve:ResetColorCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
     [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
     rdfs:label "Reset Color Command"@en , "Commande de Réinitialisation de Couleur"@fr .
@@ -527,6 +532,10 @@ sc4ve:GrabCommand sc4ve:trigger
 sc4ve:ReleaseCommand sc4ve:trigger
     "lâche"@fr , "lâcher"@fr , "relâche"@fr , "relâcher"@fr , "pose"@fr , "poser"@fr , "libère"@fr , "libérer"@fr , "dépose"@fr , "déposer"@fr ,
     "release"@en , "drop"@en , "let go"@en , "put down"@en .
+
+sc4ve:PutInCommand sc4ve:trigger
+    "mets dans"@fr , "met dans"@fr , "mettre dans"@fr , "mets sur"@fr , "met sur"@fr , "mettre sur"@fr , "range dans"@fr , "ranger dans"@fr , "pose dans"@fr , "poser dans"@fr , "pose sur"@fr , "poser sur"@fr , "ajoute dans"@fr , "verse dans"@fr ,
+    "put in"@en , "put into"@en , "put on"@en , "place in"@en , "place into"@en , "place on"@en , "add to"@en .
 
 sc4ve:MoveCommand sc4ve:trigger
     "déplace"@fr , "déplacer"@fr , "bouge"@fr , "bouger"@fr , "amène"@fr , "amener"@fr , "place"@fr , "placer"@fr , "repositionne"@fr , "transporte"@fr , "mets ici"@fr , "mets là"@fr , "mets là-bas"@fr ,
@@ -697,6 +706,7 @@ sc4ve:SelectCommand          sc4ve:grounding "{n} objet(s) sélectionné(s)"@fr 
 sc4ve:SelectAllCommand       sc4ve:grounding "{n} objet(s) sélectionné(s)"@fr , "{n} object(s) selected"@en .
 sc4ve:InvertSelectionCommand sc4ve:grounding "{n} objet(s) sélectionné(s)"@fr , "{n} object(s) selected"@en .
 sc4ve:MoveCommand            sc4ve:grounding "{n} objet(s) déplacé(s)"@fr , "{n} object(s) moved"@en .
+sc4ve:PutInCommand           sc4ve:grounding "{n} objet(s) rangé(s)"@fr , "{n} object(s) put in"@en .
 sc4ve:DuplicateCommand       sc4ve:grounding "{n} objet(s) dupliqué(s)"@fr , "{n} object(s) duplicated"@en .
 sc4ve:ColorizeCommand        sc4ve:grounding "{n} objet(s) colorié(s)"@fr , "{n} object(s) colored"@en .
 sc4ve:ColorizeLighterCommand sc4ve:grounding "{n} objet(s) éclairci(s)"@fr , "{n} object(s) lightened"@en .

@@ -11,7 +11,12 @@ namespace Sc4ve.Multimodality.Intent
         "met là-haut", "mets là-haut",
         "déplace", "déplacer", "bouge", "bouger", "amène", "amener", "place", "placer",
         "move", "repositionne", "repositionner", "transporte", "transporter")]
-    [Serializable, CommandDescription("Déplace des objets. Paramètres: SelectionParameter (source), et soit PointParameter (destination) soit SelectionParameter (destination).")]
+    [Serializable, CommandDescription(
+        "Déplace des objets vers un point de l'espace, désigné par pointage (« mets ça ici », " +
+        "« déplace la pomme là-bas »). " +
+        "Paramètres: SelectionParameter (les objets à déplacer) + PointParameter (la destination). " +
+        "Pour mettre des objets DANS ou SUR un contenant — assiette, poubelle, station — " +
+        "générer PutInCommand et non MoveCommand.")]
     public class MoveCommand : Command
     {
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)

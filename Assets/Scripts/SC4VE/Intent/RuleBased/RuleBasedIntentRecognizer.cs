@@ -384,6 +384,24 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 return "MoveCommand";
             }
 
+            // Pré-vérification : verbe de rangement + préposition non-contiguë → PutInCommand.
+            // Même raison que ci-dessus : dans « mets les pommes dans l'assiette », le verbe et
+            // la préposition sont séparés par la cible, donc le trigger multi-mots « mets dans »
+            // ne peut pas se déclencher. Placé APRÈS MoveCommand : les deux jeux de mots ne se
+            // recouvrent pas (« ici / là-bas » contre « dans / sur »), l'ordre est donc sans
+            // conséquence, mais on garde la destination déictique prioritaire par principe.
+            string putVerbs = IsFrench
+                ? @"\b(mets|met|mettre|pose|poser|range|ranger|ajoute|ajouter|verse|verser)\b"
+                : @"\b(put|place|add|pour)\b";
+            string[] containerPrepositions = IsFrench
+                ? new[] { "dans", "sur", "dedans" }
+                : new[] { "in", "into", "on", "onto" };
+            if (Regex.IsMatch(normalizedText, putVerbs) &&
+                containerPrepositions.Any(p => Regex.IsMatch(normalizedText, $@"\b{p}\b", RegexOptions.IgnoreCase)))
+            {
+                return "PutInCommand";
+            }
+
             // Priorité aux déclencheurs les plus longs (multi-mots d'abord)
             var ordered = CommandVocabulary.TriggerMappings
                 .SelectMany(m => m.Triggers.Select(t => (Trigger: t, CommandType: m.CommandType)))

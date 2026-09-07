@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using Sc4ve.Multimodality;
 using Sven.Content;
 using Sven.Context;
 using Sven.GraphManagement;
@@ -637,6 +638,13 @@ namespace Sc4ve.Demonstration.EditorTools
 
             if (annotationType != null && go.AddComponent(annotationType) is Component annotation)
                 core.componentsToSemanticize.Add(Entry(annotation, SemanticProcessingMode.Static));
+
+            // Tout sven:Container — assiette, poubelle, station — expose son contenu au graphe.
+            // C'est l'ontologie qui décide : on regarde si « sven:Container » figure dans la
+            // hiérarchie d'annotations, plutôt que d'énumérer les types à la main.
+            if (hierarchy.Contains("sven:Container"))
+                core.componentsToSemanticize.Add(
+                    Entry(go.AddComponent<ContainerContent>(), SemanticProcessingMode.Dynamic));
 
             if (grabbable)
             {

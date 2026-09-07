@@ -471,6 +471,17 @@ sven:Cooked rdf:type owl:Class ;
 #    planche ou une plaque sans une ligne de code de plus.
 #################################################################
 
+###  https://sven.lisn.upsaclay.fr/ontology#ContainerContent
+#    Composant qui expose au graphe ce qu'un contenant contient. SVEN ne modélise pas la
+#    contenance ; sans ce composant, aucune requête ne peut dire ce qu'il y a dans l'assiette.
+sven:ContainerContent rdf:type owl:Class ;
+                      rdfs:subClassOf sven:Component ;
+                      rdfs:comment "A component exposing what a container holds, one sven:content value per held object."@en ,
+                                   "Un composant exposant ce que contient un contenant, une valeur sven:content par objet contenu."@fr ;
+                      rdfs:label "Container content"@en ,
+                                 "Contenu de contenant"@fr .
+
+
 ###  https://sven.lisn.upsaclay.fr/ontology#ContainerComponent
 sven:ContainerComponent rdf:type owl:Class ;
                         rdfs:subClassOf sven:AnnotationComponent ;
