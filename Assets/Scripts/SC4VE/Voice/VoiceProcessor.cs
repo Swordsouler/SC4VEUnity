@@ -34,6 +34,15 @@ namespace Sc4ve.Voice
         public event Action<short[]> OnFrameCaptured;
         public event Action OnRecordingStop;
         public event Action OnRecordingStart;
+
+        /// <summary>
+        /// Début de la parole, symétrique de OnRecordingStop.
+        /// À ne pas confondre avec OnRecordingStart, qui signale le démarrage de la capture
+        /// micro (au lancement en mode VAD) et non le moment où l'utilisateur se met à parler.
+        /// En mode VAD : franchissement du seuil de volume. En push-to-talk : première trame
+        /// après l'appui.
+        /// </summary>
+        public event Action OnSpeechStart;
         public List<string> Devices { get; private set; }
         public int CurrentDeviceIndex { get; private set; }
         [ShowNativeProperty]
@@ -414,6 +423,7 @@ namespace Sc4ve.Voice
             //Debug.Log(_audioDetected + " " + _transmit);
             if (_audioDetected)
             {
+                if (!_didDetect) OnSpeechStart?.Invoke();
                 _didDetect = true;
                 // converts to 16-bit int samples
                 short[] pcmBuffer = new short[buffer.Length];

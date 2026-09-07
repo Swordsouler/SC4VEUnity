@@ -10,7 +10,8 @@
         "Vosk",
         "QuickOutline",
         "SVEN.Samples.Demo",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "Unity.XR.Interaction.Toolkit"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
