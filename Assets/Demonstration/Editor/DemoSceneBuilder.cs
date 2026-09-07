@@ -78,6 +78,9 @@ namespace Sc4ve.Demonstration.EditorTools
             BuildKitchen(root);
             BuildDiningRoom(root);
             bool rigCreated = EnsureXRRig();
+            // Hors du bloc ci-dessus : la caméra parasite doit aussi disparaître des scènes
+            // où le rig existait déjà avant cette version de l'outil.
+            RemoveStrayMainCamera(FindRigRoot());
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -395,6 +398,36 @@ namespace Sc4ve.Demonstration.EditorTools
 
         private static GameObject FindRigRoot()
             => GameObject.Find("XR Origin (VR)") ?? GameObject.Find("XR Origin");
+
+        /// <summary>
+        /// Supprime la « Main Camera » par défaut laissée par la scène vide.
+        ///
+        /// Le menu XR d'Unity ajoute son propre rig sans retirer la caméra existante : la scène
+        /// se retrouve avec deux AudioListener, et Unity le signale à chaque image. La caméra
+        /// par défaut ne sert plus à rien une fois le rig en place — c'est celle du rig qui rend
+        /// dans le casque.
+        /// </summary>
+        private static void RemoveStrayMainCamera(GameObject rigRoot)
+        {
+            if (rigRoot == null) return;
+
+            // Le rig nomme AUSSI sa caméra « Main Camera » : la scène en contient donc deux.
+            // GameObject.Find n'en renvoie qu'une, et rien ne dit laquelle — il faut les
+            // parcourir toutes et ne garder que celle du rig.
+            Camera[] cameras = UnityEngine.Object.FindObjectsByType<Camera>(
+                FindObjectsInactive.Include);
+
+            foreach (Camera camera in cameras)
+            {
+                if (camera == null) continue;
+                if (camera.transform.IsChildOf(rigRoot.transform)) continue;
+                if (camera.name != "Main Camera") continue;
+
+                UnityEngine.Object.DestroyImmediate(camera.gameObject);
+                Debug.Log("[DemoSceneBuilder] « Main Camera » par défaut supprimée : le rig XR " +
+                          "apporte la sienne, et deux AudioListener font râler Unity à chaque image.");
+            }
+        }
 
         private static bool TryExecuteAny(IEnumerable<string> menuPaths, out string usedPath)
         {

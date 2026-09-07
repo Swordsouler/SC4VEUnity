@@ -22,7 +22,7 @@ namespace Sc4ve.Multimodality.Intent
         /// </summary>
         public static IXRSelectInteractor FindInteractor()
         {
-            XRBaseInteractor[] interactors = Object.FindObjectsByType<XRBaseInteractor>(FindObjectsSortMode.None);
+            XRBaseInteractor[] interactors = Object.FindObjectsByType<XRBaseInteractor>(FindObjectsInactive.Exclude);
             if (interactors.Length == 0) return null;
             return interactors.FirstOrDefault(i => !i.hasSelection) ?? interactors[0];
         }
