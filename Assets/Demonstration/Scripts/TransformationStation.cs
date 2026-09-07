@@ -73,11 +73,24 @@ namespace Sc4ve.Demonstration
                 return;
             }
 
-            Annotate(item, _state);
-            Render(item, _state);
+            ApplyState(item, _state);
             _inProgress.Remove(item);
 
             Debug.Log($"[Station] {item.name} est maintenant {_state}.");
+        }
+
+        /// <summary>
+        /// Donne un état à un aliment : l'annotation qui compte pour la conformité, et
+        /// l'apparence qui le rend lisible.
+        ///
+        /// Public parce que la scène d'exposition s'en sert aussi. Si elle recopiait cette
+        /// logique, elle finirait par montrer autre chose que ce que le jeu produit.
+        /// </summary>
+        public static void ApplyState(SemantizationCore item, string state)
+        {
+            if (item == null || string.IsNullOrEmpty(state)) return;
+            Annotate(item, state);
+            Render(item, state);
         }
 
         /// <summary>
@@ -108,20 +121,154 @@ namespace Sc4ve.Demonstration
         /// </summary>
         private static void Render(SemantizationCore item, string state)
         {
-            if (!item.TryGetComponent(out Renderer renderer)) return;
-
             switch (state)
             {
                 case "sven:Cooked":
-                    var material = new Material(renderer.material) { color = renderer.material.color * 0.55f };
-                    renderer.material = material;
+                    // Toutes les pièces brunissent, os et gras compris : cuire un pilon ne
+                    // laisse pas son os d'un blanc éclatant.
+                    foreach (Renderer renderer in item.GetComponentsInChildren<Renderer>())
+                        Darken(renderer, 0.55f);
                     break;
 
                 case "sven:Sliced":
-                    Vector3 scale = item.transform.localScale;
-                    item.transform.localScale = new Vector3(scale.x, scale.y * 0.45f, scale.z);
+                    Slice(item);
                     break;
             }
+        }
+
+        /// <summary>
+        /// Remplace le corps par son modèle en tranches.
+        ///
+        /// Aplatir l'objet, ce que je faisais d'abord, ne se lit pas « coupé » mais « écrasé » :
+        /// ce sont les tranches séparées et les faces de coupe qui font la découpe. À défaut de
+        /// modèle découpé, on retombe sur l'aplatissement — mieux que rien, et visible.
+        ///
+        /// Les pièces annexes disparaissent : une tomate coupée n'a plus de pédoncule, un pilon
+        /// tranché n'a plus son os entier.
+        /// </summary>
+        private static void Slice(SemantizationCore item)
+        {
+            Mesh sliced = item.TryGetComponent(out FoodStateMeshes meshes) ? meshes.Sliced : null;
+
+            if (sliced == null || !item.TryGetComponent(out MeshFilter filter) || filter.sharedMesh == null)
+            {
+                // Repli visible plutôt qu'échec muet : sans ce message, un modèle découpé
+                // manquant se traduit par un aliment qui a simplement l'air normal, et il n'y
+                // a aucun moyen de savoir pourquoi.
+                Debug.LogWarning($"[Station] {item.name} n'a pas de modèle découpé " +
+                                 (meshes == null ? "(composant FoodStateMeshes absent)" : "(référence vide)") +
+                                 " — repli sur l'aplatissement.");
+
+                Vector3 flattened = item.transform.localScale;
+                item.transform.localScale = new Vector3(flattened.x, flattened.y * 0.45f, flattened.z);
+                return;
+            }
+
+            // Le modèle en tranches n'a aucune raison d'avoir les mêmes dimensions que le corps :
+            // il est engendré à partir des proportions de l'aliment, pas de son mesh. Sans
+            // compensation, découper un aliment le ferait grossir ou disparaître.
+            float before = Largest(filter.sharedMesh.bounds.size);
+            float after = Largest(sliced.bounds.size);
+
+            // Le matériau du corps sert de base — pour garder le shader et le rendu du projet —
+            // mais sa TEXTURE est retirée et sa couleur remplacée par celle de la chair.
+            //
+            // Deux raisons, l'une n'allant pas sans l'autre : un mesh importé peut avoir
+            // plusieurs sous-maillages (la citrouille en a deux, chair et queue) alors que le
+            // modèle en tranches n'en a qu'un ; et surtout les meshes générés n'ont PAS de
+            // coordonnées UV, donc une texture y serait échantillonnée en un seul point — la
+            // citrouille découpée ressortait blanche pour cette raison.
+            Material body = DominantMaterial(item, filter.sharedMesh);
+
+            filter.sharedMesh = sliced;
+            if (item.TryGetComponent(out MeshCollider collider)) collider.sharedMesh = sliced;
+
+            if (item.TryGetComponent(out Renderer bodyRenderer))
+                bodyRenderer.sharedMaterials = new[] { Flesh(body, meshes.FleshColor) };
+
+            if (after > Mathf.Epsilon)
+                item.transform.localScale *= before / after;
+
+            foreach (Transform child in item.transform)
+                if (child.GetComponent<MeshFilter>() != null)
+                    child.gameObject.SetActive(false);
+        }
+
+        private static float Largest(Vector3 size)
+            => Mathf.Max(size.x, Mathf.Max(size.y, size.z));
+
+        /// <summary>
+        /// Matériau de chair : le shader du corps, sans sa texture, teinté de la couleur
+        /// déclarée. Retirer la texture est indispensable — sans coordonnées UV, elle
+        /// s'échantillonnerait en un point unique et masquerait la couleur.
+        /// </summary>
+        private static Material Flesh(Material body, Color color)
+        {
+            var material = body != null
+                ? new Material(body)
+                : new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
+
+            material.mainTexture = null;
+            if (material.HasProperty("_BaseMap")) material.SetTexture("_BaseMap", null);
+
+            material.color = color;
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+
+            return material;
+        }
+
+        /// <summary>
+        /// Le matériau du sous-maillage le plus étendu — la chair plutôt que la queue.
+        ///
+        /// Le corps est identifié par son nombre de triangles et non par sa position dans la
+        /// liste : rien n'impose qu'un exportateur mette la partie principale en premier.
+        /// </summary>
+        private static Material DominantMaterial(SemantizationCore item, Mesh mesh)
+        {
+            if (mesh == null || !item.TryGetComponent(out Renderer renderer)) return null;
+
+            Material[] materials = renderer.sharedMaterials;
+            if (materials.Length == 0) return null;
+            if (materials.Length == 1 || mesh.subMeshCount <= 1) return materials[0];
+
+            int dominant = 0, mostTriangles = -1;
+            for (int i = 0; i < mesh.subMeshCount && i < materials.Length; i++)
+            {
+                int count = (int)mesh.GetIndexCount(i);
+                if (count <= mostTriangles) continue;
+                mostTriangles = count;
+                dominant = i;
+            }
+            return materials[dominant];
+        }
+
+        /// <summary>
+        /// Assombrit un rendu en lui donnant SA PROPRE copie du matériau.
+        ///
+        /// Passe par sharedMaterial et non par material : hors du mode Play, lire `.material`
+        /// fait instancier un matériau fantôme qu'Unity signale et qui finit enregistré dans la
+        /// scène. Assigner une copie à sharedMaterial ne touche que ce rendu — l'asset d'origine
+        /// reste intact, donc les autres aliments ne brunissent pas avec.
+        /// </summary>
+        private static void Darken(Renderer renderer, float factor)
+        {
+            // TOUS les matériaux, pas seulement le premier : un objet à plusieurs sous-maillages
+            // — la citrouille et sa queue — n'aurait bruni qu'à moitié.
+            Material[] sources = renderer.sharedMaterials;
+            if (sources.Length == 0) return;
+
+            var copies = new Material[sources.Length];
+            for (int i = 0; i < sources.Length; i++)
+            {
+                if (sources[i] == null) continue;
+
+                Color tinted = sources[i].color * factor;
+                tinted.a = sources[i].color.a;
+
+                copies[i] = new Material(sources[i]) { color = tinted };
+                if (copies[i].HasProperty("_BaseColor")) copies[i].SetColor("_BaseColor", tinted);
+            }
+            renderer.sharedMaterials = copies;
         }
 
         /// <summary>

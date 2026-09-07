@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: -5545939183990103048}
   - component: {fileID: 9011243784680204855}
   - component: {fileID: 1354806393922525166}
+  - component: {fileID: 4836537913287553543}
   m_Layer: 7
   m_Name: Interactable Apple
   m_TagString: Pickup
@@ -326,3 +327,17 @@ MonoBehaviour:
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
   m_MaxAngularVelocityDelta: 20
+--- !u!114 &4836537913287553543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4008610799542497148}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff60e5c089f0f22408c339e80c8d0aaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Sc4ve.Demonstration.FoodStateMeshes
+  _sliced: {fileID: 4300000, guid: 8d1adecb3dba5f349b9c7a5aae721e3b, type: 2}
+  _fleshColor: {r: 0.8, g: 0.16, b: 0.16, a: 1}

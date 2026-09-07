@@ -39,6 +39,9 @@ namespace Sc4ve.Demonstration.EditorTools
         /// <summary>Le seul objet que cet outil possède. Tout le reste de la scène lui est étranger.</summary>
         private const string RootName = "Mini-jeu (généré)";
 
+        private const string ExpositionPath = "Assets/Demonstration/Scenes/Demo Exposition.unity";
+        private const string ExpositionRootName = "Exposition (généré)";
+
         // Aire de jeu debout : tout doit être atteignable sans locomotion (§12 du README).
         private const float CounterY = 0.90f;
         private const float ShelfY = 1.25f;
@@ -116,6 +119,31 @@ namespace Sc4ve.Demonstration.EditorTools
                     UnityEngine.Object.DestroyImmediate(go);
 
             return new GameObject(RootName).transform;
+        }
+
+        [MenuItem("SC4VE/Démonstration/4 — Peupler la scène d'exposition", priority = 4)]
+        public static void BuildExposition()
+        {
+            Scene scene = EditorSceneManager.GetActiveScene();
+
+            if (scene.path != ExpositionPath)
+            {
+                if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+                scene = EditorSceneManager.OpenScene(ExpositionPath, OpenSceneMode.Single);
+            }
+
+            foreach (GameObject go in scene.GetRootGameObjects())
+                if (go.name == ExpositionRootName)
+                    UnityEngine.Object.DestroyImmediate(go);
+
+            var root = new GameObject(ExpositionRootName).transform;
+            BuildExpositionContent(root);
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.Refresh();
+
+            Debug.Log($"[DemoSceneBuilder] Exposition peuplée dans {ExpositionPath}.");
         }
 
         [MenuItem("SC4VE/Démonstration/2 — Corriger les prefabs existants", priority = 2)]
@@ -345,9 +373,41 @@ namespace Sc4ve.Demonstration.EditorTools
         {
             if (ingredient.ExistingPrefab != null)
             {
-                GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(
-                    $"Assets/Resources/Prefabs/{ingredient.ExistingPrefab}.prefab");
-                if (existing != null) return existing;
+                string existingPath = $"Assets/Resources/Prefabs/{ingredient.ExistingPrefab}.prefab";
+                GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(existingPath);
+
+                if (existing != null)
+                {
+                    // Les fruits à mesh importé ont besoin du modèle découpé comme les autres :
+                    // une pomme coupée doit ressembler à des quartiers, pas à une pomme écrasée.
+                    //
+                    // Le mesh est régénéré À CHAQUE FOIS, hors de toute condition. Il ne l'était
+                    // qu'à l'ajout du composant, et ces quatre prefabs n'étant jamais reconstruits
+                    // — contrairement à ceux du dossier de l'outil — ils ont gardé des tranches
+                    // périmées bien après la correction du générateur.
+                    //
+                    // Comme Save réécrit l'asset SUR PLACE, la référence déjà posée sur le prefab
+                    // pointe automatiquement sur la version corrigée : seul l'ajout du composant
+                    // impose de réenregistrer le prefab.
+                    Mesh sliced = IngredientMeshFactory.Sliced(ShortName(ingredient.Semantic),
+                        ingredient.Proportions, SliceSeed(ingredient.Semantic));
+
+                    // Le composant est réécrit à chaque fois, sans condition d'existence. Ne
+                    // l'écrire qu'à l'ajout laissait ces quatre prefabs figés dans l'état de la
+                    // première exécution : d'abord avec des tranches démesurées, puis sans
+                    // couleur de chair. Trois symptômes différents, une seule cause — un test
+                    // de fraîcheur qui se trompe.
+                    GameObject contents = PrefabUtility.LoadPrefabContents(existingPath);
+
+                    FoodStateMeshes meshes = contents.GetComponent<FoodStateMeshes>()
+                                             ?? contents.AddComponent<FoodStateMeshes>();
+                    meshes.SetSliced(sliced, ingredient.Color);
+
+                    PrefabUtility.SaveAsPrefabAsset(contents, existingPath);
+                    PrefabUtility.UnloadPrefabContents(contents);
+
+                    return AssetDatabase.LoadAssetAtPath<GameObject>(existingPath);
+                }
 
                 Debug.LogWarning($"[DemoSceneBuilder] Prefab {ingredient.ExistingPrefab} introuvable : " +
                                  "un primitif de remplacement est fabriqué à la place.");
@@ -384,10 +444,16 @@ namespace Sc4ve.Demonstration.EditorTools
                 null, name, ingredient.Shape, Vector3.zero, shape,
                 ingredient.Color, ingredient.Semantic, grabbable: true, mesh);
 
-            // Les traits distinctifs — os, queue, pédoncule, grignes — deviennent des enfants,
+            // Les traits distinctifs — os, veines, pédoncule, grignes — deviennent des enfants,
             // avec leur propre couleur. C'est ce qui rend l'aliment reconnaissable ; le corps
             // seul n'est qu'un galet coloré.
             AddDistinctiveParts(temporary, parts);
+
+            // Le modèle en tranches voyage AVEC le prefab : les meshes générés ne vivent pas
+            // dans Resources, donc rien ne pourrait les retrouver par leur nom à l'exécution.
+            temporary.AddComponent<FoodStateMeshes>().SetSliced(
+                IngredientMeshFactory.Sliced(name, ingredient.Proportions, SliceSeed(name)),
+                ingredient.Color);
 
             GameObject asset = PrefabUtility.SaveAsPrefabAsset(temporary, path);
             UnityEngine.Object.DestroyImmediate(temporary);
@@ -396,6 +462,15 @@ namespace Sc4ve.Demonstration.EditorTools
                       (mesh != null ? "." : " (primitif de remplacement, aucun mesh généré)."));
             return asset;
         }
+
+        /// <summary>
+        /// Graine de découpe, stable pour un aliment donné et bornée à une petite valeur.
+        ///
+        /// Un hash brut ferait déborder l'indexation de Mathf.PerlinNoise et produirait des
+        /// tranches d'un milliard d'unités. IngredientMeshFactory.Offset borne déjà la graine ;
+        /// la réduire ici aussi évite de dépendre de cette protection.
+        /// </summary>
+        private static int SliceSeed(string name) => Mathf.Abs(name.GetHashCode() % 89);
 
         /// <summary>
         /// Met l'objet à sa taille réelle, mesurée sur ses Renderer plutôt que déduite de son
@@ -749,6 +824,174 @@ namespace Sc4ve.Demonstration.EditorTools
                 Debug.Log("[DemoSceneBuilder] « Main Camera » par défaut supprimée : le rig XR " +
                           "apporte la sienne, et deux AudioListener font râler Unity à chaque image.");
             }
+        }
+
+        #endregion
+
+        #region Exposition
+
+        /// <summary>
+        /// Aligne un exemplaire de chaque objet manipulable, à sa taille réelle, sur un établi.
+        ///
+        /// C'est une planche de contact, pas une scène de jeu : elle sert à repérer d'un coup
+        /// d'œil un modèle raté, une taille incohérente ou une pièce décollée. Les objets y
+        /// gardent leurs composants sémantiques — ce sont les mêmes prefabs que dans le jeu,
+        /// pas des copies — mais rien ne les sémantise tant qu'on n'entre pas en mode Play.
+        /// </summary>
+        private static void BuildExpositionContent(Transform root)
+        {
+            const float benchTop = 0.95f;
+
+            GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            floor.name = "Sol";
+            floor.transform.SetParent(root);
+            floor.transform.localScale = new Vector3(2f, 1f, 2f);
+            floor.GetComponent<Renderer>().sharedMaterial = GetMaterial("Sol", new Color(0.32f, 0.30f, 0.28f));
+
+            Box(root, "Établi", new Vector3(0f, benchTop - 0.05f, 0.55f),
+                new Vector3(5.0f, 0.10f, 2.6f), new Color(0.55f, 0.52f, 0.48f));
+
+            // Un ingrédient par colonne, un ÉTAT par rangée. Les états changent l'apparence
+            // (brunissement, aplatissement) : sans eux, l'exposition ne montrerait qu'un tiers
+            // de ce que le joueur verra.
+            (string label, string[] states)[] rows =
+            {
+                ("cru", new string[0]),
+                ("coupé", new[] { "sven:Sliced" }),
+                ("cuit", new[] { "sven:Cooked" }),
+                ("coupé + cuit", new[] { "sven:Sliced", "sven:Cooked" }),
+            };
+
+            var foods = new GameObject("Ingrédients").transform;
+            foods.SetParent(root);
+
+            float step = 4.4f / Ingredients.Length;
+
+            // Les prefabs sont obtenus UNE SEULE FOIS, avant toute instanciation.
+            // EnsurePrefab supprime puis recrée l'asset : l'appeler à chaque rangée détruisait
+            // le prefab dont la rangée précédente venait de tirer des instances, qui perdaient
+            // alors leur liaison et leur contenu.
+            var prefabs = new GameObject[Ingredients.Length];
+            for (int i = 0; i < Ingredients.Length; i++)
+                prefabs[i] = EnsurePrefab(Ingredients[i]);
+
+            for (int r = 0; r < rows.Length; r++)
+            {
+                var (rowLabel, states) = rows[r];
+                float z = -0.45f + r * 0.50f;
+
+                var row = new GameObject(rowLabel).transform;
+                row.SetParent(foods);
+
+                for (int i = 0; i < Ingredients.Length; i++)
+                {
+                    Ingredient ingredient = Ingredients[i];
+                    GameObject prefab = prefabs[i];
+                    if (prefab == null) continue;
+
+                    var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, row);
+                    instance.name = ShortName(ingredient.Semantic);
+                    instance.transform.position = new Vector3(-2.2f + step * (i + 0.5f), benchTop, z);
+
+                    NormalizeSize(instance, ingredient.Size);
+
+                    // L'état est appliqué APRÈS la mise à l'échelle, comme en jeu : l'objet est
+                    // à sa taille quand il passe à la station. C'est le code de la station lui-
+                    // même qui est appelé, pour que la vitrine ne puisse pas diverger du jeu.
+                    foreach (string state in states)
+                        TransformationStation.ApplyState(instance.GetComponent<SemantizationCore>(), state);
+
+                    RestOnSurface(instance, benchTop);
+
+                    // Le nom sur la première rangée seulement : répété quatre fois, il
+                    // encombrerait plus qu'il n'aiderait.
+                    if (r == 0) Label(instance.transform, instance.name, ingredient.Size);
+                }
+
+                LabelAt(row, rowLabel, new Vector3(-2.55f, benchTop + 0.06f, z));
+            }
+
+            // Rangée 2 : contenants et stations, à la même échelle que dans le jeu.
+            var wares = new GameObject("Contenants et stations").transform;
+            wares.SetParent(root);
+
+            (string name, string semantic, Vector3 scale, Color color)[] containers =
+            {
+                ("Assiette", "sven:Plate", new Vector3(0.22f, 0.015f, 0.22f), new Color(0.93f, 0.93f, 0.90f)),
+                ("Poubelle", "sven:Bin", new Vector3(0.30f, 0.25f, 0.30f), new Color(0.22f, 0.24f, 0.26f)),
+                ("Planche à découper", "sven:CuttingBoard", new Vector3(0.40f, 0.04f, 0.30f), new Color(0.72f, 0.55f, 0.35f)),
+                ("Plaque de cuisson", "sven:Stove", new Vector3(0.36f, 0.04f, 0.30f), new Color(0.18f, 0.18f, 0.20f)),
+            };
+
+            for (int i = 0; i < containers.Length; i++)
+            {
+                var (name, semantic, scale, color) = containers[i];
+                PrimitiveType shape = semantic == "sven:Bin" ? PrimitiveType.Cylinder
+                    : semantic == "sven:Plate" ? PrimitiveType.Cylinder : PrimitiveType.Cube;
+
+                GameObject item = Semantized(wares, name, shape,
+                    new Vector3(-1.8f + i * 1.2f, benchTop, 1.55f), scale, color, semantic, grabbable: false);
+                RestOnSurface(item, benchTop);
+                Label(item.transform, name, 0.30f);
+            }
+
+            // Rangée 3 : le mobilier et les personnes, au sol — leur taille les y oblige.
+            var stage = new GameObject("Mobilier et personnes").transform;
+            stage.SetParent(root);
+
+            (string name, string semantic, Vector3 position, Vector3 scale, Color color)[] actors =
+            {
+                ("Table", "sven:Table", new Vector3(-1.4f, 0.38f, 2.6f), new Vector3(0.85f, 0.38f, 0.85f), new Color(0.45f, 0.32f, 0.24f)),
+                ("Serveur", "sven:Waiter", new Vector3(0f, 0.85f, 2.6f), new Vector3(0.45f, 0.85f, 0.45f), new Color(0.30f, 0.42f, 0.68f)),
+                ("Client", "sven:Customer", new Vector3(1.4f, 0.85f, 2.6f), new Vector3(0.45f, 0.85f, 0.45f), new Color(0.72f, 0.45f, 0.35f)),
+            };
+
+            foreach (var (name, semantic, position, scale, color) in actors)
+            {
+                PrimitiveType shape = semantic == "sven:Table" ? PrimitiveType.Cylinder : PrimitiveType.Capsule;
+                GameObject item = Semantized(stage, name, shape, position, scale, color, semantic, grabbable: false);
+                RestOnSurface(item, 0f);
+                Label(item.transform, name, scale.y * 2f);
+            }
+        }
+
+        /// <summary>
+        /// Étiquette flottante au-dessus d'un objet. Sans elle, distinguer un pavé de saumon
+        /// d'un steak dans une rangée de douze demande de cliquer sur chacun.
+        ///
+        /// TextMesh hérité plutôt que TextMeshPro : il ne dépend d'aucun asset à importer, ce
+        /// qui convient à une scène d'inspection dont la typographie n'a aucune importance.
+        /// </summary>
+        private static void Label(Transform target, string text, float objectHeight)
+            => LabelAt(target.parent, text, target.position + Vector3.up * (objectHeight + 0.10f));
+
+        /// <summary>
+        /// Étiquette posée à un point donné, indépendante de l'objet.
+        ///
+        /// Détachée de sa cible et non enfant : parentée, elle hériterait de son échelle — or
+        /// les aliments vont de 0,07 à 0,22 m, ce qui donnerait des textes de tailles absurdes.
+        /// </summary>
+        private static void LabelAt(Transform parent, string text, Vector3 position)
+        {
+            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (font == null) return;
+
+            var label = new GameObject($"— {text}");
+            label.transform.SetParent(parent, worldPositionStays: false);
+            label.transform.position = position;
+            label.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            label.transform.localScale = Vector3.one;
+
+            var mesh = label.AddComponent<TextMesh>();
+            mesh.text = text;
+            mesh.font = font;
+            mesh.fontSize = 72;
+            mesh.characterSize = 0.012f;
+            mesh.anchor = TextAnchor.LowerCenter;
+            mesh.alignment = TextAlignment.Center;
+            mesh.color = Color.white;
+
+            label.GetComponent<MeshRenderer>().sharedMaterial = font.material;
         }
 
         #endregion

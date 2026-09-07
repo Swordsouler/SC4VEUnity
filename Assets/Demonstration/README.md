@@ -30,6 +30,14 @@ Menu **SC4VE > Démonstration** :
 |---|---|
 | **1 — (Re)construire le contenu du mini-jeu** | remplit `Scenes/Demo Mini Game.unity` : sol, cuisine (plan de travail, étagère, 11 ingrédients ×2, 2 stations, 6 assiettes, poubelle, passe), salle (4 tables non numérotées, 2 serveurs identiques), et le rig XR s'il manque |
 | **2 — Corriger les prefabs existants** | passe le `SemanticAnnotator` des prefabs de fruits en `Dynamic` et leur ajoute un `XRGrabInteractable`. Idempotent. L'outil 1 l'exécute d'abord. |
+| **3 — Générer les meshes des ingrédients** | fabrique les meshes low-poly des 8 ingrédients sans modèle, dans `Meshes/`. L'outil 1 l'exécute aussi. |
+| **4 — Peupler la scène d'exposition** | aligne un exemplaire de chaque objet manipulable dans `Scenes/Demo Exposition.unity`, à sa taille réelle et étiqueté |
+
+**La scène d'exposition est une planche de contact**, pas une scène de jeu : elle sert à
+repérer d'un coup d'œil un modèle raté, une taille incohérente ou une pièce décollée. Les
+objets y sont les **mêmes prefabs** que dans le jeu — corriger un prefab depuis l'exposition
+corrige le jeu. Inutile d'y entrer en mode Play : sans `GraphController`, la sémantisation ne
+ferait qu'y produire des erreurs, et il n'y a rien à y exécuter.
 
 **Construire par code plutôt qu'à la main** est un choix, pas un pis-aller : le contenu est
 relisible en diff, reproductible, et se reconstruit quand le vocabulaire change.

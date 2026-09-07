@@ -73,6 +73,17 @@ namespace Sc4ve.Demonstration.EditorTools
         }
 
         /// <summary>
+        /// La version découpée d'un ingrédient : un vrai modèle en tranches, et non l'objet
+        /// entier aplati.
+        ///
+        /// Existe pour TOUS les aliments, y compris les quatre qui ont un mesh importé : une
+        /// pomme coupée doit ressembler à des quartiers, pas à une pomme écrasée. La forme des
+        /// tranches vient des proportions de l'aliment, pas de son mesh.
+        /// </summary>
+        public static Mesh Sliced(string name, Vector3 proportions, int seed)
+            => Save($"{name}Sliced", Sliced(proportions, count: 4, seed));
+
+        /// <summary>
         /// Toutes les pièces d'un ingrédient : le corps d'abord, puis ses traits distinctifs.
         /// </summary>
         public static List<Part> Parts(string name)
@@ -268,7 +279,7 @@ namespace Sc4ve.Demonstration.EditorTools
         {
             Icosphere(subdivisions, out List<Vector3> vertices, out List<int> triangles);
 
-            var offset = new Vector2(seed * 7.13f, seed * 3.71f);
+            Vector2 offset = Offset(seed);
             for (int i = 0; i < vertices.Count; i++)
             {
                 Vector3 direction = vertices[i];
@@ -291,6 +302,60 @@ namespace Sc4ve.Demonstration.EditorTools
 
                 Vector3 shaped = new(direction.x * width, direction.y * width, direction.z);
                 vertices[i] = Vector3.Scale(shaped * displacement, scale) * 0.5f;
+            }
+
+            return Faceted(vertices, triangles);
+        }
+
+        /// <summary>
+        /// La version DÉCOUPÉE d'un aliment : plusieurs tranches fines posées en éventail.
+        ///
+        /// Un simple aplatissement de l'objet entier ne se lit pas « coupé » — il se lit
+        /// « écrasé ». Ce qui fait la découpe, ce sont les tranches séparées et les faces de
+        /// coupe visibles entre elles.
+        /// </summary>
+        private static Mesh Sliced(Vector3 scale, int count, int seed)
+        {
+            var vertices = new List<Vector3>();
+            var triangles = new List<int>();
+
+            // On tranche PERPENDICULAIREMENT au plus grand axe, quel qu'il soit — on coupe une
+            // carotte en rondelles, pas en bâtonnets. L'épaisseur se déduisait auparavant de Y,
+            // ce qui donnait des cylindres pour tout ce qui est long en hauteur : la carotte
+            // ressortait avec une épaisseur (0,149) presque égale à son diamètre (0,194).
+            float longest = Mathf.Max(scale.x, Mathf.Max(scale.y, scale.z));
+            float across = (scale.x + scale.y + scale.z - longest) * 0.5f;
+
+            float diameter = across * 0.95f;
+            float thickness = Mathf.Max(longest * 0.5f / count, diameter * 0.12f);
+            float spread = longest * 0.90f;
+
+            for (int s = 0; s < count; s++)
+            {
+                float t = count == 1 ? 0.5f : s / (float)(count - 1);
+
+                // Les tranches des extrémités sont plus petites : elles viennent des bouts
+                // arrondis de l'aliment, pas de son milieu.
+                float shrink = Mathf.Lerp(0.68f, 1f, 1f - Mathf.Abs(2f * t - 1f));
+
+                Icosphere(1, out List<Vector3> slice, out List<int> sliceTriangles);
+
+                Vector2 offset = Offset(seed + s);
+                var size = new Vector3(diameter * shrink, thickness, diameter * shrink);
+
+                // Chaque tranche est légèrement inclinée et décalée : un empilement trop
+                // régulier se lit « rondelles de plastique ».
+                Quaternion tilt = Quaternion.Euler(
+                    (s % 2 == 0 ? 5f : -4f), (s - (count - 1) * 0.5f) * 9f, (s % 3 - 1) * 4f);
+                var position = new Vector3((t - 0.5f) * spread, thickness * 0.5f, (s % 2 - 0.5f) * thickness * 0.6f);
+
+                int start = vertices.Count;
+                foreach (Vector3 direction in slice)
+                {
+                    float displacement = 1f + 0.06f * (Sample(direction, 3f, offset) - 0.5f) * 2f;
+                    vertices.Add(position + tilt * Vector3.Scale(direction * displacement, size) * 0.5f);
+                }
+                foreach (int index in sliceTriangles) triangles.Add(start + index);
             }
 
             return Faceted(vertices, triangles);
@@ -512,6 +577,20 @@ namespace Sc4ve.Demonstration.EditorTools
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
             return mesh;
+        }
+
+        /// <summary>
+        /// Décalage de bruit dérivé d'une graine, RAMENÉ dans une plage raisonnable.
+        ///
+        /// Mathf.PerlinNoise indexe une table après un Mathf.FloorToInt : au-delà de deux
+        /// milliards, la conversion déborde et renvoie n'importe quoi. Une graine issue de
+        /// GetHashCode() suffit à provoquer ce débordement — les tranches sont sorties un
+        /// milliard de fois trop grandes, donc invisibles hors champ.
+        /// </summary>
+        private static Vector2 Offset(int seed)
+        {
+            int bounded = Mathf.Abs(seed) % 997;
+            return new Vector2(bounded * 7.13f, bounded * 3.71f);
         }
 
         /// <summary>Bruit déterministe : même graine, même forme à chaque génération.</summary>

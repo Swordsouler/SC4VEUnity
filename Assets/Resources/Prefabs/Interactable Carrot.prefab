@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: -2863675458539210381}
   - component: {fileID: -3888080786409404753}
   - component: {fileID: 8533853649176650152}
+  - component: {fileID: 7882876452140587815}
   m_Layer: 7
   m_Name: Interactable Carrot
   m_TagString: Pickup
@@ -326,3 +327,17 @@ MonoBehaviour:
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
   m_MaxAngularVelocityDelta: 20
+--- !u!114 &7882876452140587815
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7584591928906036958}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff60e5c089f0f22408c339e80c8d0aaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Sc4ve.Demonstration.FoodStateMeshes
+  _sliced: {fileID: 4300000, guid: 7fb4e241780d2d243b6187dfffa194dd, type: 2}
+  _fleshColor: {r: 0.92, g: 0.51, b: 0.13, a: 1}
