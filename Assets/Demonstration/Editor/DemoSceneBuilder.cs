@@ -1,8 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Sven.Content;
+using Sven.Context;
+using Sven.GraphManagement;
 using Sven.Multimodality;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -10,6 +11,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 namespace Sc4ve.Demonstration.EditorTools
 {
@@ -81,6 +83,7 @@ namespace Sc4ve.Demonstration.EditorTools
             // Hors du bloc ci-dessus : la caméra parasite doit aussi disparaître des scènes
             // où le rig existait déjà avant cette version de l'outil.
             RemoveStrayMainCamera(FindRigRoot());
+            EnsureGraphController();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -89,7 +92,10 @@ namespace Sc4ve.Demonstration.EditorTools
             Debug.Log($"[DemoSceneBuilder] Contenu reconstruit sous « {RootName} » dans {ScenePath}.");
             EditorUtility.DisplayDialog("Terminé",
                 $"Contenu reconstruit sous « {RootName} ».\n\n" +
-                (rigCreated ? "Un rig XR a été créé.\n\n" : "Rig XR déjà présent, laissé tel quel.\n\n") +
+                (rigCreated
+                    ? "Rig XR complet mis en place (contrôleurs + Pointer + PointOfView), " +
+                      "locomotion désactivée.\n\n"
+                    : "Rig XR déjà utilisable, laissé tel quel ; interactors SVEN vérifiés.\n\n") +
                 "Restent à faire à la main :\n" +
                 "• cuire le NavMesh (Window > AI > Navigation)\n" +
                 "• ajouter le MultimodalityController et le pipeline vocal",
@@ -356,48 +362,213 @@ namespace Sc4ve.Demonstration.EditorTools
 
         #region Rig XR
 
+        /// <summary>Nom du prefab de rig complet, livré avec les Starter Assets du toolkit.</summary>
+        private const string RigPrefabName = "XR Origin (XR Rig)";
+
         /// <summary>
-        /// Crée le rig XR s'il manque, et n'y touche pas s'il existe déjà — il vit HORS de la
-        /// racine générée, donc il survit aux reconstructions et peut être réglé à la main.
+        /// Met en place un rig XR **utilisable**, c'est-à-dire muni de contrôleurs.
         ///
-        /// On délègue la création à Unity plutôt que de reconstruire le rig composant par
-        /// composant : c'est la seule façon fiable d'obtenir un XR Origin correct, sa
-        /// composition changeant d'une version du toolkit à l'autre.
+        /// Le menu « GameObject > XR > XR Origin (VR) » d'Unity ne crée qu'une origine, un
+        /// offset et une caméra : aucun interactor, donc ni pointage déictique ni saisie —
+        /// GrabCommand ne trouverait rien et « mets ça ici 👆 » ne résoudrait aucun point.
+        /// On instancie donc le prefab des Starter Assets, qui apporte les deux contrôleurs.
+        ///
+        /// Le rig vit HORS de la racine générée : il survit aux reconstructions et peut être
+        /// réglé à la main. Un rig déjà pourvu d'interactors n'est jamais remplacé.
         /// </summary>
-        /// <returns>Vrai si un rig a été créé, faux s'il en existait déjà un.</returns>
+        /// <returns>Vrai si un rig a été mis en place, faux s'il en existait déjà un d'utilisable.</returns>
         private static bool EnsureXRRig()
         {
-            if (UnityEngine.Object.FindAnyObjectByType<XRInteractionManager>() != null &&
-                FindRigRoot() != null)
-                return false;
-
-            TryExecuteAny(new[] { "GameObject/XR/Interaction Manager" }, out _);
-
-            string[] originPaths =
+            GameObject existing = FindRigRoot();
+            if (existing != null)
             {
-                "GameObject/XR/XR Origin (VR)",
-                "GameObject/XR/XR Origin (Action-based)",
-                "GameObject/XR/XR Origin",
-            };
+                if (existing.GetComponentInChildren<XRBaseInteractor>(true) != null)
+                {
+                    EnsureInteractionManager();
+                    EnsureSvenInteractors(existing);
+                    return false;
+                }
 
-            if (!TryExecuteAny(originPaths, out string used))
+                Debug.Log("[DemoSceneBuilder] Rig XR sans contrôleur détecté (celui du menu Unity) : " +
+                          "remplacé par le rig complet des Starter Assets.");
+                UnityEngine.Object.DestroyImmediate(existing);
+            }
+
+            GameObject prefab = LoadRigPrefab();
+            if (prefab == null)
             {
                 Debug.LogWarning(
-                    "[DemoSceneBuilder] Impossible de créer le rig XR automatiquement : aucun des " +
-                    "menus attendus n'existe dans cette version du XR Interaction Toolkit.\n" +
-                    "À faire à la main : GameObject > XR > XR Origin (VR), puis replacer l'origine en (0, 0, 0).");
+                    $"[DemoSceneBuilder] Prefab « {RigPrefabName} » introuvable. Importer les " +
+                    "Starter Assets du XR Interaction Toolkit (Package Manager > XR Interaction " +
+                    "Toolkit > Samples), puis relancer.");
                 return false;
             }
 
-            Debug.Log($"[DemoSceneBuilder] Rig XR créé via « {used} ».");
+            var rig = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            PrefabUtility.UnpackPrefabInstance(rig, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            rig.transform.position = Vector3.zero;
 
-            GameObject origin = FindRigRoot();
-            if (origin != null) origin.transform.position = Vector3.zero;
+            DisableLocomotion(rig);
+            EnsureInteractionManager();
+            EnsureSvenInteractors(rig);
+
+            Debug.Log($"[DemoSceneBuilder] Rig XR complet mis en place depuis « {RigPrefabName} ».");
             return true;
         }
 
         private static GameObject FindRigRoot()
-            => GameObject.Find("XR Origin (VR)") ?? GameObject.Find("XR Origin");
+        {
+            foreach (GameObject go in EditorSceneManager.GetActiveScene().GetRootGameObjects())
+                if (go.name.StartsWith("XR Origin"))
+                    return go;
+            return null;
+        }
+
+        /// <summary>Recherche par nom plutôt que par chemin : la version du sample change.</summary>
+        private static GameObject LoadRigPrefab()
+        {
+            foreach (string guid in AssetDatabase.FindAssets("t:Prefab XR Origin"))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (Path.GetFileNameWithoutExtension(path) == RigPrefabName)
+                    return AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Désactive le sous-arbre « Locomotion » du rig : téléportation, déplacement au
+        /// joystick, rotation, escalade. Aucune locomotion artificielle (§11 du README) — le
+        /// joueur reste en cuisine et ne se déplace que physiquement.
+        ///
+        /// Désactivé plutôt que supprimé : les contrôleurs référencent ces fournisseurs, et
+        /// les détruire laisserait des références nulles.
+        /// </summary>
+        private static void DisableLocomotion(GameObject rig)
+        {
+            Transform locomotion = rig.transform.Find("Locomotion");
+            if (locomotion == null) return;
+
+            locomotion.gameObject.SetActive(false);
+            Debug.Log("[DemoSceneBuilder] Sous-arbre « Locomotion » désactivé : ni téléportation " +
+                      "ni joystick, le joueur ne se déplace que physiquement (§11 du README).");
+        }
+
+        private static void EnsureInteractionManager()
+        {
+            if (UnityEngine.Object.FindAnyObjectByType<XRInteractionManager>() != null) return;
+            new GameObject("XR Interaction Manager").AddComponent<XRInteractionManager>();
+        }
+
+        /// <summary>
+        /// Greffe les interactors SVEN sur le rig — c'est ce qui alimente le graphe en
+        /// pointage et en point de vue, et donc ce qui rend la deixis possible.
+        ///
+        /// Sans Pointer, « mets ça **ici** 👆 » n'a aucun point à résoudre : MoveCommand
+        /// cherche explicitement un Pointer dans la scène. Sans lui, l'énoncé hybride —
+        /// le critère d'acceptation du §3 — est intestable.
+        ///
+        /// Les interactors sont autonomes : Interactor.Awake récupère lui-même son
+        /// SemantizationCore (ajouté par RequireComponent) et lance sa propre boucle.
+        ///
+        /// GraspArea n'est volontairement PAS posé : dans la scène bureau de référence il est
+        /// sur la caméra, ce qui n'a pas de sens en VR où l'on saisit avec les mains. À
+        /// trancher quand la saisie sera réellement testée en casque.
+        /// </summary>
+        private static void EnsureSvenInteractors(GameObject rig)
+        {
+            Camera camera = rig.GetComponentInChildren<Camera>(true);
+            if (camera != null)
+            {
+                if (camera.GetComponent<PointOfView>() == null)
+                {
+                    var pov = camera.gameObject.AddComponent<PointOfView>();
+                    pov.cameraComponent = camera;
+                    Debug.Log("[DemoSceneBuilder] PointOfView ajouté sur la caméra du rig.");
+                }
+
+                // On sémantise le composant Camera, PAS le PointOfView : la table
+                // MappedComponents associe explicitement `typeof(PointOfView)` à `null`,
+                // donc l'enregistrer n'écrirait rien. C'est aussi ce que fait « New Demo ».
+                var core = camera.GetComponent<SemantizationCore>();
+                Register(core, camera.transform, SemanticProcessingMode.Dynamic);
+                Register(core, camera, SemanticProcessingMode.Dynamic);
+            }
+
+            // Un Pointer par contrôleur. Valeurs reprises de « New Demo », la scène de
+            // référence qui fonctionne : portée 4 m, cône de 5°.
+            string[] controllers = { "Right Controller", "Left Controller" };
+            for (int i = 0; i < controllers.Length; i++)
+            {
+                Transform hand = FindDeep(rig.transform, controllers[i]);
+                if (hand == null)
+                {
+                    Debug.LogWarning($"[DemoSceneBuilder] « {controllers[i]} » introuvable dans le rig : " +
+                                     "pas de Pointer pour cette main.");
+                    continue;
+                }
+
+                Pointer pointer = hand.GetComponent<Pointer>();
+                if (pointer == null)
+                {
+                    pointer = hand.gameObject.AddComponent<Pointer>();
+                    pointer.PointerIndex = i;
+                    pointer.PointerDistance = 4f;
+                    pointer.PointerConeAngle = 5f;
+                    Debug.Log($"[DemoSceneBuilder] Pointer ajouté sur « {controllers[i]} » (index {i}).");
+                }
+
+                // Le Transform ET le composant Pointer, sinon `pointerHitPosition` n'atteint
+                // jamais le graphe et PointParameter.QueryPoint ne trouve aucun point :
+                // « mets ça ici 👆 » resterait sans effet.
+                var core = hand.GetComponent<SemantizationCore>();
+                Register(core, hand, SemanticProcessingMode.Dynamic);
+                Register(core, pointer, SemanticProcessingMode.Dynamic);
+            }
+        }
+
+        /// <summary>
+        /// Coche un composant dans la liste de sémantisation, sans doublon.
+        /// Un composant absent de cette liste n'est jamais observé : c'est elle, et non la
+        /// simple présence du composant, qui décide de ce qui entre dans le graphe.
+        /// </summary>
+        private static void Register(SemantizationCore core, Component component, SemanticProcessingMode mode)
+        {
+            if (core == null || component == null) return;
+            if (core.componentsToSemanticize.Any(c => c != null && c.Component == component)) return;
+
+            core.componentsToSemanticize.Add(Entry(component, mode));
+        }
+
+        private static Transform FindDeep(Transform parent, string name)
+        {
+            if (parent.name == name) return parent;
+            foreach (Transform child in parent)
+            {
+                Transform found = FindDeep(child, name);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Sans GraphController, rien n'est sémantisé : c'est son Awake() qui appelle
+        /// GraphManager.Reload(), et SemantizationCore abandonne après dix secondes d'attente
+        /// avec « GraphManager is not initialized ». Pas de graphe, donc pas de SPARQL, donc
+        /// aucune commande vocale ne peut résoudre quoi que ce soit.
+        ///
+        /// Placé HORS de la racine générée, comme le rig : c'est de l'infrastructure de scène,
+        /// et on veut pouvoir la déplacer ou la configurer sans qu'une reconstruction l'écrase.
+        /// </summary>
+        private static void EnsureGraphController()
+        {
+            if (UnityEngine.Object.FindAnyObjectByType<GraphController>() != null) return;
+
+            var go = new GameObject("SVEN");
+            go.AddComponent<GraphController>();
+            Debug.Log("[DemoSceneBuilder] GraphController ajouté : sans lui, aucun objet n'est " +
+                      "sémantisé et aucune commande ne peut résoudre de cible.");
+        }
 
         /// <summary>
         /// Supprime la « Main Camera » par défaut laissée par la scène vide.
@@ -427,25 +598,6 @@ namespace Sc4ve.Demonstration.EditorTools
                 Debug.Log("[DemoSceneBuilder] « Main Camera » par défaut supprimée : le rig XR " +
                           "apporte la sienne, et deux AudioListener font râler Unity à chaque image.");
             }
-        }
-
-        private static bool TryExecuteAny(IEnumerable<string> menuPaths, out string usedPath)
-        {
-            foreach (string path in menuPaths)
-            {
-                try
-                {
-                    if (!EditorApplication.ExecuteMenuItem(path)) continue;
-                    usedPath = path;
-                    return true;
-                }
-                catch (Exception)
-                {
-                    // Menu absent dans cette version : on essaie le suivant.
-                }
-            }
-            usedPath = null;
-            return false;
         }
 
         #endregion
