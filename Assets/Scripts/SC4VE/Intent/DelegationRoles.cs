@@ -15,7 +15,7 @@ namespace Sc4ve.Multimodality.Intent
     /// mode RuleBased n'émet qu'une seule sélection alors que le LLM en émet deux.
     ///
     /// On lit donc les rôles dans les OBJETS et non dans la phrase : un serveur porte un
-    /// composant Waiter, une table porte l'annotation sven:Table. Aucune des deux ne peut être
+    /// composant Delegation, une table porte l'annotation sven:Table. Aucune des deux ne peut être
     /// prise pour l'autre, donc l'ordre des mots n'a plus à être fiable — et l'énoncé inversé
     /// (« va servir cette table-là 👆 avec toi 👆 ») marche sans code supplémentaire.
     ///
@@ -26,10 +26,10 @@ namespace Sc4ve.Multimodality.Intent
     internal static class DelegationRoles
     {
         /// <summary>Le serveur de la sélection, ou null.</summary>
-        public static Waiter Agent(IEnumerable<SemantizationCore> selection)
+        public static Delegation Agent(IEnumerable<SemantizationCore> selection)
             => selection?
                 .Where(o => o != null)
-                .Select(o => o.GetComponent<Waiter>())
+                .Select(o => o.GetComponent<Delegation>())
                 .FirstOrDefault(w => w != null);
 
         /// <summary>La table de la sélection, ou null.</summary>

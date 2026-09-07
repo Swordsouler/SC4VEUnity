@@ -586,19 +586,26 @@ namespace Sc4ve.Demonstration.EditorTools
         /// La sémantisation est **Dynamic** et non Static : l'activité change en cours de
         /// partie, et en Static elle serait observée une fois au démarrage puis figée — le
         /// graphe montrerait tous les serveurs éternellement disponibles.
+        ///
+        /// Le composant s'appelle Delegation et non Waiter, et ce n'est pas cosmétique : ce
+        /// fichier vit dans Sc4ve.Demonstration.EditorTools, où le nom simple « Waiter »
+        /// désignait la classe d'ANNOTATION Sc4ve.Demonstration.Waiter — C# examine les espaces
+        /// de noms englobants avant les using. AddComponent&lt;Waiter&gt;() posait donc un second
+        /// marqueur sémantique au lieu de la machine à états, sans la moindre erreur de
+        /// compilation, et aucun serveur n'était délégable.
         /// </summary>
         private static void MakeWaiter(GameObject waiter)
         {
             RestOnSurface(waiter, 0f);
 
-            // Le gabarit est réglé par Waiter.Awake, qui seul connaît l'échelle appliquée au
+            // Le gabarit est réglé par Delegation.Awake, qui seul connaît l'échelle appliquée au
             // modèle : Unity multiplie rayon et hauteur par la transform, et le modèle est mis
             // à l'échelle pour faire 1,75 m. Poser des valeurs ici les ferait écraser — ou pire,
             // paraître correctes dans l'inspecteur tout en étant fausses en jeu.
             NavMeshAgent agent = waiter.AddComponent<NavMeshAgent>();
             agent.obstacleAvoidanceType = ObstacleAvoidanceType.GoodQualityObstacleAvoidance;
 
-            Waiter delegation = waiter.AddComponent<Waiter>();
+            Delegation delegation = waiter.AddComponent<Delegation>();
 
             if (waiter.TryGetComponent(out SemantizationCore core))
                 Register(core, delegation, SemanticProcessingMode.Dynamic);

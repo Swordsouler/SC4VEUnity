@@ -24,7 +24,7 @@ namespace Sc4ve.Multimodality.Intent
 
         public override List<SemantizationCore> Execute()
         {
-            Waiter designated = DelegationRoles.Agent(DelegationRoles.AllTargets(this));
+            Delegation designated = DelegationRoles.Agent(DelegationRoles.AllTargets(this));
 
             if (designated != null)
             {
@@ -35,8 +35,8 @@ namespace Sc4ve.Multimodality.Intent
             // « Stop » sans cible arrête tout le monde. C'est le seul ordre du jeu qui vaille
             // pour plusieurs agents à la fois, et c'est voulu : quand le joueur crie stop, il
             // ne veut pas d'abord répondre à « lequel ? ».
-            Waiter[] busy = UnityEngine.Object
-                .FindObjectsByType<Waiter>(FindObjectsInactive.Exclude)
+            Delegation[] busy = UnityEngine.Object
+                .FindObjectsByType<Delegation>(FindObjectsInactive.Exclude)
                 .Where(w => w.IsBusy)
                 .ToArray();
 
@@ -46,7 +46,7 @@ namespace Sc4ve.Multimodality.Intent
                 return new();
             }
 
-            foreach (Waiter waiter in busy) waiter.Stop();
+            foreach (Delegation waiter in busy) waiter.Stop();
 
             return busy.Select(w => w.GetComponent<SemantizationCore>())
                        .Where(c => c != null)

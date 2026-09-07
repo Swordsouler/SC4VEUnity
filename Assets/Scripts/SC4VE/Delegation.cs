@@ -13,6 +13,17 @@ using VDS.RDF;
 namespace Sc4ve.Multimodality
 {
     /// <summary>
+    /// Le registre de délégation d'un agent : ce qu'on lui a demandé, et où il en est.
+    ///
+    /// Il s'appelle Delegation et non Waiter pour une raison de LANGAGE, pas de goût. Une
+    /// classe d'annotation Sc4ve.Demonstration.Waiter existe déjà — c'est le marqueur
+    /// sémantique « cet objet est un serveur ». Or DemoSceneBuilder vit dans
+    /// Sc4ve.Demonstration.EditorTools, et C# résout un nom simple en examinant les espaces de
+    /// noms ENGLOBANTS avant les using : « Waiter » y désignait le marqueur, pas cette machine
+    /// à états. Le builder ajoutait donc le mauvais composant, ça compilait, et aucun serveur
+    /// n'était délégable — toute délégation répondait « Quel serveur ? ». Sous ce nom, la
+    /// confusion est impossible, et il coïncide avec sven:Delegation, son type dans le graphe.
+    ///
     /// Un serveur à qui l'on délègue une tâche.
     ///
     /// C'est la partie neuve du système (§8 du README) : un serveur est un objet de la scène
@@ -30,7 +41,7 @@ namespace Sc4ve.Multimodality
     /// dépend de SC4VE, pas l'inverse.
     /// </summary>
     [DisallowMultipleComponent, RequireComponent(typeof(SemantizationCore))]
-    public class Waiter : MonoBehaviour, IComponentMapping
+    public class Delegation : MonoBehaviour, IComponentMapping
     {
         /// <summary>
         /// Les trois états du §8. Volontairement grossiers : ce que le joueur doit lire, c'est
@@ -390,7 +401,7 @@ namespace Sc4ve.Multimodality
 
         private static bool IsCarriedBySomeone(ContainerContent container)
             => UnityEngine.Object
-                .FindObjectsByType<Waiter>(FindObjectsInactive.Exclude)
+                .FindObjectsByType<Delegation>(FindObjectsInactive.Exclude)
                 .Any(w => w._carried == container);
 
         private void Take(ContainerContent dish)
@@ -519,13 +530,13 @@ namespace Sc4ve.Multimodality
             return new("Delegation",
                 new List<Delegate>
                 {
-                    (Func<Waiter, ComponentProperty>)(waiter => new ComponentProperty(
+                    (Func<Delegation, ComponentProperty>)(waiter => new ComponentProperty(
                         "enabled",
                         () => waiter.enabled,
                         value => waiter.enabled = value.ToString() == "true",
                         1)),
 
-                    (Func<Waiter, ComponentProperty>)(waiter => new ComponentProperty(
+                    (Func<Delegation, ComponentProperty>)(waiter => new ComponentProperty(
                         "activity",
                         () => waiter._activity.ToString(),
                         // Rejeu non pris en charge : rétablir un état de tâche supposerait de
@@ -539,7 +550,7 @@ namespace Sc4ve.Multimodality
                             // comme une jointure sur sven:Idle, pas comme un filtre textuel.
                             GraphManager.CreateUriNode("sven:" + waiter._activity))))),
 
-                    (Func<Waiter, ComponentProperty>)(waiter => new ComponentProperty(
+                    (Func<Delegation, ComponentProperty>)(waiter => new ComponentProperty(
                         "carrying",
                         () => waiter._carried != null ? waiter._carried.GetComponent<SemantizationCore>().GetUUID() : "",
                         _ => { },

@@ -33,7 +33,7 @@ namespace Sc4ve.Multimodality.Intent
 
         public override List<SemantizationCore> Execute()
         {
-            Waiter agent = DelegationRoles.Agent(DelegationRoles.AllTargets(this));
+            Delegation agent = DelegationRoles.Agent(DelegationRoles.AllTargets(this));
 
             if (agent == null)
             {

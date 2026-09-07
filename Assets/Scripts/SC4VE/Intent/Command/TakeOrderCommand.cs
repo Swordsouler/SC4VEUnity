@@ -24,7 +24,7 @@ namespace Sc4ve.Multimodality.Intent
         public override List<SemantizationCore> Execute()
         {
             List<SemantizationCore> targets = DelegationRoles.AllTargets(this);
-            Waiter agent = DelegationRoles.Agent(targets);
+            Delegation agent = DelegationRoles.Agent(targets);
             SemantizationCore table = DelegationRoles.Table(targets);
 
             bool french = UserData.Locale == "fr";
