@@ -23,6 +23,9 @@ namespace Sc4ve.Multimodality.Intent
                 "ColorParameter" => new ColorParameter(),
                 "PointParameter" => new PointParameter(),
                 "SelectionParameter" => new SelectionParameter(),
+                "RecipeParameter" => new RecipeParameter(),
+                // Un type absent de cette liste retombe sur Parameter et perd toutes ses
+                // valeurs SANS erreur : penser à l'ajouter ici en même temps que la classe.
                 _ => new Parameter()
             };
 

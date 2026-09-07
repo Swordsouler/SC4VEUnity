@@ -82,13 +82,21 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         /// </summary>
         private readonly int _movePointDelayMs;
 
+        /// <summary>
+        /// Les recettes connues, triées par longueur de libellé DÉCROISSANTE : « soupe de
+        /// carottes » doit être essayée avant « soupe », faute de quoi la famille l'emporterait
+        /// sur la recette précise (§6.4 du README).
+        /// </summary>
+        private readonly List<RecipeVocabulary.Recipe> _recipes;
+
         public RuleBasedIntentRecognizer(
             List<string> annotationTypes,
             List<string> availableColors,
             List<string> pointerDeictics,
             string pointerName,
             string cameraName,
-            int movePointDelayMs = 300)
+            int movePointDelayMs = 300,
+            List<RecipeVocabulary.Recipe> recipes = null)
         {
             _annotationTypes = annotationTypes ?? new List<string>();
             _availableColors = availableColors ?? new List<string>();
@@ -96,6 +104,9 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             _pointerName = pointerName ?? "Pointeur";
             _cameraName = cameraName ?? "Caméra";
             _movePointDelayMs = movePointDelayMs;
+            _recipes = (recipes ?? new List<RecipeVocabulary.Recipe>())
+                .OrderByDescending(r => r.Label.Length)
+                .ToList();
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -143,8 +154,17 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             Debug.Log($"[RuleBased] Commande détectée : {commandType} | phrase : \"{sentence.Text}\"");
 
             // 2. Extraction des entités
-            List<RuleBasedAnnotation> annotations = FindAnnotations(text, words);
-            List<RuleBasedColor>      colors      = FindColors(text, words);
+            //
+            // Les RECETTES d'abord, et le segment reconnu est RETIRÉ du texte avant la suite.
+            // Sans cette consommation, « prépare une soupe de carottes » produirait à la fois
+            // un RecipeParameter et une sélection de carottes : les noms de plats recouvrent
+            // lexicalement des noms d'ingrédients (§6.4 du README). « Coupe les carottes pour
+            // la soupe de carottes » reste correct : la recette consomme sa part, la première
+            // occurrence demeure un ingrédient.
+            string recipe = FindRecipe(text, out string remainingText);
+
+            List<RuleBasedAnnotation> annotations = FindAnnotations(remainingText, words);
+            List<RuleBasedColor>      colors      = FindColors(remainingText, words);
             // Ablation (benchmark) : pointage désactivé → pas de déictiques (« ça » ne produit
             // plus de filtre Event), la résolution se fait à la voix seule.
             List<RuleBasedAnnotation> deictics    = MultimodalitySettings.PointingEnabled
@@ -225,7 +245,8 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 // d'annotation en OR (UNION SPARQL) au lieu du AND par défaut.
                 HasDisjunction   = Regex.IsMatch(text, @"\b(ou|or)\b", RegexOptions.IgnoreCase),
                 Order            = DetectOrder(text),
-                SingularIntent   = singularIntent
+                SingularIntent   = singularIntent,
+                Recipe           = recipe
             };
 
             Command cmd = CreateCommand(commandType);
@@ -437,6 +458,35 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         // ─────────────────────────────────────────────────────────────────────
         // Extraction des entités
         // ─────────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Cherche un nom de recette, du libellé le plus long au plus court, et retire du texte
+        /// le segment reconnu.
+        ///
+        /// « Le plus précis » se lit « le plus long », convention déjà en vigueur pour les
+        /// déclencheurs. La consommation du segment est ce qui empêche « soupe de carottes »
+        /// d'être aussi lue comme une carotte.
+        /// </summary>
+        /// <param name="remainingText">Le texte privé du nom de recette.</param>
+        /// <returns>Le nom préfixé de la recette, ou null si aucune n'est nommée.</returns>
+        private string FindRecipe(string text, out string remainingText)
+        {
+            remainingText = text;
+
+            foreach (RecipeVocabulary.Recipe recipe in _recipes)
+            {
+                string label = FrenchStemmer.NormalizeAccents(recipe.Label.ToLowerInvariant());
+                if (!ContainsPhrase(FrenchStemmer.NormalizeAccents(text), label)) continue;
+
+                remainingText = Regex.Replace(
+                    text, $@"\b{Regex.Escape(recipe.Label)}\b", " ", RegexOptions.IgnoreCase);
+
+                Debug.Log($"[RuleBased] Recette reconnue : {recipe.Label} → {recipe.Uri}" +
+                          (recipe.IsConcrete ? "" : " (famille — sous-spécifiée)"));
+                return recipe.Uri;
+            }
+            return null;
+        }
 
         private List<RuleBasedAnnotation> FindAnnotations(string text, List<Word> words)
         {

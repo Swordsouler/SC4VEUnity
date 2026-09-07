@@ -129,6 +129,9 @@ namespace Sc4ve.Multimodality
 
         private Task _initializationTask;
         private string _annotationTypesString;
+
+        /// <summary>Catalogue des recettes, lu dans l'ontologie au démarrage (voir RecipeVocabulary).</summary>
+        private List<RecipeVocabulary.Recipe> _recipes = new();
         private string _availableColorsString;
         private string _cameraNamesString;
         private string _pointerNamesString;
@@ -396,6 +399,9 @@ namespace Sc4ve.Multimodality
 
             await Task.WhenAll(annotationTypesTask, availableColorsTask, pointerNameTask, cameraNameTask);
 
+            _recipes = await RecipeVocabulary.GetAvailableRecipesAsync(UserData.Locale);
+            Debug.Log($"[Vocabulaire] {_recipes.Count} recette(s) chargée(s) depuis l'ontologie.");
+
             List<string> annotationTypes = await annotationTypesTask;
             _annotationTypesString = string.Join(", ", annotationTypes.Select(t => $"{t}"));
 
@@ -466,7 +472,8 @@ namespace Sc4ve.Multimodality
                 pointerDeictics,
                 _pointerNamesString,
                 _cameraNamesString,
-                _movePointDelayMs);
+                _movePointDelayMs,
+                _recipes);
 
             Debug.Log($"[RuleBased] Reconnaisseur initialisé — {annotationTypes.Count} annotations, " +
                       $"{availableColors.Count} couleurs, {pointerDeictics.Count} déictiques.");

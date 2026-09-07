@@ -39,6 +39,13 @@ namespace Sc4ve.Multimodality.Intent
         // Référence au singulier (« la pomme ») → candidate à la désambiguïsation si plusieurs cibles.
         public bool SingularIntent { get; init; }
 
+        /// <summary>
+        /// Nom préfixé de la recette nommée dans la phrase (« sven:CarrotSoup »), ou null.
+        /// Le segment correspondant a été retiré du texte avant l'extraction des annotations,
+        /// pour que « soupe de carottes » ne produise pas aussi une sélection de carottes.
+        /// </summary>
+        public string Recipe { get; init; }
+
         public IReadOnlyList<RuleBasedColor> SourceColors =>
             Colors?.Where(c => !c.IsTarget).ToList() ?? new List<RuleBasedColor>();
         public IReadOnlyList<RuleBasedColor> TargetColors =>
