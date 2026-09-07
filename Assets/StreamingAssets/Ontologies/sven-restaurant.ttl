@@ -1,0 +1,904 @@
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xml: <http://www.w3.org/XML/1998/namespace> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix geof: <http://www.opengis.net/def/function/geosparql/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sven: <https://sven.lisn.upsaclay.fr/ontology#> .
+@prefix ve: <https://sven.lisn.upsaclay.fr/ve/> .
+@prefix time: <http://www.w3.org/2006/time#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@base <https://sven.lisn.upsaclay.fr/ontology> .
+
+<https://sven.lisn.upsaclay.fr/ontology> rdf:type owl:Ontology ;
+                                         dcterms:license <https://opensource.org/licenses/MIT> .
+
+#################################################################
+#    Vocabulaire du mini-jeu de service (Assets/Demonstration)
+#
+#    Étend sven-fruits.ttl : Food > Fruit {Apple, Banana}
+#                                 > Vegetable {Carrot, Pumpkin}
+#
+#    Conventions (identiques à sven-fruits.ttl, à respecter) :
+#      - une classe feuille est DÉFINIE par une restriction sur sven:component ;
+#        c'est ce qui permet de la reconnaître à partir du composant Unity ;
+#      - une classe de branche est un simple rdfs:subClassOf ;
+#      - tout XComponent est sous-classe de sven:AnnotationComponent ;
+#      - labels @fr ET @en obligatoires : le filtre de sélection compare
+#        `?componentType rdfs:label "<mot>"@<locale>`, donc un label manquant
+#        rend la classe introuvable à la voix.
+#
+#    Les états (Sliced, Cooked) sont des annotations ORTHOGONALES au type :
+#    un objet porte « sven:Beef » ET « sven:Cooked ». Il n'existe donc AUCUNE
+#    classe croisée du genre « CookedBeef » — « le bœuf cuit » est la conjonction
+#    de deux filtres d'annotation, pas une classe. Ne pas en ajouter.
+#################################################################
+
+
+#################################################################
+#    Annotation properties
+#################################################################
+
+###  http://purl.org/dc/terms/license
+dcterms:license rdf:type owl:AnnotationProperty .
+
+###  https://sven.lisn.upsaclay.fr/ontology#requires
+sven:requires rdf:type owl:AnnotationProperty ;
+              rdfs:comment "Relates a recipe to one of its ingredient requirements."@en ,
+                           "Relie une recette à l'une de ses exigences d'ingrédient."@fr ;
+              rdfs:label "requires"@en ,
+                         "exige"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#ingredient
+sven:ingredient rdf:type owl:AnnotationProperty ;
+                rdfs:comment "The food class required by a recipe requirement."@en ,
+                             "La classe d'aliment exigée par une exigence de recette."@fr ;
+                rdfs:label "ingredient"@en ,
+                           "ingrédient"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#state
+sven:state rdf:type owl:AnnotationProperty ;
+           rdfs:comment "A state the ingredient must be in. Absent means raw and whole."@en ,
+                        "Un état dans lequel l'ingrédient doit être. Absent signifie cru et entier."@fr ;
+           rdfs:label "state"@en ,
+                      "état"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#forbidsState
+sven:forbidsState rdf:type owl:AnnotationProperty ;
+                  rdfs:comment "A state the ingredient must NOT be in — used by raw-only recipes."@en ,
+                               "Un état dans lequel l'ingrédient ne doit PAS être — pour les recettes crues."@fr ;
+                  rdfs:label "forbids state"@en ,
+                             "interdit l'état"@fr .
+
+
+#################################################################
+#    Object Properties
+#################################################################
+
+###  https://sven.lisn.upsaclay.fr/ontology#content
+sven:content rdf:type owl:ObjectProperty ;
+             rdfs:comment "Relates a container to an object it holds. Emitted at runtime by the Container component, one triple per held object."@en ,
+                          "Relie un contenant à un objet qu'il contient. Émis à l'exécution par le composant Container, un triplet par objet contenu."@fr ;
+             rdfs:label "content"@en ,
+                        "contenu"@fr .
+
+
+#################################################################
+#    Ingrédients — branches
+#################################################################
+
+###  https://sven.lisn.upsaclay.fr/ontology#MeatComponent
+sven:MeatComponent rdf:type owl:Class ;
+                   rdfs:subClassOf sven:FoodComponent, sven:AnnotationComponent ;
+                   rdfs:comment "A meat component."@en ,
+                                "Un composant de viande."@fr ;
+                   rdfs:label "Meat"@en ,
+                              "Viande"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Meat
+sven:Meat rdf:type owl:Class ;
+          rdfs:subClassOf sven:Food ;
+          rdfs:comment "Meat."@en ,
+                       "De la viande."@fr ;
+          rdfs:label "Meat"@en ,
+                     "Viande"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#FishComponent
+sven:FishComponent rdf:type owl:Class ;
+                   rdfs:subClassOf sven:FoodComponent, sven:AnnotationComponent ;
+                   rdfs:comment "A fish component."@en ,
+                                "Un composant de poisson."@fr ;
+                   rdfs:label "Fish"@en ,
+                              "Poisson"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Fish
+sven:Fish rdf:type owl:Class ;
+          rdfs:subClassOf sven:Food ;
+          rdfs:comment "Fish."@en ,
+                       "Du poisson."@fr ;
+          rdfs:label "Fish"@en ,
+                     "Poisson"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#DairyComponent
+sven:DairyComponent rdf:type owl:Class ;
+                    rdfs:subClassOf sven:FoodComponent, sven:AnnotationComponent ;
+                    rdfs:comment "A dairy component."@en ,
+                                 "Un composant de produit laitier."@fr ;
+                    rdfs:label "Dairy"@en ,
+                               "Produit laitier"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Dairy
+sven:Dairy rdf:type owl:Class ;
+           rdfs:subClassOf sven:Food ;
+           rdfs:comment "A dairy product."@en ,
+                        "Un produit laitier."@fr ;
+           rdfs:label "Dairy"@en ,
+                      "Produit laitier"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#BakeryComponent
+sven:BakeryComponent rdf:type owl:Class ;
+                     rdfs:subClassOf sven:FoodComponent, sven:AnnotationComponent ;
+                     rdfs:comment "A baked good component."@en ,
+                                  "Un composant de produit de boulangerie."@fr ;
+                     rdfs:label "Baked good"@en ,
+                                "Produit de boulangerie"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Bakery
+sven:Bakery rdf:type owl:Class ;
+            rdfs:subClassOf sven:Food ;
+            rdfs:comment "A baked good."@en ,
+                         "Un produit de boulangerie."@fr ;
+            rdfs:label "Baked good"@en ,
+                       "Produit de boulangerie"@fr .
+
+
+#################################################################
+#    Ingrédients — feuilles
+#################################################################
+
+###  https://sven.lisn.upsaclay.fr/ontology#PotatoComponent
+sven:PotatoComponent rdf:type owl:Class ;
+                     rdfs:subClassOf sven:VegetableComponent, sven:AnnotationComponent ;
+                     rdfs:comment "A potato component."@en ,
+                                  "Un composant de pomme de terre."@fr ;
+                     rdfs:label "Potato"@en ,
+                                "Pomme de terre"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Potato
+sven:Potato rdf:type owl:Class ;
+            rdfs:subClassOf sven:Vegetable ;
+            owl:equivalentClass [
+                rdf:type owl:Class ;
+                owl:intersectionOf (
+                    sven:Node
+                    [ rdf:type owl:Restriction ;
+                      owl:onProperty sven:component ;
+                      owl:someValuesFrom sven:PotatoComponent
+                    ]
+                )
+            ] ;
+            rdfs:comment "A potato is a vegetable."@en ,
+                         "Une pomme de terre est un légume."@fr ;
+            rdfs:label "Potato"@en ,
+                       "Pomme de terre"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#LettuceComponent
+sven:LettuceComponent rdf:type owl:Class ;
+                      rdfs:subClassOf sven:VegetableComponent, sven:AnnotationComponent ;
+                      rdfs:comment "A lettuce component."@en ,
+                                   "Un composant de laitue."@fr ;
+                      rdfs:label "Lettuce"@en ,
+                                 "Laitue"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Lettuce
+#    Label « Laitue » et non « Salade » : « salade » désignerait aussi la famille
+#    de plats sven:Salad, ce qui rendrait « mets la salade dans l'assiette » ambigu.
+sven:Lettuce rdf:type owl:Class ;
+             rdfs:subClassOf sven:Vegetable ;
+             owl:equivalentClass [
+                 rdf:type owl:Class ;
+                 owl:intersectionOf (
+                     sven:Node
+                     [ rdf:type owl:Restriction ;
+                       owl:onProperty sven:component ;
+                       owl:someValuesFrom sven:LettuceComponent
+                     ]
+                 )
+             ] ;
+             rdfs:comment "Lettuce is a vegetable."@en ,
+                          "La laitue est un légume."@fr ;
+             rdfs:label "Lettuce"@en ,
+                        "Laitue"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#TomatoComponent
+sven:TomatoComponent rdf:type owl:Class ;
+                     rdfs:subClassOf sven:VegetableComponent, sven:AnnotationComponent ;
+                     rdfs:comment "A tomato component."@en ,
+                                  "Un composant de tomate."@fr ;
+                     rdfs:label "Tomato"@en ,
+                                "Tomate"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Tomato
+sven:Tomato rdf:type owl:Class ;
+            rdfs:subClassOf sven:Vegetable ;
+            owl:equivalentClass [
+                rdf:type owl:Class ;
+                owl:intersectionOf (
+                    sven:Node
+                    [ rdf:type owl:Restriction ;
+                      owl:onProperty sven:component ;
+                      owl:someValuesFrom sven:TomatoComponent
+                    ]
+                )
+            ] ;
+            rdfs:comment "A tomato is a vegetable."@en ,
+                         "Une tomate est un légume."@fr ;
+            rdfs:label "Tomato"@en ,
+                       "Tomate"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#BeefComponent
+sven:BeefComponent rdf:type owl:Class ;
+                   rdfs:subClassOf sven:MeatComponent, sven:AnnotationComponent ;
+                   rdfs:comment "A beef component."@en ,
+                                "Un composant de bœuf."@fr ;
+                   rdfs:label "Beef"@en ,
+                              "Bœuf"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Beef
+#    Second label « Steak » : c'est le mot que le joueur emploiera le plus souvent
+#    (« steak frites », « fais cuire le steak »).
+sven:Beef rdf:type owl:Class ;
+          rdfs:subClassOf sven:Meat ;
+          owl:equivalentClass [
+              rdf:type owl:Class ;
+              owl:intersectionOf (
+                  sven:Node
+                  [ rdf:type owl:Restriction ;
+                    owl:onProperty sven:component ;
+                    owl:someValuesFrom sven:BeefComponent
+                  ]
+              )
+          ] ;
+          rdfs:comment "Beef is a meat."@en ,
+                       "Le bœuf est une viande."@fr ;
+          rdfs:label "Beef"@en ,
+                     "Steak"@en ,
+                     "Bœuf"@fr ,
+                     "Steak"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#ChickenComponent
+sven:ChickenComponent rdf:type owl:Class ;
+                      rdfs:subClassOf sven:MeatComponent, sven:AnnotationComponent ;
+                      rdfs:comment "A chicken component."@en ,
+                                   "Un composant de poulet."@fr ;
+                      rdfs:label "Chicken"@en ,
+                                 "Poulet"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Chicken
+sven:Chicken rdf:type owl:Class ;
+             rdfs:subClassOf sven:Meat ;
+             owl:equivalentClass [
+                 rdf:type owl:Class ;
+                 owl:intersectionOf (
+                     sven:Node
+                     [ rdf:type owl:Restriction ;
+                       owl:onProperty sven:component ;
+                       owl:someValuesFrom sven:ChickenComponent
+                     ]
+                 )
+             ] ;
+             rdfs:comment "Chicken is a meat."@en ,
+                          "Le poulet est une viande."@fr ;
+             rdfs:label "Chicken"@en ,
+                        "Poulet"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#SalmonComponent
+sven:SalmonComponent rdf:type owl:Class ;
+                     rdfs:subClassOf sven:FishComponent, sven:AnnotationComponent ;
+                     rdfs:comment "A salmon component."@en ,
+                                  "Un composant de saumon."@fr ;
+                     rdfs:label "Salmon"@en ,
+                                "Saumon"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Salmon
+sven:Salmon rdf:type owl:Class ;
+            rdfs:subClassOf sven:Fish ;
+            owl:equivalentClass [
+                rdf:type owl:Class ;
+                owl:intersectionOf (
+                    sven:Node
+                    [ rdf:type owl:Restriction ;
+                      owl:onProperty sven:component ;
+                      owl:someValuesFrom sven:SalmonComponent
+                    ]
+                )
+            ] ;
+            rdfs:comment "Salmon is a fish."@en ,
+                         "Le saumon est un poisson."@fr ;
+            rdfs:label "Salmon"@en ,
+                       "Saumon"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#CheeseComponent
+sven:CheeseComponent rdf:type owl:Class ;
+                     rdfs:subClassOf sven:DairyComponent, sven:AnnotationComponent ;
+                     rdfs:comment "A cheese component."@en ,
+                                  "Un composant de fromage."@fr ;
+                     rdfs:label "Cheese"@en ,
+                                "Fromage"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Cheese
+sven:Cheese rdf:type owl:Class ;
+            rdfs:subClassOf sven:Dairy ;
+            owl:equivalentClass [
+                rdf:type owl:Class ;
+                owl:intersectionOf (
+                    sven:Node
+                    [ rdf:type owl:Restriction ;
+                      owl:onProperty sven:component ;
+                      owl:someValuesFrom sven:CheeseComponent
+                    ]
+                )
+            ] ;
+            rdfs:comment "Cheese is a dairy product."@en ,
+                         "Le fromage est un produit laitier."@fr ;
+            rdfs:label "Cheese"@en ,
+                       "Fromage"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#BreadComponent
+sven:BreadComponent rdf:type owl:Class ;
+                    rdfs:subClassOf sven:BakeryComponent, sven:AnnotationComponent ;
+                    rdfs:comment "A bread component."@en ,
+                                 "Un composant de pain."@fr ;
+                    rdfs:label "Bread"@en ,
+                               "Pain"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Bread
+sven:Bread rdf:type owl:Class ;
+           rdfs:subClassOf sven:Bakery ;
+           owl:equivalentClass [
+               rdf:type owl:Class ;
+               owl:intersectionOf (
+                   sven:Node
+                   [ rdf:type owl:Restriction ;
+                     owl:onProperty sven:component ;
+                     owl:someValuesFrom sven:BreadComponent
+                   ]
+               )
+           ] ;
+           rdfs:comment "Bread is a baked good."@en ,
+                        "Le pain est un produit de boulangerie."@fr ;
+           rdfs:label "Bread"@en ,
+                      "Pain"@fr .
+
+
+#################################################################
+#    États d'aliment — ORTHOGONAUX au type
+#
+#    Un objet porte « sven:Beef » ET « sven:Cooked ». Aucune classe croisée.
+#    Les états sont POSITIFS : leur absence signifie cru et entier — il n'existe
+#    ni sven:Raw ni sven:Whole, une exigence de cru s'exprime par sven:forbidsState.
+#    Les états ne s'ajoutent que, ils ne se retirent jamais (§6.2 du README).
+#################################################################
+
+###  https://sven.lisn.upsaclay.fr/ontology#FoodStateComponent
+sven:FoodStateComponent rdf:type owl:Class ;
+                        rdfs:subClassOf sven:AnnotationComponent ;
+                        rdfs:comment "A food state component."@en ,
+                                     "Un composant d'état d'aliment."@fr ;
+                        rdfs:label "Food state"@en ,
+                                   "État d'aliment"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#FoodState
+sven:FoodState rdf:type owl:Class ;
+               rdfs:subClassOf sven:VirtualObject ;
+               rdfs:comment "A transformation an ingredient has undergone."@en ,
+                            "Une transformation subie par un ingrédient."@fr ;
+               rdfs:label "Food state"@en ,
+                          "État d'aliment"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#SlicedComponent
+sven:SlicedComponent rdf:type owl:Class ;
+                     rdfs:subClassOf sven:FoodStateComponent, sven:AnnotationComponent ;
+                     rdfs:comment "A sliced state component."@en ,
+                                  "Un composant d'état coupé."@fr ;
+                     rdfs:label "Sliced"@en ,
+                                "Coupé"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Sliced
+sven:Sliced rdf:type owl:Class ;
+            rdfs:subClassOf sven:FoodState ;
+            owl:equivalentClass [
+                rdf:type owl:Class ;
+                owl:intersectionOf (
+                    sven:Node
+                    [ rdf:type owl:Restriction ;
+                      owl:onProperty sven:component ;
+                      owl:someValuesFrom sven:SlicedComponent
+                    ]
+                )
+            ] ;
+            rdfs:comment "Has been through the cutting board."@en ,
+                         "Est passé par la planche à découper."@fr ;
+            rdfs:label "Sliced"@en ,
+                       "Coupé"@fr ,
+                       "Coupée"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#CookedComponent
+sven:CookedComponent rdf:type owl:Class ;
+                     rdfs:subClassOf sven:FoodStateComponent, sven:AnnotationComponent ;
+                     rdfs:comment "A cooked state component."@en ,
+                                  "Un composant d'état cuit."@fr ;
+                     rdfs:label "Cooked"@en ,
+                                "Cuit"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Cooked
+sven:Cooked rdf:type owl:Class ;
+            rdfs:subClassOf sven:FoodState ;
+            owl:equivalentClass [
+                rdf:type owl:Class ;
+                owl:intersectionOf (
+                    sven:Node
+                    [ rdf:type owl:Restriction ;
+                      owl:onProperty sven:component ;
+                      owl:someValuesFrom sven:CookedComponent
+                    ]
+                )
+            ] ;
+            rdfs:comment "Has been through the stove."@en ,
+                         "Est passé par la plaque de cuisson."@fr ;
+            rdfs:label "Cooked"@en ,
+                       "Cuit"@fr ,
+                       "Cuite"@fr .
+
+
+#################################################################
+#    Contenants et stations
+#
+#    Station ⊑ Container : c'est ce qui permet à PutInCommand de viser une
+#    planche ou une plaque sans une ligne de code de plus.
+#################################################################
+
+###  https://sven.lisn.upsaclay.fr/ontology#ContainerComponent
+sven:ContainerComponent rdf:type owl:Class ;
+                        rdfs:subClassOf sven:AnnotationComponent ;
+                        rdfs:comment "A container component."@en ,
+                                     "Un composant de contenant."@fr ;
+                        rdfs:label "Container"@en ,
+                                   "Contenant"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Container
+sven:Container rdf:type owl:Class ;
+               rdfs:subClassOf sven:VirtualObject ;
+               rdfs:comment "Something that holds other objects."@en ,
+                            "Quelque chose qui contient d'autres objets."@fr ;
+               rdfs:label "Container"@en ,
+                          "Contenant"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#PlateComponent
+sven:PlateComponent rdf:type owl:Class ;
+                    rdfs:subClassOf sven:ContainerComponent, sven:AnnotationComponent ;
+                    rdfs:comment "A plate component."@en ,
+                                 "Un composant d'assiette."@fr ;
+                    rdfs:label "Plate"@en ,
+                               "Assiette"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Plate
+#    Seul contenant de service du jeu : pas de bol ni de barquette, quelle que
+#    soit la vraisemblance culinaire (§11 du README).
+sven:Plate rdf:type owl:Class ;
+           rdfs:subClassOf sven:Container ;
+           owl:equivalentClass [
+               rdf:type owl:Class ;
+               owl:intersectionOf (
+                   sven:Node
+                   [ rdf:type owl:Restriction ;
+                     owl:onProperty sven:component ;
+                     owl:someValuesFrom sven:PlateComponent
+                   ]
+               )
+           ] ;
+           rdfs:comment "The only serving container in the game."@en ,
+                        "Le seul contenant de service du jeu."@fr ;
+           rdfs:label "Plate"@en ,
+                      "Assiette"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#BinComponent
+sven:BinComponent rdf:type owl:Class ;
+                  rdfs:subClassOf sven:ContainerComponent, sven:AnnotationComponent ;
+                  rdfs:comment "A bin component."@en ,
+                               "Un composant de poubelle."@fr ;
+                  rdfs:label "Bin"@en ,
+                             "Poubelle"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Bin
+sven:Bin rdf:type owl:Class ;
+         rdfs:subClassOf sven:Container ;
+         owl:equivalentClass [
+             rdf:type owl:Class ;
+             owl:intersectionOf (
+                 sven:Node
+                 [ rdf:type owl:Restriction ;
+                   owl:onProperty sven:component ;
+                   owl:someValuesFrom sven:BinComponent
+                 ]
+             )
+         ] ;
+         rdfs:comment "Where a failed or refused dish is emptied."@en ,
+                      "Là où l'on vide un plat raté ou refusé."@fr ;
+         rdfs:label "Bin"@en ,
+                    "Poubelle"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#StationComponent
+sven:StationComponent rdf:type owl:Class ;
+                      rdfs:subClassOf sven:ContainerComponent, sven:AnnotationComponent ;
+                      rdfs:comment "A station component."@en ,
+                                   "Un composant de station."@fr ;
+                      rdfs:label "Station"@en ,
+                                 "Station"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Station
+sven:Station rdf:type owl:Class ;
+             rdfs:subClassOf sven:Container ;
+             rdfs:comment "A container that gives a food state to what is put in it."@en ,
+                          "Un contenant qui donne un état d'aliment à ce qu'on y pose."@fr ;
+             rdfs:label "Station"@en ,
+                        "Station"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#CuttingBoardComponent
+sven:CuttingBoardComponent rdf:type owl:Class ;
+                           rdfs:subClassOf sven:StationComponent, sven:AnnotationComponent ;
+                           rdfs:comment "A cutting board component."@en ,
+                                        "Un composant de planche à découper."@fr ;
+                           rdfs:label "Cutting board"@en ,
+                                      "Planche à découper"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#CuttingBoard
+sven:CuttingBoard rdf:type owl:Class ;
+                  rdfs:subClassOf sven:Station ;
+                  owl:equivalentClass [
+                      rdf:type owl:Class ;
+                      owl:intersectionOf (
+                          sven:Node
+                          [ rdf:type owl:Restriction ;
+                            owl:onProperty sven:component ;
+                            owl:someValuesFrom sven:CuttingBoardComponent
+                          ]
+                      )
+                  ] ;
+                  rdfs:comment "Gives the Sliced state."@en ,
+                               "Donne l'état Coupé."@fr ;
+                  rdfs:label "Cutting board"@en ,
+                             "Planche à découper"@fr ,
+                             "Planche"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#StoveComponent
+sven:StoveComponent rdf:type owl:Class ;
+                    rdfs:subClassOf sven:StationComponent, sven:AnnotationComponent ;
+                    rdfs:comment "A stove component."@en ,
+                                 "Un composant de plaque de cuisson."@fr ;
+                    rdfs:label "Stove"@en ,
+                               "Plaque de cuisson"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Stove
+sven:Stove rdf:type owl:Class ;
+           rdfs:subClassOf sven:Station ;
+           owl:equivalentClass [
+               rdf:type owl:Class ;
+               owl:intersectionOf (
+                   sven:Node
+                   [ rdf:type owl:Restriction ;
+                     owl:onProperty sven:component ;
+                     owl:someValuesFrom sven:StoveComponent
+                   ]
+               )
+           ] ;
+           rdfs:comment "Gives the Cooked state."@en ,
+                        "Donne l'état Cuit."@fr ;
+           rdfs:label "Stove"@en ,
+                      "Plaque de cuisson"@fr ,
+                      "Plaque"@fr .
+
+
+#################################################################
+#    Mobilier et personnes
+#################################################################
+
+###  https://sven.lisn.upsaclay.fr/ontology#FurnitureComponent
+sven:FurnitureComponent rdf:type owl:Class ;
+                        rdfs:subClassOf sven:AnnotationComponent ;
+                        rdfs:comment "A furniture component."@en ,
+                                     "Un composant de mobilier."@fr ;
+                        rdfs:label "Furniture"@en ,
+                                   "Mobilier"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Furniture
+sven:Furniture rdf:type owl:Class ;
+               rdfs:subClassOf sven:VirtualObject ;
+               rdfs:comment "Furniture."@en ,
+                            "Du mobilier."@fr ;
+               rdfs:label "Furniture"@en ,
+                          "Mobilier"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#TableComponent
+sven:TableComponent rdf:type owl:Class ;
+                    rdfs:subClassOf sven:FurnitureComponent, sven:AnnotationComponent ;
+                    rdfs:comment "A table component."@en ,
+                                 "Un composant de table."@fr ;
+                    rdfs:label "Table"@en ,
+                               "Table"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Table
+#    Les tables ne sont PAS numérotées : c'est ce qui force le pointage
+#    (« cette table-là 👆 »). Ne pas ajouter de label « table 1 », « table 2 ».
+sven:Table rdf:type owl:Class ;
+           rdfs:subClassOf sven:Furniture ;
+           owl:equivalentClass [
+               rdf:type owl:Class ;
+               owl:intersectionOf (
+                   sven:Node
+                   [ rdf:type owl:Restriction ;
+                     owl:onProperty sven:component ;
+                     owl:someValuesFrom sven:TableComponent
+                   ]
+               )
+           ] ;
+           rdfs:comment "A table in the dining room. Never numbered."@en ,
+                        "Une table de la salle. Jamais numérotée."@fr ;
+           rdfs:label "Table"@en ,
+                      "Table"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#PersonComponent
+sven:PersonComponent rdf:type owl:Class ;
+                     rdfs:subClassOf sven:AnnotationComponent ;
+                     rdfs:comment "A person component."@en ,
+                                  "Un composant de personne."@fr ;
+                     rdfs:label "Person"@en ,
+                                "Personne"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Person
+sven:Person rdf:type owl:Class ;
+            rdfs:subClassOf sven:VirtualObject ;
+            rdfs:comment "A person in the restaurant."@en ,
+                         "Une personne du restaurant."@fr ;
+            rdfs:label "Person"@en ,
+                       "Personne"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#WaiterComponent
+sven:WaiterComponent rdf:type owl:Class ;
+                     rdfs:subClassOf sven:PersonComponent, sven:AnnotationComponent ;
+                     rdfs:comment "A waiter component."@en ,
+                                  "Un composant de serveur."@fr ;
+                     rdfs:label "Waiter"@en ,
+                                "Serveur"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Waiter
+#    Un serveur est un SemantizationCore ordinaire : il se sélectionne, se
+#    colorie et se décrit comme n'importe quel objet. C'est ce qui évite
+#    d'inventer un type de paramètre pour désigner un agent (§2 du README).
+sven:Waiter rdf:type owl:Class ;
+            rdfs:subClassOf sven:Person ;
+            owl:equivalentClass [
+                rdf:type owl:Class ;
+                owl:intersectionOf (
+                    sven:Node
+                    [ rdf:type owl:Restriction ;
+                      owl:onProperty sven:component ;
+                      owl:someValuesFrom sven:WaiterComponent
+                    ]
+                )
+            ] ;
+            rdfs:comment "An autonomous agent that takes orders and serves dishes."@en ,
+                         "Un agent autonome qui prend les commandes et sert les plats."@fr ;
+            rdfs:label "Waiter"@en ,
+                       "Serveur"@fr ,
+                       "Serveuse"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#CustomerComponent
+sven:CustomerComponent rdf:type owl:Class ;
+                       rdfs:subClassOf sven:PersonComponent, sven:AnnotationComponent ;
+                       rdfs:comment "A customer component."@en ,
+                                    "Un composant de client."@fr ;
+                       rdfs:label "Customer"@en ,
+                                  "Client"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Customer
+sven:Customer rdf:type owl:Class ;
+              rdfs:subClassOf sven:Person ;
+              owl:equivalentClass [
+                  rdf:type owl:Class ;
+                  owl:intersectionOf (
+                      sven:Node
+                      [ rdf:type owl:Restriction ;
+                        owl:onProperty sven:component ;
+                        owl:someValuesFrom sven:CustomerComponent
+                      ]
+                  )
+              ] ;
+              rdfs:comment "Someone who orders a dish and waits for it."@en ,
+                           "Quelqu'un qui commande un plat et l'attend."@fr ;
+              rdfs:label "Customer"@en ,
+                         "Client"@fr ,
+                         "Cliente"@fr .
+
+
+#################################################################
+#    Recettes — SPÉCIFICATIONS, pas des annotations
+#
+#    Une recette ne classe aucun objet : il n'existe pas de « FruitSaladComponent ».
+#    Un plat est une assiette dont on inspecte le contenu (§6.3 du README), et la
+#    conformité est une requête SPARQL, jamais une classification OWL — OWL est en
+#    monde ouvert et ne sait pas exprimer « et rien d'autre », or une assiette qui
+#    contient EN PLUS un steak n'est pas une salade de fruits.
+#
+#    Chaque exigence est un nœud anonyme : sven:ingredient (obligatoire),
+#    sven:state (0..n, états requis), sven:forbidsState (0..n, états interdits).
+#    Absence de sven:state = l'ingrédient peut être dans n'importe quel état,
+#    SAUF si sven:forbidsState l'interdit explicitement.
+#################################################################
+
+###  https://sven.lisn.upsaclay.fr/ontology#Dish
+sven:Dish rdf:type owl:Class ;
+          rdfs:comment "A recipe specification. Classifies no object."@en ,
+                       "Une spécification de recette. Ne classe aucun objet."@fr ;
+          rdfs:label "Dish"@en ,
+                     "Plat"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Salad
+#    « Salade » désigne ici un MODE DE COMPOSITION — un mélange d'ingrédients servi
+#    en assiette — et non le sens culinaire courant. « Steak frites » y appartient
+#    donc à juste titre, au même titre que la salade de fruits.
+sven:Salad rdf:type owl:Class ;
+           rdfs:subClassOf sven:Dish ;
+           rdfs:comment "A mix of ingredients served on a plate. A mode of composition, not the culinary sense: steak and chips belongs here."@en ,
+                        "Un mélange d'ingrédients servi en assiette. Un mode de composition, pas le sens culinaire : le steak frites en fait partie."@fr ;
+           rdfs:label "Salad"@en ,
+                      "Salade"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Soup
+sven:Soup rdf:type owl:Class ;
+          rdfs:subClassOf sven:Dish ;
+          rdfs:comment "Ingredients cooked and served in liquid form."@en ,
+                       "Des ingrédients cuits et servis sous forme liquide."@fr ;
+          rdfs:label "Soup"@en ,
+                     "Soupe"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Sandwich
+sven:Sandwich rdf:type owl:Class ;
+              rdfs:subClassOf sven:Dish ;
+              rdfs:comment "Ingredients served in bread."@en ,
+                           "Des ingrédients servis dans du pain."@fr ;
+              rdfs:label "Sandwich"@en ,
+                         "Sandwich"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#FruitSalad
+sven:FruitSalad rdf:type owl:Class ;
+                rdfs:subClassOf sven:Salad ;
+                sven:requires [ sven:ingredient sven:Apple ; sven:state sven:Sliced ] ,
+                              [ sven:ingredient sven:Banana ; sven:state sven:Sliced ] ;
+                rdfs:comment "Sliced apple and sliced banana."@en ,
+                             "Pomme coupée et banane coupée."@fr ;
+                rdfs:label "Fruit salad"@en ,
+                           "Salade de fruits"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#CaesarSalad
+sven:CaesarSalad rdf:type owl:Class ;
+                 rdfs:subClassOf sven:Salad ;
+                 sven:requires [ sven:ingredient sven:Lettuce ; sven:state sven:Sliced ] ,
+                               [ sven:ingredient sven:Chicken ; sven:state sven:Cooked ] ,
+                               [ sven:ingredient sven:Cheese ] ,
+                               [ sven:ingredient sven:Bread ; sven:state sven:Sliced ] ;
+                 rdfs:comment "Sliced lettuce, cooked chicken, cheese and croutons."@en ,
+                              "Laitue coupée, poulet cuit, fromage et croûtons."@fr ;
+                 rdfs:label "Caesar salad"@en ,
+                            "Salade César"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#SteakFrites
+#    Recette vitrine des stations : la pomme de terre y est exigée coupée ET cuite,
+#    donc deux passages en station. C'est la plus longue à produire.
+sven:SteakFrites rdf:type owl:Class ;
+                 rdfs:subClassOf sven:Salad ;
+                 sven:requires [ sven:ingredient sven:Beef ; sven:state sven:Cooked ] ,
+                               [ sven:ingredient sven:Potato ; sven:state sven:Sliced , sven:Cooked ] ;
+                 rdfs:comment "Cooked beef and chips — sliced then cooked potato."@en ,
+                              "Bœuf cuit et frites — pomme de terre coupée puis cuite."@fr ;
+                 rdfs:label "Steak and chips"@en ,
+                            "Steak frites"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#FishSoup
+sven:FishSoup rdf:type owl:Class ;
+              rdfs:subClassOf sven:Soup ;
+              sven:requires [ sven:ingredient sven:Salmon ; sven:state sven:Cooked ] ,
+                            [ sven:ingredient sven:Potato ; sven:state sven:Sliced , sven:Cooked ] ,
+                            [ sven:ingredient sven:Carrot ; sven:state sven:Sliced ] ;
+              rdfs:comment "Cooked salmon, sliced cooked potato, sliced carrot."@en ,
+                           "Saumon cuit, pomme de terre coupée et cuite, carotte coupée."@fr ;
+              rdfs:label "Fish soup"@en ,
+                         "Soupe de poisson"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#PumpkinSoup
+#    Ne diffère de CarrotSoup que par UN ingrédient : c'est voulu, c'est le
+#    meilleur test de résolution référentielle du jeu (§6.4 du README).
+sven:PumpkinSoup rdf:type owl:Class ;
+                 rdfs:subClassOf sven:Soup ;
+                 sven:requires [ sven:ingredient sven:Pumpkin ; sven:state sven:Sliced , sven:Cooked ] ,
+                               [ sven:ingredient sven:Potato ; sven:state sven:Sliced , sven:Cooked ] ;
+                 rdfs:comment "Sliced cooked pumpkin and potato."@en ,
+                              "Citrouille et pomme de terre, coupées et cuites."@fr ;
+                 rdfs:label "Pumpkin soup"@en ,
+                            "Soupe de citrouille"@fr ,
+                            "Soupe de potiron"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#CarrotSoup
+sven:CarrotSoup rdf:type owl:Class ;
+                rdfs:subClassOf sven:Soup ;
+                sven:requires [ sven:ingredient sven:Carrot ; sven:state sven:Sliced , sven:Cooked ] ,
+                              [ sven:ingredient sven:Potato ; sven:state sven:Sliced , sven:Cooked ] ;
+                rdfs:comment "Sliced cooked carrot and potato."@en ,
+                             "Carotte et pomme de terre, coupées et cuites."@fr ;
+                rdfs:label "Carrot soup"@en ,
+                           "Soupe de carottes"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#SalmonSandwich
+#    Le saumon y est exigé CRU — d'où le sven:forbidsState.
+sven:SalmonSandwich rdf:type owl:Class ;
+                    rdfs:subClassOf sven:Sandwich ;
+                    sven:requires [ sven:ingredient sven:Bread ; sven:state sven:Sliced ] ,
+                                  [ sven:ingredient sven:Salmon ; sven:forbidsState sven:Cooked ] ,
+                                  [ sven:ingredient sven:Lettuce ] ;
+                    rdfs:comment "Sliced bread, raw salmon, lettuce."@en ,
+                                 "Pain coupé, saumon cru, laitue."@fr ;
+                    rdfs:label "Salmon sandwich"@en ,
+                               "Sandwich au saumon"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#CruditesSandwich
+#    « Crudités » veut dire cru : cuire un seul de ses légumes rend le plat non
+#    conforme. C'est la contrainte NÉGATIVE sur l'état, symétrique des contraintes
+#    alimentaires, et le meilleur cas de démonstration du modèle d'états.
+sven:CruditesSandwich rdf:type owl:Class ;
+                      rdfs:subClassOf sven:Sandwich ;
+                      sven:requires [ sven:ingredient sven:Bread ; sven:state sven:Sliced ] ,
+                                    [ sven:ingredient sven:Lettuce ; sven:state sven:Sliced ; sven:forbidsState sven:Cooked ] ,
+                                    [ sven:ingredient sven:Tomato ; sven:state sven:Sliced ; sven:forbidsState sven:Cooked ] ,
+                                    [ sven:ingredient sven:Carrot ; sven:state sven:Sliced ; sven:forbidsState sven:Cooked ] ,
+                                    [ sven:ingredient sven:Cheese ] ;
+                      rdfs:comment "Sliced bread and raw sliced vegetables. Cooking any of them makes it non-conformant."@en ,
+                                   "Pain coupé et légumes crus coupés. En cuire un seul rend le plat non conforme."@fr ;
+                      rdfs:label "Crudites sandwich"@en ,
+                                 "Sandwich crudités"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#BeefSandwich
+sven:BeefSandwich rdf:type owl:Class ;
+                  rdfs:subClassOf sven:Sandwich ;
+                  sven:requires [ sven:ingredient sven:Bread ; sven:state sven:Sliced ] ,
+                                [ sven:ingredient sven:Beef ; sven:state sven:Cooked ] ,
+                                [ sven:ingredient sven:Tomato ; sven:state sven:Sliced ] ,
+                                [ sven:ingredient sven:Cheese ] ;
+                  rdfs:comment "Sliced bread, cooked beef, sliced tomato, cheese."@en ,
+                               "Pain coupé, bœuf cuit, tomate coupée, fromage."@fr ;
+                  rdfs:label "Beef sandwich"@en ,
+                             "Sandwich au bœuf"@fr .

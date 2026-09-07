@@ -12,7 +12,8 @@ ligne à ligne. À lire avec `../../COMMANDS.md` (ajouter une commande) et `../.
 
 | | |
 |---|---|
-| `Scenes/` | les scènes du mini-jeu |
+| `Editor/` | outils d'éditeur — **`DemoSceneBuilder.cs` construit la scène par code** |
+| `Scenes/` | les scènes du mini-jeu, produites par l'outil ci-dessus |
 | `Prefabs/` | ingrédients, assiettes, stations, tables, serveurs, clients |
 | `Ontologies/` | brouillon de `sven-restaurant.ttl` avant copie dans `StreamingAssets` |
 | `Scripts/` | code **spécifique au jeu** : machine à états des serveurs, spawn des clients, score, tableau des commandes |
@@ -20,6 +21,31 @@ ligne à ligne. À lire avec `../../COMMANDS.md` (ajouter une commande) et `../.
 
 Les dossiers sont à créer au fur et à mesure — un dossier vide n'est pas suivi par Git et
 Unity y génère des `.meta` pour rien.
+
+### La scène se construit par code
+
+Menu **SC4VE > Démonstration** :
+
+| | |
+|---|---|
+| **1 — (Re)construire le contenu du mini-jeu** | remplit `Scenes/Demo Mini Game.unity` : sol, cuisine (plan de travail, étagère, 11 ingrédients ×2, 2 stations, 6 assiettes, poubelle, passe), salle (4 tables non numérotées, 2 serveurs identiques), et le rig XR s'il manque |
+| **2 — Corriger les prefabs existants** | passe le `SemanticAnnotator` des prefabs de fruits en `Dynamic` et leur ajoute un `XRGrabInteractable`. Idempotent. L'outil 1 l'exécute d'abord. |
+
+**Construire par code plutôt qu'à la main** est un choix, pas un pis-aller : le contenu est
+relisible en diff, reproductible, et se reconstruit quand le vocabulaire change.
+
+**L'outil ne possède qu'un seul objet : la racine `Mini-jeu (généré)`.** Il la détruit et la
+reconstruit à chaque exécution, et ne touche à rien d'autre dans la scène. Tout ce qui vit en
+dehors — rig XR, `MultimodalityController`, pipeline vocal, éclairage, réglages de NavMesh —
+survit aux reconstructions et peut être réglé à la main librement. **La seule règle : ne rien
+placer soi-même sous cette racine.**
+
+Le rig XR suit la même logique : créé s'il manque, laissé intact s'il existe, et toujours hors
+de la racine générée.
+
+Ce que l'outil ne fait pas, et qui reste manuel : cuire le NavMesh, poser le
+`MultimodalityController` et le pipeline vocal, remplacer les 8 primitives colorées par de
+vrais modèles (§6.1).
 
 ### Ce qui ne doit PAS venir ici
 
@@ -382,29 +408,36 @@ ingrédients font quarante-quatre classes à écrire et à maintenir, et ajouter
 double encore le tout.
 
 La solution tient dans le mécanisme d'annotation existant : **un objet porte plusieurs
-annotations** (`SemanticAnnotator.Annotations` est une liste). L'état est donc un composant
-**orthogonal** au type, et les classes qualifiées sont des **classes définies**, pas asserties :
+annotations** (`SemanticAnnotator.Annotations` est une liste). L'état est donc **orthogonal**
+au type : un steak cuit porte `sven:Beef` **et** `sven:Cooked`.
+
+> **Corrigé à l'implémentation.** Ce paragraphe prévoyait initialement des classes qualifiées
+> *définies* (`sven:CookedBeef ≡ ∃component.BeefComponent ⊓ ∃component.CookedComponent`), en
+> comptant sur l'inférence pour en déduire `CookedBeef ⊑ Beef`. La lecture du code a montré
+> que **c'est inutile**, pour deux raisons vérifiées :
+>
+> 1. le filtre de sélection ne fait **aucune inférence** — il compare un label :
+>    `?annotation sven:value ?componentType . ?componentType rdfs:label "pomme"@fr` ;
+> 2. `SemanticAnnotatorEditor` **matérialise les parents** au moment de l'annotation : cocher
+>    « Apple » écrit `sven:Apple`, `sven:Fruit`, `sven:Food` dans la liste. La hiérarchie est
+>    résolue à l'annotation, pas à la requête.
+>
+> Conséquence : **aucune classe croisée n'est nécessaire**, et il n'y en a aucune dans
+> `sven-restaurant.ttl` — un avertissement en tête de fichier demande de ne pas en ajouter.
+> « Le bœuf cuit » est la **conjonction de deux filtres d'annotation**, ce que `FilterElement`
+> sait déjà faire, et « pas de viande » rejette le steak cuit comme le cru puisque l'objet
+> porte de toute façon `sven:Meat` parmi ses annotations matérialisées.
+
+Les exigences des recettes n'ont donc pas besoin de classes qualifiées non plus : chacune est
+un nœud portant l'ingrédient et ses états.
 
 ```turtle
-sven:CookedBeef owl:equivalentClass [
-    rdf:type owl:Class ;
-    owl:intersectionOf (
-        sven:Node
-        [ rdf:type owl:Restriction ; owl:onProperty sven:component ;
-          owl:someValuesFrom sven:BeefComponent ]
-        [ rdf:type owl:Restriction ; owl:onProperty sven:component ;
-          owl:someValuesFrom sven:CookedComponent ]
-    )
-] .
+sven:SteakFrites sven:requires [ sven:ingredient sven:Beef ; sven:state sven:Cooked ] ,
+                               [ sven:ingredient sven:Potato ; sven:state sven:Sliced , sven:Cooked ] .
 ```
 
-`CookedBeef ⊑ Beef` est alors **inféré**, jamais écrit. On obtient exactement la hiérarchie
-voulue — « un steak cuit est un steak » — sans rédiger le produit croisé, et il ne faut
-déclarer que les classes qualifiées qu'une recette référence réellement.
-
-C'est aussi la seule forme compatible avec les contraintes du §6.5 : « pas de viande » doit
-rejeter un steak **cuit** aussi bien que cru, ce qu'une hiérarchie assertie ne garantirait
-qu'à condition de n'avoir oublié aucune branche.
+`sven:forbidsState` exprime l'exigence inverse — le saumon cru du sandwich au saumon, les
+légumes non cuits du sandwich crudités.
 
 #### Les états retenus
 
@@ -435,8 +468,13 @@ if (componentProperties.Value.IsSemantized &&
 ```
 
 En `Static`, l'annotation est figée au démarrage et « cuire » n'atteindrait jamais le graphe —
-le plat serait jugé non conforme sans raison visible. **C'est le premier point à vérifier au
-lot 1.**
+le plat serait jugé non conforme sans raison visible.
+
+> **Vérifié : les prefabs existants sont en `Static`.** Sur `Interactable Apple.prefab`,
+> l'entrée `SemanticAnnotator` de `componentsToSemanticize` porte `ProcessingMode: 1`, et
+> l'énumération est `Dynamic = 0, Static = 1`. Le risque n'était donc pas théorique.
+> L'outil d'éditeur **SC4VE > Démonstration > 2** corrige les dix prefabs concernés, et la
+> construction de scène l'exécute d'elle-même avant d'en instancier.
 
 En contrepartie, `Dynamic` offre gratuitement la dimension temporelle : le graphe enregistre
 un intervalle, donc *à quel moment* le steak est devenu cuit. Rien à écrire pour l'obtenir.
