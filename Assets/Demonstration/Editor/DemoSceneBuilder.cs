@@ -1174,7 +1174,7 @@ namespace Sc4ve.Demonstration.EditorTools
             go.transform.localScale = scale;
             go.GetComponent<Renderer>().sharedMaterial = GetMaterial(ShortName(semanticType), color);
 
-            if (mesh != null) ReplaceMesh(go, mesh);
+            if (mesh != null) ReplaceMesh(go, mesh, convex: grabbable);
 
             string[] hierarchy = SemanticHierarchy(semanticType);
             Type annotationType = ResolveAnnotationType(semanticType);
@@ -1242,20 +1242,29 @@ namespace Sc4ve.Demonstration.EditorTools
         }
 
         /// <summary>
-        /// Remplace la forme primitive par un mesh généré, et son collider par un MeshCollider
-        /// convexe — un collider convexe est exigé dès qu'un Rigidbody est en jeu, et c'est le
-        /// cas de tous les ingrédients, qui sont saisissables.
+        /// Remplace la forme primitive par un mesh généré, et lui donne un collider adapté.
+        ///
+        /// Convexe UNIQUEMENT si l'objet est saisissable, c'est-à-dire s'il porte un Rigidbody :
+        /// c'est la seule situation où Unity l'exige. Un collider convexe est plafonné à 256
+        /// faces, et le dépassement ne produit qu'un avertissement — « the partial hull will be
+        /// used » — jamais une erreur : la silhouette du collider s'écarte alors silencieusement
+        /// du modèle. Les serveurs et les clients, faits d'un blob à 320 faces, tombaient
+        /// exactement dans ce cas.
+        ///
+        /// Pour tout le reste — table, poubelle, station, personnage — un collider CONCAVE est
+        /// à la fois autorisé, exact et sans plafond. Il vaut mieux ici : le pointage frappe la
+        /// vraie silhouette, et la cuisson du NavMesh découpe les obstacles à leur forme réelle
+        /// plutôt qu'à leur enveloppe convexe — un plateau de table ne bouche plus le dessous.
         /// </summary>
-        private static void ReplaceMesh(GameObject go, Mesh mesh)
+        private static void ReplaceMesh(GameObject go, Mesh mesh, bool convex)
         {
             go.GetComponent<MeshFilter>().sharedMesh = mesh;
 
             UnityEngine.Object.DestroyImmediate(go.GetComponent<Collider>());
             var collider = go.AddComponent<MeshCollider>();
             collider.sharedMesh = mesh;
-            collider.convex = true;
+            collider.convex = convex;
         }
-
         private static SemanticComponent Entry(Component component, SemanticProcessingMode mode)
             => new() { Component = component, ProcessingMode = mode };
 
