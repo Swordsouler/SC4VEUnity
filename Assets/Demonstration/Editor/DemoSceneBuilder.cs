@@ -33,6 +33,7 @@ namespace Sc4ve.Demonstration.EditorTools
     {
         private const string ScenePath = "Assets/Demonstration/Scenes/Demo Mini Game.unity";
         private const string MaterialsPath = "Assets/Demonstration/Materials";
+        private const string PrefabsPath   = "Assets/Demonstration/Prefabs";
 
         /// <summary>Le seul objet que cet outil possède. Tout le reste de la scène lui est étranger.</summary>
         private const string RootName = "Mini-jeu (généré)";
@@ -257,42 +258,135 @@ namespace Sc4ve.Demonstration.EditorTools
             var crates = new GameObject("Ingrédients").transform;
             crates.SetParent(parent);
 
-            (string semantic, PrimitiveType shape, Vector3 size, Color color, string prefab)[] ingredients =
-            {
-                ("sven:Apple",   PrimitiveType.Sphere,   new Vector3(0.09f, 0.09f, 0.09f), new Color(0.80f, 0.16f, 0.16f), "Interactable Apple"),
-                ("sven:Banana",  PrimitiveType.Capsule,  new Vector3(0.06f, 0.09f, 0.06f), new Color(0.93f, 0.83f, 0.25f), "Interactable Banana"),
-                ("sven:Carrot",  PrimitiveType.Cylinder, new Vector3(0.05f, 0.10f, 0.05f), new Color(0.92f, 0.51f, 0.13f), "Interactable Carrot"),
-                ("sven:Pumpkin", PrimitiveType.Sphere,   new Vector3(0.16f, 0.13f, 0.16f), new Color(0.88f, 0.45f, 0.10f), "Interactable Pumpkin_C"),
-                ("sven:Potato",  PrimitiveType.Sphere,   new Vector3(0.09f, 0.07f, 0.09f), new Color(0.76f, 0.60f, 0.42f), null),
-                ("sven:Lettuce", PrimitiveType.Sphere,   new Vector3(0.13f, 0.11f, 0.13f), new Color(0.45f, 0.72f, 0.35f), null),
-                ("sven:Tomato",  PrimitiveType.Sphere,   new Vector3(0.08f, 0.08f, 0.08f), new Color(0.85f, 0.18f, 0.15f), null),
-                ("sven:Beef",    PrimitiveType.Cube,     new Vector3(0.14f, 0.04f, 0.10f), new Color(0.55f, 0.18f, 0.16f), null),
-                ("sven:Chicken", PrimitiveType.Capsule,  new Vector3(0.08f, 0.06f, 0.08f), new Color(0.93f, 0.85f, 0.68f), null),
-                ("sven:Salmon",  PrimitiveType.Cube,     new Vector3(0.16f, 0.03f, 0.09f), new Color(0.95f, 0.55f, 0.42f), null),
-                ("sven:Cheese",  PrimitiveType.Cube,     new Vector3(0.10f, 0.06f, 0.10f), new Color(0.97f, 0.83f, 0.35f), null),
-                ("sven:Bread",   PrimitiveType.Capsule,  new Vector3(0.09f, 0.13f, 0.09f), new Color(0.80f, 0.62f, 0.36f), null),
-            };
-
             const int copies = 2;
-            float step = 2.4f / ingredients.Length;
+            float step = 2.4f / Ingredients.Length;
             float x0 = -1.2f + step * 0.5f;
 
-            for (int i = 0; i < ingredients.Length; i++)
+            for (int i = 0; i < Ingredients.Length; i++)
             {
-                var (semantic, shape, size, color, prefabName) = ingredients[i];
+                Ingredient ingredient = Ingredients[i];
+                GameObject prefab = EnsurePrefab(ingredient);
+                if (prefab == null) continue;
+
                 for (int c = 0; c < copies; c++)
                 {
-                    var position = new Vector3(x0 + i * step, ShelfY + size.y * 0.5f, 1.05f + c * 0.16f);
-                    string label = ShortName(semantic) + " " + (c + 1);
+                    var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, crates);
+                    instance.name = $"{ShortName(ingredient.Semantic)} {c + 1}";
+                    instance.transform.position =
+                        new Vector3(x0 + i * step, ShelfY + ingredient.Size * 0.5f, 1.05f + c * 0.16f);
 
-                    GameObject instance = prefabName != null
-                        ? InstantiateExistingPrefab(prefabName, label, position, crates)
-                        : null;
-
-                    if (instance != null) continue;
-                    Semantized(crates, label, shape, position, size, color, semantic, grabbable: true);
+                    NormalizeSize(instance, ingredient.Size);
                 }
             }
+        }
+
+        /// <summary>
+        /// Un ingrédient du jeu. <see cref="Size"/> est sa plus grande dimension en mètres :
+        /// c'est cette valeur, et non l'échelle brute, qui garantit que les onze ingrédients
+        /// soient à la même échelle les uns des autres, qu'ils viennent d'un mesh existant ou
+        /// d'un primitif de remplacement.
+        /// </summary>
+        private readonly struct Ingredient
+        {
+            public readonly string Semantic;
+            public readonly float Size;
+            public readonly PrimitiveType Shape;
+            public readonly Vector3 Proportions;
+            public readonly Color Color;
+
+            /// <summary>Prefab existant, ou null s'il faut en fabriquer un.</summary>
+            public readonly string ExistingPrefab;
+
+            public Ingredient(string semantic, float size, PrimitiveType shape,
+                              Vector3 proportions, Color color, string existingPrefab = null)
+            {
+                Semantic = semantic;
+                Size = size;
+                Shape = shape;
+                Proportions = proportions;
+                Color = color;
+                ExistingPrefab = existingPrefab;
+            }
+        }
+
+        /// <summary>
+        /// Les onze ingrédients du §6.1, avec leur taille réelle. Les proportions donnent la
+        /// forme (un steak est plat, une baguette allongée) ; la taille finale est imposée par
+        /// NormalizeSize, donc changer une proportion ne change pas l'encombrement.
+        /// </summary>
+        private static readonly Ingredient[] Ingredients =
+        {
+            new("sven:Apple",   0.08f, PrimitiveType.Sphere,   new Vector3(1f, 1f, 1f),      new Color(0.80f, 0.16f, 0.16f), "Interactable Apple"),
+            new("sven:Banana",  0.18f, PrimitiveType.Capsule,  new Vector3(0.35f, 1f, 0.35f), new Color(0.93f, 0.83f, 0.25f), "Interactable Banana"),
+            new("sven:Carrot",  0.16f, PrimitiveType.Cylinder, new Vector3(0.25f, 1f, 0.25f), new Color(0.92f, 0.51f, 0.13f), "Interactable Carrot"),
+            new("sven:Pumpkin", 0.22f, PrimitiveType.Sphere,   new Vector3(1f, 0.8f, 1f),     new Color(0.88f, 0.45f, 0.10f), "Interactable Pumpkin_C"),
+            new("sven:Potato",  0.09f, PrimitiveType.Sphere,   new Vector3(1f, 0.75f, 0.8f),  new Color(0.76f, 0.60f, 0.42f)),
+            new("sven:Lettuce", 0.14f, PrimitiveType.Sphere,   new Vector3(1f, 0.85f, 1f),    new Color(0.45f, 0.72f, 0.35f)),
+            new("sven:Tomato",  0.07f, PrimitiveType.Sphere,   new Vector3(1f, 0.9f, 1f),     new Color(0.85f, 0.18f, 0.15f)),
+            new("sven:Beef",    0.14f, PrimitiveType.Cube,     new Vector3(1f, 0.25f, 0.7f),  new Color(0.55f, 0.18f, 0.16f)),
+            new("sven:Chicken", 0.12f, PrimitiveType.Capsule,  new Vector3(0.6f, 1f, 0.6f),   new Color(0.93f, 0.85f, 0.68f)),
+            new("sven:Salmon",  0.18f, PrimitiveType.Cube,     new Vector3(1f, 0.18f, 0.5f),  new Color(0.95f, 0.55f, 0.42f)),
+            new("sven:Cheese",  0.10f, PrimitiveType.Cube,     new Vector3(1f, 0.5f, 0.9f),   new Color(0.97f, 0.83f, 0.35f)),
+            new("sven:Bread",   0.20f, PrimitiveType.Capsule,  new Vector3(0.4f, 1f, 0.4f),   new Color(0.80f, 0.62f, 0.36f)),
+        };
+
+        /// <summary>
+        /// Le prefab d'un ingrédient : celui qui existe déjà, ou un prefab fabriqué et enregistré
+        /// dans le dossier de la démonstration.
+        ///
+        /// Tous les ingrédients doivent être des prefabs et pas de simples objets de scène :
+        /// c'est ce qui permet de corriger un ingrédient une fois pour toutes, et de remplacer
+        /// un primitif par un vrai modèle sans toucher au script.
+        /// </summary>
+        private static GameObject EnsurePrefab(Ingredient ingredient)
+        {
+            if (ingredient.ExistingPrefab != null)
+            {
+                GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(
+                    $"Assets/Resources/Prefabs/{ingredient.ExistingPrefab}.prefab");
+                if (existing != null) return existing;
+
+                Debug.LogWarning($"[DemoSceneBuilder] Prefab {ingredient.ExistingPrefab} introuvable : " +
+                                 "un primitif de remplacement est fabriqué à la place.");
+            }
+
+            string name = ShortName(ingredient.Semantic);
+            string path = $"{PrefabsPath}/{name}.prefab";
+
+            GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (asset != null) return asset;
+
+            Directory.CreateDirectory(PrefabsPath);
+
+            GameObject temporary = Semantized(
+                null, name, ingredient.Shape, Vector3.zero, ingredient.Proportions,
+                ingredient.Color, ingredient.Semantic, grabbable: true);
+
+            asset = PrefabUtility.SaveAsPrefabAsset(temporary, path);
+            UnityEngine.Object.DestroyImmediate(temporary);
+
+            Debug.Log($"[DemoSceneBuilder] Prefab fabriqué : {path} (primitif de remplacement, " +
+                      "à remplacer par un vrai modèle avant toute présentation publique).");
+            return asset;
+        }
+
+        /// <summary>
+        /// Met l'objet à sa taille réelle, mesurée sur ses Renderer plutôt que déduite de son
+        /// échelle : c'est la seule façon de mettre à la même échelle un mesh importé et un
+        /// primitif, dont les dimensions natives n'ont aucune raison de coïncider.
+        /// </summary>
+        private static void NormalizeSize(GameObject go, float targetLargestDimension)
+        {
+            Renderer[] renderers = go.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return;
+
+            Bounds bounds = renderers[0].bounds;
+            foreach (Renderer renderer in renderers) bounds.Encapsulate(renderer.bounds);
+
+            float largest = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
+            if (largest <= Mathf.Epsilon) return;
+
+            go.transform.localScale *= targetLargestDimension / largest;
         }
 
         private static void BuildStations(Transform parent)
@@ -684,19 +778,6 @@ namespace Sc4ve.Demonstration.EditorTools
         {
             try { return ISemanticAnnotation.GetType(semanticType); }
             catch (ArgumentException) { return null; }
-        }
-
-        private static GameObject InstantiateExistingPrefab(string prefabName, string name,
-                                                            Vector3 position, Transform parent)
-        {
-            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
-                $"Assets/Resources/Prefabs/{prefabName}.prefab");
-            if (prefab == null) return null;
-
-            var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
-            instance.name = name;
-            instance.transform.position = position;
-            return instance;
         }
 
         private static GameObject Box(Transform parent, string name, Vector3 position,
