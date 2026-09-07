@@ -644,6 +644,35 @@ sven:Stove rdf:type owl:Class ;
 #    Mobilier et personnes
 #################################################################
 
+###  https://sven.lisn.upsaclay.fr/ontology#KnifeComponent
+sven:KnifeComponent rdf:type owl:Class ;
+                    rdfs:subClassOf sven:AnnotationComponent ;
+                    rdfs:comment "A knife component."@en ,
+                                 "Un composant de couteau."@fr ;
+                    rdfs:label "Knife"@en ,
+                               "Couteau"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Knife
+#    Ustensile, pas contenant : on ne met rien DANS un couteau. Il sert à la découpe, dont
+#    l'animation reste à écrire — le modèle existe avant l'usage.
+sven:Knife rdf:type owl:Class ;
+           rdfs:subClassOf sven:VirtualObject ;
+           owl:equivalentClass [
+               rdf:type owl:Class ;
+               owl:intersectionOf (
+                   sven:Node
+                   [ rdf:type owl:Restriction ;
+                     owl:onProperty sven:component ;
+                     owl:someValuesFrom sven:KnifeComponent
+                   ]
+               )
+           ] ;
+           rdfs:comment "A knife, used to cut ingredients."@en ,
+                        "Un couteau, pour découper les ingrédients."@fr ;
+           rdfs:label "Knife"@en ,
+                      "Couteau"@fr .
+
+
 ###  https://sven.lisn.upsaclay.fr/ontology#FurnitureComponent
 sven:FurnitureComponent rdf:type owl:Class ;
                         rdfs:subClassOf sven:AnnotationComponent ;

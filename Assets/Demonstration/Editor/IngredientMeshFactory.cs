@@ -21,7 +21,7 @@ namespace Sc4ve.Demonstration.EditorTools
     /// </summary>
     public static class IngredientMeshFactory
     {
-        private const string MeshesPath = "Assets/Demonstration/Meshes";
+        internal const string MeshesPath = "Assets/Demonstration/Meshes";
 
         private static readonly string[] IngredientNames =
         {
@@ -229,7 +229,7 @@ namespace Sc4ve.Demonstration.EditorTools
         /// simplement un mesh déjà généré — utile quand plusieurs pièces partagent la même forme
         /// (les feuilles de laitue, les grignes du pain).
         /// </summary>
-        private static Mesh Save(string name, Mesh mesh)
+        internal static Mesh Save(string name, Mesh mesh)
         {
             string path = $"{MeshesPath}/{name}.asset";
             Mesh existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
@@ -274,7 +274,7 @@ namespace Sc4ve.Demonstration.EditorTools
         /// puis mélangée à sa projection sphérique. La topologie de l'icosphère est conservée,
         /// donc le nombre de facettes ne bouge pas.
         /// </param>
-        private static Mesh Blob(int subdivisions, Vector3 scale, float taper, float noise,
+        internal static Mesh Blob(int subdivisions, Vector3 scale, float taper, float noise,
                                  float frequency, int seed, float boxiness = 0f)
         {
             Icosphere(subdivisions, out List<Vector3> vertices, out List<int> triangles);
@@ -362,11 +362,11 @@ namespace Sc4ve.Demonstration.EditorTools
         }
 
         /// <summary>Dalle à bords adoucis : une icosphère très aplatie, plus crédible qu'un cube.</summary>
-        private static Mesh Slab(Vector3 scale, float taper, float noise, int seed)
+        internal static Mesh Slab(Vector3 scale, float taper, float noise, int seed)
             => Blob(1, scale, taper, noise, 2.5f, seed);
 
         /// <summary>Part de fromage : prisme triangulaire, arêtes franches.</summary>
-        private static Mesh Wedge(Vector3 scale)
+        internal static Mesh Wedge(Vector3 scale)
         {
             float x = scale.x * 0.5f, y = scale.y * 0.5f, z = scale.z * 0.5f;
 
@@ -398,7 +398,7 @@ namespace Sc4ve.Demonstration.EditorTools
         /// bombée : un ruban plat sur un dos rond touche au milieu et décolle aux bouts. C'est
         /// ce qui faisait flotter les veines du pavé de saumon.
         /// </param>
-        private static Mesh Arc(float length, float width, float thickness, float bow, int segments, float sag = 0f)
+        internal static Mesh Arc(float length, float width, float thickness, float bow, int segments, float sag = 0f)
         {
             var vertices = new List<Vector3>();
             var triangles = new List<int>();
@@ -437,7 +437,7 @@ namespace Sc4ve.Demonstration.EditorTools
         }
 
         /// <summary>Cylindre à faible nombre de côtés — os, pédoncule.</summary>
-        private static Mesh Cylinder(float radius, float height, int sides)
+        internal static Mesh Cylinder(float radius, float height, int sides)
         {
             var vertices = new List<Vector3>();
             var triangles = new List<int>();
@@ -458,8 +458,14 @@ namespace Sc4ve.Demonstration.EditorTools
                 int c = (i + 1) % sides * 2, d = c + 1;
 
                 triangles.AddRange(new[] { a, b, d, a, d, c });
-                triangles.AddRange(new[] { bottom, c, a });
-                triangles.AddRange(new[] { top, b, d });
+
+                // Sens des couvercles : un éventail (centre, suivant, courant) regarde vers
+                // +Y ; (centre, courant, suivant) vers −Y. Je les avais intervertis, et les
+                // deux faces se retrouvaient tournées vers l'intérieur — d'où les dessus noirs
+                // et les disques troués, qu'on prend facilement pour un défaut d'UV alors
+                // qu'aucun de ces meshes n'a la moindre coordonnée de texture.
+                triangles.AddRange(new[] { bottom, a, c });
+                triangles.AddRange(new[] { top, d, b });
             }
             return Faceted(vertices, triangles);
         }
@@ -468,7 +474,7 @@ namespace Sc4ve.Demonstration.EditorTools
         /// Étoile plate à N branches, légèrement épaisse. Sert au pédoncule de la tomate et,
         /// à deux branches, à la nageoire caudale du poisson.
         /// </summary>
-        private static Mesh Star(int points, float innerRadius, float outerRadius, float thickness)
+        internal static Mesh Star(int points, float innerRadius, float outerRadius, float thickness)
         {
             var vertices = new List<Vector3>();
             var triangles = new List<int>();
@@ -506,7 +512,7 @@ namespace Sc4ve.Demonstration.EditorTools
         /// Icosaèdre subdivisé : 20 triangles à la subdivision 0, 80 à 1, 320 à 2.
         /// Préféré à la sphère UV d'Unity, dont les pôles donnent des facettes irrégulières.
         /// </summary>
-        private static void Icosphere(int subdivisions, out List<Vector3> vertices, out List<int> triangles)
+        internal static void Icosphere(int subdivisions, out List<Vector3> vertices, out List<int> triangles)
         {
             float t = (1f + Mathf.Sqrt(5f)) * 0.5f;
 
@@ -562,7 +568,7 @@ namespace Sc4ve.Demonstration.EditorTools
         /// Duplique les sommets par triangle pour que chaque facette ait sa propre normale.
         /// C'est ce dédoublement, et non le nombre de triangles, qui donne l'aspect facetté.
         /// </summary>
-        private static Mesh Faceted(List<Vector3> vertices, List<int> triangles)
+        internal static Mesh Faceted(List<Vector3> vertices, List<int> triangles)
         {
             var flatVertices = new Vector3[triangles.Count];
             var flatTriangles = new int[triangles.Count];

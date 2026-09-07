@@ -269,9 +269,8 @@ namespace Sc4ve.Demonstration.EditorTools
             BuildStations(kitchen);
             BuildPlates(kitchen);
 
-            Semantized(kitchen, "Poubelle", PrimitiveType.Cylinder,
-                new Vector3(1.35f, 0.25f, 0.75f), new Vector3(0.30f, 0.25f, 0.30f),
-                new Color(0.22f, 0.24f, 0.26f), "sven:Bin", grabbable: false);
+            RestOnSurface(Prop(kitchen, "Poubelle", "sven:Bin",
+                new Vector3(1.35f, 0f, 0.95f), height: 0.72f), 0f);
 
             Box(kitchen, "Passe", new Vector3(0f, CounterY - 0.05f, 1.85f),
                 new Vector3(2.0f, 0.10f, 0.45f), new Color(0.62f, 0.58f, 0.50f));
@@ -518,15 +517,13 @@ namespace Sc4ve.Demonstration.EditorTools
             var stations = new GameObject("Stations").transform;
             stations.SetParent(parent);
 
-            GameObject board = Semantized(stations, "Planche à découper", PrimitiveType.Cube,
-                new Vector3(-0.85f, CounterY, 0.70f), new Vector3(0.40f, 0.04f, 0.30f),
-                new Color(0.72f, 0.55f, 0.35f), "sven:CuttingBoard", grabbable: false);
+            GameObject board = Prop(stations, "Planche à découper", "sven:CuttingBoard",
+                new Vector3(-0.85f, CounterY, 0.70f), height: 0.05f);
             RestOnSurface(board, CounterY);
             board.AddComponent<TransformationStation>();
 
-            GameObject stove = Semantized(stations, "Plaque de cuisson", PrimitiveType.Cube,
-                new Vector3(-0.35f, CounterY, 0.70f), new Vector3(0.36f, 0.04f, 0.30f),
-                new Color(0.18f, 0.18f, 0.20f), "sven:Stove", grabbable: false);
+            GameObject stove = Prop(stations, "Plaque de cuisson", "sven:Stove",
+                new Vector3(-0.35f, CounterY, 0.70f), height: 0.09f);
             RestOnSurface(stove, CounterY);
             stove.AddComponent<TransformationStation>();
 
@@ -543,9 +540,8 @@ namespace Sc4ve.Demonstration.EditorTools
             for (int i = 0; i < 6; i++)
             {
                 var position = new Vector3(0.25f + (i % 3) * 0.26f, CounterY, 0.60f + (i / 3) * 0.26f);
-                RestOnSurface(Semantized(plates, $"Assiette {i + 1}", PrimitiveType.Cylinder, position,
-                    new Vector3(0.22f, 0.015f, 0.22f), new Color(0.93f, 0.93f, 0.90f),
-                    "sven:Plate", grabbable: true), CounterY);
+                RestOnSurface(Prop(plates, $"Assiette {i + 1}", "sven:Plate", position,
+                    height: 0.05f, grabbable: true), CounterY);
             }
         }
 
@@ -568,20 +564,16 @@ namespace Sc4ve.Demonstration.EditorTools
 
             for (int i = 0; i < tables.Length; i++)
             {
-                var table = Semantized(room, $"Table {(char)('A' + i)}", PrimitiveType.Cylinder,
-                    tables[i] + new Vector3(0f, 0.38f, 0f), new Vector3(0.85f, 0.38f, 0.85f),
-                    new Color(0.45f, 0.32f, 0.24f), "sven:Table", grabbable: false);
+                GameObject table = Prop(room, $"Table {(char)('A' + i)}", "sven:Table",
+                    tables[i], height: 0.75f);
+                RestOnSurface(table, 0f);
                 table.isStatic = true;
             }
 
             // Deux serveurs délibérément identiques : sans une paire indiscernable,
             // la clarification ne se déclenche jamais (§3 du README).
-            Semantized(room, "Serveur 1", PrimitiveType.Capsule, new Vector3(-0.7f, 0.85f, 2.6f),
-                new Vector3(0.45f, 0.85f, 0.45f), new Color(0.30f, 0.42f, 0.68f),
-                "sven:Waiter", grabbable: false);
-            Semantized(room, "Serveur 2", PrimitiveType.Capsule, new Vector3(0.7f, 0.85f, 2.6f),
-                new Vector3(0.45f, 0.85f, 0.45f), new Color(0.30f, 0.42f, 0.68f),
-                "sven:Waiter", grabbable: false);
+            RestOnSurface(Prop(room, "Serveur 1", "sven:Waiter", new Vector3(-0.7f, 0f, 2.6f), 1.75f), 0f);
+            RestOnSurface(Prop(room, "Serveur 2", "sven:Waiter", new Vector3(0.7f, 0f, 2.6f), 1.75f), 0f);
         }
 
         #endregion
@@ -848,8 +840,9 @@ namespace Sc4ve.Demonstration.EditorTools
             floor.transform.localScale = new Vector3(2f, 1f, 2f);
             floor.GetComponent<Renderer>().sharedMaterial = GetMaterial("Sol", new Color(0.32f, 0.30f, 0.28f));
 
-            Box(root, "Établi", new Vector3(0f, benchTop - 0.05f, 0.55f),
-                new Vector3(5.0f, 0.10f, 2.6f), new Color(0.55f, 0.52f, 0.48f));
+            // Six rangées à couvrir : quatre états d'ingrédients, les ustensiles, les plats.
+            Box(root, "Établi", new Vector3(0f, benchTop - 0.05f, 0.80f),
+                new Vector3(5.0f, 0.10f, 3.1f), new Color(0.55f, 0.52f, 0.48f));
 
             // Un ingrédient par colonne, un ÉTAT par rangée. Les états changent l'apparence
             // (brunissement, aplatissement) : sans eux, l'exposition ne montrerait qu'un tiers
@@ -915,43 +908,80 @@ namespace Sc4ve.Demonstration.EditorTools
             var wares = new GameObject("Contenants et stations").transform;
             wares.SetParent(root);
 
-            (string name, string semantic, Vector3 scale, Color color)[] containers =
+            (string name, string semantic, float height)[] containers =
             {
-                ("Assiette", "sven:Plate", new Vector3(0.22f, 0.015f, 0.22f), new Color(0.93f, 0.93f, 0.90f)),
-                ("Poubelle", "sven:Bin", new Vector3(0.30f, 0.25f, 0.30f), new Color(0.22f, 0.24f, 0.26f)),
-                ("Planche à découper", "sven:CuttingBoard", new Vector3(0.40f, 0.04f, 0.30f), new Color(0.72f, 0.55f, 0.35f)),
-                ("Plaque de cuisson", "sven:Stove", new Vector3(0.36f, 0.04f, 0.30f), new Color(0.18f, 0.18f, 0.20f)),
+                ("Assiette", "sven:Plate", 0.05f),
+                ("Poubelle", "sven:Bin", 0.72f),
+                ("Planche à découper", "sven:CuttingBoard", 0.05f),
+                ("Plaque de cuisson", "sven:Stove", 0.09f),
+                ("Couteau", "sven:Knife", 0.03f),
             };
 
             for (int i = 0; i < containers.Length; i++)
             {
-                var (name, semantic, scale, color) = containers[i];
-                PrimitiveType shape = semantic == "sven:Bin" ? PrimitiveType.Cylinder
-                    : semantic == "sven:Plate" ? PrimitiveType.Cylinder : PrimitiveType.Cube;
-
-                GameObject item = Semantized(wares, name, shape,
-                    new Vector3(-1.8f + i * 1.2f, benchTop, 1.55f), scale, color, semantic, grabbable: false);
+                var (name, semantic, height) = containers[i];
+                GameObject item = Prop(wares, name, semantic,
+                    new Vector3(-1.9f + i * 0.95f, benchTop, 1.55f), height);
                 RestOnSurface(item, benchTop);
-                Label(item.transform, name, 0.30f);
+                Label(item.transform, name, height + 0.12f);
+            }
+
+            // Rangée intermédiaire : les neuf plats assemblés, chacun dans une assiette.
+            // Ce sont des HABILLAGES — la conformité continue de se lire sur les ingrédients
+            // contenus, pas sur ces modèles (§6.3 du README).
+            var dishes = new GameObject("Plats").transform;
+            dishes.SetParent(root);
+
+            float dishStep = 4.4f / DishMeshFactory.Recipes.Length;
+            for (int i = 0; i < DishMeshFactory.Recipes.Length; i++)
+            {
+                string recipe = DishMeshFactory.Recipes[i];
+                var position = new Vector3(-2.2f + dishStep * (i + 0.5f), benchTop, 2.05f);
+
+                GameObject plate = Prop(dishes, recipe, "sven:Plate", position, height: 0.05f);
+                RestOnSurface(plate, benchTop);
+
+                GameObject dish = BuildDish(recipe);
+                if (dish == null) continue;
+
+                // Placement en MONDE, puis parentage en conservant la position. Posé en
+                // coordonnées locales, le plat héritait de l'échelle de l'assiette et se
+                // retrouvait projeté loin au-dessus d'elle.
+                //
+                // Sa taille est MESURÉE, pas devinée : le plat est mis à l'échelle pour occuper
+                // les trois quarts du diamètre de l'assiette. Les neuf modèles n'ont pas la
+                // même envergure native — un tas de fruits déborde là où une soupe est un
+                // disque — et une constante commune en faisait forcément déborder certains.
+                Bounds plateBounds = WorldBounds(plate);
+                float plateWidth = Mathf.Max(plateBounds.size.x, plateBounds.size.z);
+                float dishWidth = Mathf.Max(WorldBounds(dish).size.x, WorldBounds(dish).size.z);
+
+                if (dishWidth > Mathf.Epsilon)
+                    dish.transform.localScale = Vector3.one * (plateWidth * 0.75f / dishWidth);
+
+                dish.transform.position = new Vector3(
+                    plateBounds.center.x, plateBounds.max.y - plateBounds.size.y * 0.35f, plateBounds.center.z);
+                dish.transform.SetParent(plate.transform, worldPositionStays: true);
+
+                Label(plate.transform, recipe, 0.16f);
             }
 
             // Rangée 3 : le mobilier et les personnes, au sol — leur taille les y oblige.
             var stage = new GameObject("Mobilier et personnes").transform;
             stage.SetParent(root);
 
-            (string name, string semantic, Vector3 position, Vector3 scale, Color color)[] actors =
+            (string name, string semantic, Vector3 position, float height)[] actors =
             {
-                ("Table", "sven:Table", new Vector3(-1.4f, 0.38f, 2.6f), new Vector3(0.85f, 0.38f, 0.85f), new Color(0.45f, 0.32f, 0.24f)),
-                ("Serveur", "sven:Waiter", new Vector3(0f, 0.85f, 2.6f), new Vector3(0.45f, 0.85f, 0.45f), new Color(0.30f, 0.42f, 0.68f)),
-                ("Client", "sven:Customer", new Vector3(1.4f, 0.85f, 2.6f), new Vector3(0.45f, 0.85f, 0.45f), new Color(0.72f, 0.45f, 0.35f)),
+                ("Table", "sven:Table", new Vector3(-1.4f, 0f, 2.6f), 0.75f),
+                ("Serveur", "sven:Waiter", new Vector3(0f, 0f, 2.6f), 1.75f),
+                ("Client", "sven:Customer", new Vector3(1.4f, 0f, 2.6f), 1.70f),
             };
 
-            foreach (var (name, semantic, position, scale, color) in actors)
+            foreach (var (name, semantic, position, height) in actors)
             {
-                PrimitiveType shape = semantic == "sven:Table" ? PrimitiveType.Cylinder : PrimitiveType.Capsule;
-                GameObject item = Semantized(stage, name, shape, position, scale, color, semantic, grabbable: false);
+                GameObject item = Prop(stage, name, semantic, position, height);
                 RestOnSurface(item, 0f);
-                Label(item.transform, name, scale.y * 2f);
+                Label(item.transform, name, height + 0.15f);
             }
         }
 
@@ -1006,6 +1036,69 @@ namespace Sc4ve.Demonstration.EditorTools
         /// à une exception près et volontaire : le SemanticAnnotator est en **Dynamic**, pour
         /// que l'ajout d'un état à l'exécution atteigne le graphe (§6.2 du README).
         /// </summary>
+        /// <summary>
+        /// Version « prop » de la fabrique : la forme et les couleurs viennent de
+        /// PropMeshFactory au lieu d'être passées à la main.
+        ///
+        /// La taille demandée est la HAUTEUR réelle de l'objet, appliquée après coup : les
+        /// meshes de props sont dessinés dans un cube unité, il faut les remettre à l'échelle
+        /// du monde.
+        /// </summary>
+        private static GameObject Prop(Transform parent, string name, string semanticType,
+                                       Vector3 position, float height, bool grabbable = false)
+        {
+            List<IngredientMeshFactory.Part> parts = PropMeshFactory.Parts(ShortName(semanticType));
+            if (parts.Count == 0)
+                return Semantized(parent, name, PrimitiveType.Cube, position,
+                    Vector3.one * height, Color.magenta, semanticType, grabbable);
+
+            GameObject prop = Semantized(parent, name, PrimitiveType.Cube, position,
+                Vector3.one, parts[0].Color, semanticType, grabbable, parts[0].Mesh);
+
+            AddDistinctiveParts(prop, parts);
+            NormalizeHeight(prop, height);
+            return prop;
+        }
+
+        /// <summary>
+        /// L'habillage visuel d'un plat : un objet purement graphique, sans sémantisation ni
+        /// collider.
+        ///
+        /// Il ne porte AUCUNE annotation, délibérément. Le plat n'existe pas dans le graphe —
+        /// ce qui y existe, c'est une assiette et son contenu. Annoter cet habillage créerait
+        /// un second objet concurrent, que « sélectionne la salade » désignerait au lieu de
+        /// l'assiette réelle.
+        /// </summary>
+        private static GameObject BuildDish(string recipe)
+        {
+            List<IngredientMeshFactory.Part> parts = DishMeshFactory.Parts(recipe);
+            if (parts.Count == 0) return null;
+
+            var dish = new GameObject(recipe);
+
+            foreach (IngredientMeshFactory.Part part in parts)
+            {
+                if (part.Mesh == null) continue;
+
+                var piece = new GameObject(part.Name);
+                piece.transform.SetParent(dish.transform, false);
+                piece.transform.localPosition = part.Position;
+                piece.transform.localEulerAngles = part.Rotation;
+
+                piece.AddComponent<MeshFilter>().sharedMesh = part.Mesh;
+                piece.AddComponent<MeshRenderer>().sharedMaterial =
+                    GetMaterial($"Dish{recipe}{part.Name}", part.Color);
+            }
+            return dish;
+        }
+
+        /// <summary>Met l'objet à une hauteur réelle, mesurée sur ses Renderer.</summary>
+        private static void NormalizeHeight(GameObject go, float height)
+        {
+            float current = WorldBounds(go).size.y;
+            if (current > Mathf.Epsilon) go.transform.localScale *= height / current;
+        }
+
         private static GameObject Semantized(Transform parent, string name, PrimitiveType shape,
                                              Vector3 position, Vector3 scale, Color color,
                                              string semanticType, bool grabbable, Mesh mesh = null)
@@ -1061,7 +1154,13 @@ namespace Sc4ve.Demonstration.EditorTools
         /// </summary>
         private static void AddDistinctiveParts(GameObject body, List<IngredientMeshFactory.Part> parts)
         {
-            // La première pièce est le corps, déjà posée.
+            // La position déclarée du CORPS sert d'origine commune.
+            //
+            // Elle était purement et simplement ignorée — le corps étant posé par l'appelant —
+            // alors que les pièces annexes gardaient la leur. Le pied de la table, décrit sous
+            // un plateau situé à 0,48, se retrouvait donc à traverser ce plateau ramené à zéro.
+            Vector3 origin = parts.Count > 0 ? parts[0].Position : Vector3.zero;
+
             for (int i = 1; i < parts.Count; i++)
             {
                 IngredientMeshFactory.Part part = parts[i];
@@ -1069,7 +1168,7 @@ namespace Sc4ve.Demonstration.EditorTools
 
                 var piece = new GameObject(part.Name);
                 piece.transform.SetParent(body.transform, false);
-                piece.transform.localPosition = part.Position;
+                piece.transform.localPosition = part.Position - origin;
                 piece.transform.localEulerAngles = part.Rotation;
 
                 piece.AddComponent<MeshFilter>().sharedMesh = part.Mesh;
