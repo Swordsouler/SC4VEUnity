@@ -272,10 +272,12 @@ namespace Sc4ve.Demonstration.EditorTools
                 {
                     var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, crates);
                     instance.name = $"{ShortName(ingredient.Semantic)} {c + 1}";
-                    instance.transform.position =
-                        new Vector3(x0 + i * step, ShelfY + ingredient.Size * 0.5f, 1.05f + c * 0.16f);
+                    instance.transform.position = new Vector3(x0 + i * step, ShelfY, 1.05f + c * 0.16f);
 
+                    // Mettre à l'échelle AVANT de poser : la hauteur à compenser dépend de la
+                    // taille finale.
                     NormalizeSize(instance, ingredient.Size);
+                    RestOnSurface(instance, ShelfY);
                 }
             }
         }
@@ -377,16 +379,38 @@ namespace Sc4ve.Demonstration.EditorTools
         /// </summary>
         private static void NormalizeSize(GameObject go, float targetLargestDimension)
         {
-            Renderer[] renderers = go.GetComponentsInChildren<Renderer>();
-            if (renderers.Length == 0) return;
-
-            Bounds bounds = renderers[0].bounds;
-            foreach (Renderer renderer in renderers) bounds.Encapsulate(renderer.bounds);
-
+            Bounds bounds = WorldBounds(go);
             float largest = Mathf.Max(bounds.size.x, Mathf.Max(bounds.size.y, bounds.size.z));
             if (largest <= Mathf.Epsilon) return;
 
             go.transform.localScale *= targetLargestDimension / largest;
+        }
+
+        /// <summary>
+        /// Pose l'objet SUR une surface : son point le plus bas vient toucher <paramref name="surfaceY"/>.
+        ///
+        /// Calculer la hauteur à partir de la taille cible ne marche pas : cette taille est la
+        /// plus GRANDE dimension, qui n'est pas la hauteur — un steak est plat, une baguette est
+        /// longue. Et le pivot d'un mesh importé n'est pas nécessairement son centre. Mesurer
+        /// l'englobant réel est la seule méthode qui vaille pour les onze ingrédients à la fois.
+        /// </summary>
+        private static void RestOnSurface(GameObject go, float surfaceY)
+        {
+            Bounds bounds = WorldBounds(go);
+            if (bounds.size == Vector3.zero) return;
+
+            go.transform.position += new Vector3(0f, surfaceY - bounds.min.y, 0f);
+        }
+
+        /// <summary>Englobant monde de tous les Renderer de l'objet, enfants compris.</summary>
+        private static Bounds WorldBounds(GameObject go)
+        {
+            Renderer[] renderers = go.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return new Bounds(go.transform.position, Vector3.zero);
+
+            Bounds bounds = renderers[0].bounds;
+            foreach (Renderer renderer in renderers) bounds.Encapsulate(renderer.bounds);
+            return bounds;
         }
 
         private static void BuildStations(Transform parent)
@@ -394,13 +418,13 @@ namespace Sc4ve.Demonstration.EditorTools
             var stations = new GameObject("Stations").transform;
             stations.SetParent(parent);
 
-            Semantized(stations, "Planche à découper", PrimitiveType.Cube,
-                new Vector3(-0.85f, CounterY + 0.02f, 0.70f), new Vector3(0.40f, 0.04f, 0.30f),
-                new Color(0.72f, 0.55f, 0.35f), "sven:CuttingBoard", grabbable: false);
+            RestOnSurface(Semantized(stations, "Planche à découper", PrimitiveType.Cube,
+                new Vector3(-0.85f, CounterY, 0.70f), new Vector3(0.40f, 0.04f, 0.30f),
+                new Color(0.72f, 0.55f, 0.35f), "sven:CuttingBoard", grabbable: false), CounterY);
 
-            Semantized(stations, "Plaque de cuisson", PrimitiveType.Cube,
-                new Vector3(-0.35f, CounterY + 0.02f, 0.70f), new Vector3(0.36f, 0.04f, 0.30f),
-                new Color(0.18f, 0.18f, 0.20f), "sven:Stove", grabbable: false);
+            RestOnSurface(Semantized(stations, "Plaque de cuisson", PrimitiveType.Cube,
+                new Vector3(-0.35f, CounterY, 0.70f), new Vector3(0.36f, 0.04f, 0.30f),
+                new Color(0.18f, 0.18f, 0.20f), "sven:Stove", grabbable: false), CounterY);
         }
 
         /// <summary>Six assiettes identiques et interchangeables — un seul type de contenant (§5).</summary>
@@ -411,10 +435,10 @@ namespace Sc4ve.Demonstration.EditorTools
 
             for (int i = 0; i < 6; i++)
             {
-                var position = new Vector3(0.25f + (i % 3) * 0.26f, CounterY + 0.02f, 0.60f + (i / 3) * 0.26f);
-                Semantized(plates, $"Assiette {i + 1}", PrimitiveType.Cylinder, position,
+                var position = new Vector3(0.25f + (i % 3) * 0.26f, CounterY, 0.60f + (i / 3) * 0.26f);
+                RestOnSurface(Semantized(plates, $"Assiette {i + 1}", PrimitiveType.Cylinder, position,
                     new Vector3(0.22f, 0.015f, 0.22f), new Color(0.93f, 0.93f, 0.90f),
-                    "sven:Plate", grabbable: true);
+                    "sven:Plate", grabbable: true), CounterY);
             }
         }
 
