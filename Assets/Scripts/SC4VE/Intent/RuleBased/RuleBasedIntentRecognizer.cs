@@ -98,7 +98,13 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             int movePointDelayMs = 300,
             List<RecipeVocabulary.Recipe> recipes = null)
         {
-            _annotationTypes = annotationTypes ?? new List<string>();
+            // Du libellé le plus long au plus court, comme les recettes et les déclencheurs :
+            // « Pomme de terre » doit être essayé avant « Pomme », sans quoi « mets la pomme de
+            // terre dans l'assiette » produit DEUX annotations — une patate et une pomme — et
+            // la sélection ramasse tous les fruits de la table.
+            _annotationTypes = (annotationTypes ?? new List<string>())
+                .OrderByDescending(a => a.Length)
+                .ToList();
             _availableColors = availableColors ?? new List<string>();
             _pointerDeictics = pointerDeictics ?? new List<string>();
             _pointerName = pointerName ?? "Pointeur";
@@ -423,6 +429,17 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 return "PutInCommand";
             }
 
+            // Pré-vérification : verbe de fabrication générique + nom de recette → PrepareCommand.
+            // « fais / faire / make » sont trop généraux pour être des déclencheurs : « make it
+            // red » est un ColorizeCommand, « make a soup » un PrepareCommand, et les deux
+            // déclencheurs « make » avaient la même longueur — la boucle ordonnée ci-dessous
+            // tranchait donc selon l'ordre de réflexion des types, c'est-à-dire au hasard.
+            // C'est la PRÉSENCE d'un nom de recette qui lève l'ambiguïté, pas le verbe ; ces
+            // trois verbes ont donc été retirés des [RuleBasedTriggers] de PrepareCommand.
+            string makeVerbs = IsFrench ? @"\b(fais|faire|prepare|preparer)\b" : @"\b(make|prepare|cook)\b";
+            if (Regex.IsMatch(normalizedText, makeVerbs) && FindRecipe(text, out _) != null)
+                return "PrepareCommand";
+
             // Priorité aux déclencheurs les plus longs (multi-mots d'abord)
             var ordered = CommandVocabulary.TriggerMappings
                 .SelectMany(m => m.Triggers.Select(t => (Trigger: t, CommandType: m.CommandType)))
@@ -488,21 +505,36 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             return null;
         }
 
+        /// <summary>
+        /// Les types d'annotation nommés dans la phrase.
+        ///
+        /// Chaque libellé reconnu est RETIRÉ du texte de travail, comme le fait FindRecipe pour
+        /// les recettes. Sans cette consommation, les libellés qui en contiennent d'autres
+        /// produisent une annotation parasite : « pomme de terre » vaut aussi « pomme », et
+        /// « planche à découper » vaut aussi « planche ». Combinée au tri par longueur
+        /// décroissante fait dans le constructeur, elle garantit que le libellé le plus précis
+        /// gagne — la même convention que partout ailleurs dans ce reconnaisseur.
+        /// </summary>
         private List<RuleBasedAnnotation> FindAnnotations(string text, List<Word> words)
         {
             var result = new List<RuleBasedAnnotation>();
+            string remaining = text;
+
             foreach (string annotation in _annotationTypes)
             {
                 string lower = annotation.ToLowerInvariant();
                 foreach (string form in GetFrenchForms(lower))
                 {
-                    if (ContainsPhrase(text, form))
+                    if (ContainsPhrase(remaining, form))
                     {
                         result.Add(new RuleBasedAnnotation
                         {
                             Value     = annotation,
+                            // L'horodatage se cherche dans la phrase d'ORIGINE : les mots
+                            // consommés en sont absents.
                             Timestamp = GetWordTimestamp(words, form, useStartedAt: false)
                         });
+                        remaining = ConsumeFirst(remaining, form);
                         break; // une seule occurrence par annotation
                     }
                 }
@@ -696,6 +728,14 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         // ─────────────────────────────────────────────────────────────────────
         // Utilitaires
         // ─────────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Retire du texte la PREMIÈRE occurrence de la phrase. Une seule, pour que « la pomme
+        /// et la pomme de terre » garde sa pomme après que la patate a consommé la sienne.
+        /// </summary>
+        private static string ConsumeFirst(string text, string phrase)
+            => new Regex($@"\b{Regex.Escape(phrase)}\b", RegexOptions.IgnoreCase)
+                .Replace(text, " ", 1);
 
         /// <summary>
         /// Vérifie si le texte contient une phrase (multi-mots ou mot unique avec frontière).

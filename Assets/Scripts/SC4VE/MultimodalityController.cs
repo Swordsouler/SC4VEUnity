@@ -109,6 +109,13 @@ namespace Sc4ve.Multimodality
         {
             public Command Command;
             public List<SemantizationCore> Candidates;
+
+            /// <summary>
+            /// Le paramètre à réécrire une fois la cible désignée. Nécessaire parce qu'une
+            /// commande peut en porter plusieurs : dans « mets la pomme dans l'assiette »,
+            /// c'est peut-être l'assiette qui est ambiguë, pas la pomme.
+            /// </summary>
+            public SelectionParameter Parameter;
         }
         private PendingDisambiguation _pendingDisambiguation;
 
@@ -480,18 +487,26 @@ namespace Sc4ve.Multimodality
 
             // Injecter le vocabulaire du domaine dans Vosk pour améliorer la précision STT.
             if (_speechToText != null)
-                _speechToText.SetGrammar(BuildVoskGrammar(annotationTypes, availableColors, pointerDeictics));
+                _speechToText.SetGrammar(BuildVoskGrammar(annotationTypes, availableColors, pointerDeictics, _recipes));
         }
 
         /// <summary>
         /// Construit la liste de mots à fournir à Vosk comme vocabulaire de reconnaissance.
-        /// Inclut : verbes d'action, annotations, couleurs, déictiques, mots fonctionnels français.
+        /// Inclut : verbes d'action, annotations, couleurs, déictiques, noms de recettes,
+        /// mots fonctionnels français.
         /// Tous les mots sont en minuscules (exigence Vosk).
+        ///
+        /// Une grammaire Vosk est CLOSE : un mot absent d'ici ne peut pas être transcrit, il
+        /// est remplacé par le mot le plus proche de la liste. Tout vocabulaire oublié rend
+        /// donc muette la fonction qui en dépend, sans la moindre erreur — c'est ce qui est
+        /// arrivé aux noms de plats, absents jusqu'ici : « prépare une salade de fruits »
+        /// n'était jamais reconnu comme nommant une recette.
         /// </summary>
         private static List<string> BuildVoskGrammar(
             List<string> annotationTypes,
             List<string> availableColors,
-            List<string> pointerDeictics)
+            List<string> pointerDeictics,
+            List<RecipeVocabulary.Recipe> recipes)
         {
             var vocab = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -507,6 +522,17 @@ namespace Sc4ve.Multimodality
 
             // ── Déictiques ────────────────────────────────────────────────
             foreach (string d in pointerDeictics)  vocab.Add(d.ToLowerInvariant());
+
+            // ── Noms de recettes (depuis l'ontologie) ─────────────────────
+            // Le libellé entier ET ses mots : Vosk accepte les phrases, mais « prépare une
+            // salade » ne contient pas la phrase « salade de fruits » — sans les mots isolés,
+            // toute formulation partielle serait rejetée.
+            foreach (RecipeVocabulary.Recipe recipe in recipes)
+            {
+                vocab.Add(recipe.Label.ToLowerInvariant());
+                foreach (string word in recipe.Label.ToLowerInvariant().Split(' '))
+                    vocab.Add(word);
+            }
 
             // ── Mots fonctionnels courants, par langue ────────────────────
             // FR : "mais" volontairement absent (homophone de "mets" /mɛ/) → Vosk/Whisper
@@ -702,25 +728,33 @@ namespace Sc4ve.Multimodality
             // Désambiguïsation : référence au singulier (« la pomme ») correspondant à PLUSIEURS
             // objets, sans pointage / coréférence / repli-sélection → on demande laquelle et on met
             // en attente ; l'énoncé suivant (l'utilisateur pointe une cible) la résout au pointeur.
+            // Tous les SelectionParameter, pas seulement le premier : PutInCommand en porte deux,
+            // et c'est le SECOND — le contenant — qui est marqué SingularIntent (« dans
+            // l'assiette », jamais « dans les assiettes »). En n'examinant que le premier, ce
+            // marquage n'était jamais lu : avec deux assiettes sur la table, la commande en
+            // choisissait une au hasard sans rien demander.
             foreach (Command command in commands)
             {
                 if (_noDisambiguation.Contains(command.Type)) continue;
-                SelectionParameter sel = command.Parameters?.OfType<SelectionParameter>().FirstOrDefault();
-                if (sel == null || !sel.SingularIntent || sel.FallbackToSelection) continue;
-                List<SemantizationCore> objs = sel.Objects;
-                if (objs == null || objs.Count <= 1) continue;
-                bool pointingOrCoref = sel.Filters != null && sel.Filters.Any(f =>
-                    !f.IsOperator && f.Condition != null && (f.Condition.IsEvent || f.Condition.IsCoreference));
-                if (pointingOrCoref) continue;
+                foreach (SelectionParameter sel in
+                         command.Parameters?.OfType<SelectionParameter>() ?? Enumerable.Empty<SelectionParameter>())
+                {
+                    if (sel == null || !sel.SingularIntent || sel.FallbackToSelection) continue;
+                    List<SemantizationCore> objs = sel.Objects;
+                    if (objs == null || objs.Count <= 1) continue;
+                    bool pointingOrCoref = sel.Filters != null && sel.Filters.Any(f =>
+                        !f.IsOperator && f.Condition != null && (f.Condition.IsEvent || f.Condition.IsCoreference));
+                    if (pointingOrCoref) continue;
 
-                _pendingDisambiguation = new PendingDisambiguation { Command = command, Candidates = objs };
-                _pendingCommand = null;
-                SelectionManager.SetSelection(objs);   // surbrillance des candidats
-                string prompt = ClarificationVocabulary.GetDisambiguationPrompt(objs.Count);
-                Debug.Log($"[Disambiguation] {command.Type} : {objs.Count} cibles pour une référence au singulier.");
-                if (!string.IsNullOrEmpty(prompt)) Command.Speak(prompt);
-                MultimodalityMetrics.Complete(command, "disambiguation", objs.Count);
-                return;
+                    _pendingDisambiguation = new PendingDisambiguation { Command = command, Candidates = objs, Parameter = sel };
+                    _pendingCommand = null;
+                    SelectionManager.SetSelection(objs);   // surbrillance des candidats
+                    string prompt = ClarificationVocabulary.GetDisambiguationPrompt(objs.Count);
+                    Debug.Log($"[Disambiguation] {command.Type} : {objs.Count} cibles pour une référence au singulier.");
+                    if (!string.IsNullOrEmpty(prompt)) Command.Speak(prompt);
+                    MultimodalityMetrics.Complete(command, "disambiguation", objs.Count);
+                    return;
+                }
             }
 
             _pendingCommand = null; // commande complète → plus rien en attente
@@ -783,7 +817,8 @@ namespace Sc4ve.Multimodality
                 return true;
             }
 
-            SelectionParameter sel = pending.Command.Parameters?.OfType<SelectionParameter>().FirstOrDefault();
+            SelectionParameter sel = pending.Parameter
+                ?? pending.Command.Parameters?.OfType<SelectionParameter>().FirstOrDefault();
             if (sel != null) sel.ObjectsUri = new List<string> { chosen.GetUUID() };
             Debug.Log($"[Disambiguation] Cible désignée : {chosen.GetUUID()} (parmi {pending.Candidates.Count}).");
             ResolveCommands(new List<Command> { pending.Command });

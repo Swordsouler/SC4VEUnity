@@ -2,6 +2,7 @@ using Sven.Content;
 using Sven.Demo;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Sc4ve.Multimodality.Intent
@@ -14,6 +15,19 @@ namespace Sc4ve.Multimodality.Intent
         public override List<SemantizationCore> Execute()
         {
             List<SemantizationCore> objects = SelectionParameter.Objects;
+
+            // « Qu'est-ce que c'est ? » n'a pas la même réponse selon la cible : sur une pomme
+            // c'est une description, sur une assiette c'est le nom du plat qu'elle compose.
+            // Aucune analyse lexicale ne peut trancher — seule la sémantique de l'objet le peut,
+            // et c'est précisément ce que le graphe sait dire.
+            SemantizationCore container = objects.FirstOrDefault(
+                o => o != null && o.GetComponent<ContainerContent>() != null);
+            if (container != null)
+            {
+                _ = CheckCommand.Announce(container, null);
+                return new List<SemantizationCore> { container };
+            }
+
             var spoken = new List<string>();
             foreach (SemantizationCore obj in objects)
             {

@@ -259,7 +259,9 @@ sven:BeefComponent rdf:type owl:Class ;
                    rdfs:comment "A beef component."@en ,
                                 "Un composant de bœuf."@fr ;
                    rdfs:label "Beef"@en ,
-                              "Bœuf"@fr .
+                              "Bœuf"@fr ,
+                              "Steak"@en ,
+                              "Steak"@fr .
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Beef
 #    Second label « Steak » : c'est le mot que le joueur emploiera le plus souvent
@@ -588,7 +590,8 @@ sven:CuttingBoardComponent rdf:type owl:Class ;
                            rdfs:comment "A cutting board component."@en ,
                                         "Un composant de planche à découper."@fr ;
                            rdfs:label "Cutting board"@en ,
-                                      "Planche à découper"@fr .
+                                      "Planche à découper"@fr ,
+                                      "Planche"@fr .
 
 ###  https://sven.lisn.upsaclay.fr/ontology#CuttingBoard
 sven:CuttingBoard rdf:type owl:Class ;
@@ -617,7 +620,8 @@ sven:StoveComponent rdf:type owl:Class ;
                     rdfs:comment "A stove component."@en ,
                                  "Un composant de plaque de cuisson."@fr ;
                     rdfs:label "Stove"@en ,
-                               "Plaque de cuisson"@fr .
+                               "Plaque de cuisson"@fr ,
+                               "Plaque"@fr .
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Stove
 sven:Stove rdf:type owl:Class ;
@@ -742,7 +746,8 @@ sven:WaiterComponent rdf:type owl:Class ;
                      rdfs:comment "A waiter component."@en ,
                                   "Un composant de serveur."@fr ;
                      rdfs:label "Waiter"@en ,
-                                "Serveur"@fr .
+                                "Serveur"@fr ,
+                                "Serveuse"@fr .
 
 ###  https://sven.lisn.upsaclay.fr/ontology#Waiter
 #    Un serveur est un SemantizationCore ordinaire : il se sélectionne, se

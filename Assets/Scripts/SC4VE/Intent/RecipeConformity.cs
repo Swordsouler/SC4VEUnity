@@ -44,12 +44,22 @@ namespace Sc4ve.Multimodality.Intent
         public class Report
         {
             public string Recipe;
-            public bool IsConformant => Missing.Count == 0 && Extra.Count == 0;
+
+            /// <summary>
+            /// Faux quand l'ontologie ne connaît pas cette recette, ou qu'elle ne déclare aucun
+            /// sven:requires. Sans ce drapeau, un rapport vide — zéro manque, zéro surplus —
+            /// se lisait comme « conforme » : une recette inexistante faisait répondre « oui,
+            /// c'est prêt » sur une assiette vide.
+            /// </summary>
+            public bool RecipeKnown = true;
+
+            public bool IsConformant => RecipeKnown && Missing.Count == 0 && Extra.Count == 0;
             public readonly List<string> Missing = new();
             public readonly List<string> Extra = new();
 
             public override string ToString()
             {
+                if (!RecipeKnown) return $"{Local(Recipe)} : recette inconnue de l'ontologie.";
                 if (IsConformant) return $"{Local(Recipe)} : conforme.";
                 var parts = new List<string>();
                 if (Missing.Count > 0) parts.Add("manque " + string.Join(", ", Missing));
@@ -70,6 +80,7 @@ namespace Sc4ve.Multimodality.Intent
             {
                 Debug.LogWarning($"[RecipeConformity] Aucune exigence pour {recipe} : recette " +
                                  "inconnue de l'ontologie, ou sven:requires absent.");
+                report.RecipeKnown = false;
                 return report;
             }
 
@@ -186,6 +197,17 @@ WHERE {{
         /// <summary>
         /// Sous-requête « intervalle valide en ce moment », nommée pour pouvoir en poser
         /// plusieurs dans la même requête sans qu'elles se contraignent l'une l'autre.
+        ///
+        /// L'intervalle OUVERT — celui qui court encore, donc le seul qui décrive l'état
+        /// présent — se teste par l'ABSENCE de fin, jamais par une borne calculée. J'avais
+        /// écrit `BIND(IF(BOUND(?end), ?end, NOW()))` puis `FILTER(NOW() < ?end)` : pour un
+        /// intervalle ouvert cela revient à `NOW() < NOW()`, toujours faux. La requête ne
+        /// renvoyait donc JAMAIS rien, et toute assiette paraissait vide — sans la moindre
+        /// erreur.
+        ///
+        /// Le code de SVEN échappe au piège parce qu'il compare à un instant littéral passé,
+        /// strictement antérieur à NOW() ; le recopier en remplaçant cet instant par NOW()
+        /// casse l'invariant.
         /// </summary>
         private static string CurrentInterval(string variable) => $@"
     {{
@@ -194,8 +216,7 @@ WHERE {{
             ?{variable} a time:Interval ;
                         time:hasBeginning/time:inXSDDateTime ?start_{variable} .
             OPTIONAL {{ ?{variable} time:hasEnd/time:inXSDDateTime ?_end_{variable} . }}
-            BIND(IF(BOUND(?_end_{variable}), ?_end_{variable}, NOW()) AS ?end_{variable})
-            FILTER(?start_{variable} <= NOW() && NOW() < ?end_{variable})
+            FILTER(?start_{variable} <= NOW() && (!BOUND(?_end_{variable}) || NOW() < ?_end_{variable}))
         }} LIMIT 10000
     }}";
 

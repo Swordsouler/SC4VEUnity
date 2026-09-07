@@ -37,18 +37,32 @@ namespace Sc4ve.Tests.EditMode
             EditModeSync.RunSync(() => CommandVocabulary.InitializeAsync());
         }
 
-        private static RuleBasedIntentRecognizer MakeRecognizer(Language language)
+        private static RuleBasedIntentRecognizer MakeRecognizer(
+            Language language,
+            List<string> annotationTypes = null,
+            List<RecipeVocabulary.Recipe> recipes = null)
         {
             bool fr = language == Language.French;
             return new RuleBasedIntentRecognizer(
-                annotationTypes: fr ? new List<string> { "Pomme", "Banane" } : new List<string> { "Apple", "Pumpkin" },
+                annotationTypes: annotationTypes
+                    ?? (fr ? new List<string> { "Pomme", "Banane" } : new List<string> { "Apple", "Pumpkin" }),
                 availableColors: fr ? new List<string> { "Rouge", "Vert" } : new List<string> { "Red", "Blue" },
                 pointerDeictics: fr
                     ? new List<string> { "ce", "ceci", "ces", "cet", "cette", "ça" }
                     : new List<string> { "this", "that", "these", "those" },
                 pointerName: fr ? "Pointeur" : "Pointer",
-                cameraName: fr ? "Caméra" : "Camera");
+                cameraName: fr ? "Caméra" : "Camera",
+                recipes: recipes);
         }
+
+        /// <summary>Toutes les conditions de tous les SelectionParameter de la commande.</summary>
+        private static List<Condition> AllConditions(Command command)
+            => command.Parameters
+                .OfType<SelectionParameter>()
+                .SelectMany(p => p.Filters ?? new List<FilterElement>())
+                .Where(f => !f.IsOperator && f.Condition != null)
+                .Select(f => f.Condition)
+                .ToList();
 
         private T RecognizeSingle<T>(string phrase) where T : Command
         {
@@ -194,6 +208,95 @@ namespace Sc4ve.Tests.EditMode
             {
                 SetLocale(Language.French);
             }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Libellés emboîtés : le plus précis gagne, et consomme son segment
+        // ─────────────────────────────────────────────────────────────────────
+
+        [Test]
+        public void NestedLabel_LongestWins_AndDoesNotAlsoMatchTheShorterOne()
+        {
+            _recognizer = MakeRecognizer(
+                Language.French,
+                annotationTypes: new List<string> { "Pomme", "Pomme de terre", "Assiette" });
+
+            PutInCommand cmd = RecognizeSingle<PutInCommand>(
+                "mets la pomme de terre dans une assiette");
+
+            List<Condition> conditions = AllConditions(cmd);
+            Assert.IsTrue(conditions.Any(c => c.Value == "Pomme de terre"),
+                "« pomme de terre » doit produire l'annotation Pomme de terre.");
+            Assert.IsFalse(conditions.Any(c => c.Value == "Pomme"),
+                "« pomme de terre » ne doit PAS produire aussi l'annotation Pomme : " +
+                "la sélection ramasserait tous les fruits de la table.");
+        }
+
+        [Test]
+        public void NestedLabel_ShorterStillMatchesItsOwnOccurrence()
+        {
+            _recognizer = MakeRecognizer(
+                Language.French,
+                annotationTypes: new List<string> { "Pomme", "Pomme de terre" });
+
+            // La consommation ne retire QUE la première occurrence : la pomme conserve la sienne.
+            SelectCommand cmd = RecognizeSingle<SelectCommand>(
+                "sélectionne la pomme de terre et la pomme");
+
+            List<Condition> conditions = AllConditions(cmd);
+            Assert.IsTrue(conditions.Any(c => c.Value == "Pomme de terre"));
+            Assert.IsTrue(conditions.Any(c => c.Value == "Pomme"));
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Recettes : verbe générique + nom de plat → PrepareCommand
+        // ─────────────────────────────────────────────────────────────────────
+
+        private static List<RecipeVocabulary.Recipe> Recipes() => new()
+        {
+            new RecipeVocabulary.Recipe("sven:Soup",       "Soupe",             isConcrete: false),
+            new RecipeVocabulary.Recipe("sven:CarrotSoup", "Soupe de carottes", isConcrete: true),
+            new RecipeVocabulary.Recipe("sven:FruitSalad", "Salade de fruits",  isConcrete: true),
+        };
+
+        [Test]
+        public void GenericMakeVerb_WithRecipe_TriggersPrepare()
+        {
+            _recognizer = MakeRecognizer(Language.French, recipes: Recipes());
+
+            // « fais » n'est pas un déclencheur de PrepareCommand : c'est la présence du nom de
+            // plat qui décide. Sans cette règle, « fais » et « make » entraient en collision
+            // avec ColorizeCommand et la commande retenue dépendait de l'ordre de réflexion.
+            PrepareCommand cmd = RecognizeSingle<PrepareCommand>("fais une salade de fruits");
+            Assert.AreEqual("sven:FruitSalad",
+                cmd.Parameters.OfType<RecipeParameter>().First().Value);
+        }
+
+        [Test]
+        public void GenericMakeVerb_WithoutRecipe_DoesNotTriggerPrepare()
+        {
+            _recognizer = MakeRecognizer(Language.French, recipes: Recipes());
+
+            // « fais » seul ne nomme aucune recette : la phrase ne doit pas devenir un
+            // PrepareCommand qui demanderait « quelle recette ? ».
+            string json = _recognizer.Recognize(new Sentence("fais la pomme"));
+            if (json != null)
+            {
+                List<Command> commands = JsonConvert.DeserializeObject<List<Command>>(json);
+                Assert.IsFalse(commands.Any(c => c is PrepareCommand),
+                    "Sans nom de plat, « fais » ne doit pas produire un PrepareCommand.");
+            }
+        }
+
+        [Test]
+        public void PreciseRecipe_WinsOverItsFamily()
+        {
+            _recognizer = MakeRecognizer(Language.French, recipes: Recipes());
+
+            PrepareCommand cmd = RecognizeSingle<PrepareCommand>("prépare une soupe de carottes");
+            Assert.AreEqual("sven:CarrotSoup",
+                cmd.Parameters.OfType<RecipeParameter>().First().Value,
+                "« soupe de carottes » doit l'emporter sur la famille « soupe ».");
         }
     }
 }

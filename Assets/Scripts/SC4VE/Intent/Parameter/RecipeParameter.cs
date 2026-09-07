@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
+using VDS.RDF;
 using VDS.RDF.Query;
 
 namespace Sc4ve.Multimodality.Intent
@@ -31,6 +32,36 @@ namespace Sc4ve.Multimodality.Intent
         }
 
         public override string ToString() => _value;
+
+        /// <summary>
+        /// La recette est écrite dans la trace comme une URI et non comme une chaîne : c'est la
+        /// classe même de l'ontologie (sven:FruitSalad), donc une requête d'analyse peut la
+        /// joindre à ses sven:requires. Un littéral serait opaque.
+        ///
+        /// Le repli sur un littéral couvre le cas d'un LLM qui renvoie un nom mal formé
+        /// (« FruitSalad » sans préfixe, ou un préfixe inconnu) : CreateUriNode lèverait alors
+        /// une RdfException qui avorterait la sémantisation de toute la commande.
+        /// </summary>
+        public override async Task<IUriNode> Semanticize(Graph graph)
+        {
+            IUriNode parameterNode = await base.Semanticize(graph);
+            if (string.IsNullOrWhiteSpace(_value)) return parameterNode;
+
+            IUriNode value = graph.CreateUriNode("sven:value");
+            INode recipe;
+            try
+            {
+                recipe = graph.CreateUriNode(_value);
+            }
+            catch (RdfException)
+            {
+                Debug.LogWarning($"[RecipeParameter] « {_value} » n'est pas un nom préfixé valide, " +
+                                 "écrit comme littéral dans la trace.");
+                recipe = graph.CreateLiteralNode(_value, graph.CreateUriNode("xsd:string").Uri);
+            }
+            graph.Assert(new Triple(parameterNode, value, recipe));
+            return parameterNode;
+        }
     }
 
     /// <summary>

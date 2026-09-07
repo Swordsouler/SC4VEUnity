@@ -8,7 +8,10 @@ using UnityEngine;
 namespace Sc4ve.Multimodality.Intent
 {
     [RuleBasedTriggers(
-        "prépare", "préparer", "prepare", "fais", "faire", "cuisine", "cuisiner", "make", "cook")]
+        // « fais », « faire » et « make » sont volontairement absents : trop généraux, ils
+        // entraient en collision avec ColorizeCommand (« make it red »). RuleBasedIntentRecognizer
+        // les traite par une pré-vérification qui exige la présence d'un nom de recette.
+        "prépare", "préparer", "prepare", "cuisine", "cuisiner", "cook")]
     [Serializable, CommandDescription(
         "Annonce la recette que le joueur veut préparer, et rappelle à voix haute ce qu'elle " +
         "exige. Ne fabrique rien : c'est le joueur qui assemble les ingrédients. " +
@@ -20,8 +23,9 @@ namespace Sc4ve.Multimodality.Intent
         private RecipeParameter RecipeParameter => GetParameter<RecipeParameter>();
 
         /// <summary>
-        /// La recette en cours, celle que CheckCommand vérifiera par défaut et que le reste du
-        /// jeu consultera. Une seule à la fois : le joueur prépare un plat, puis le suivant.
+        /// La recette en cours. CheckCommand la vérifie par défaut quand la question n'en
+        /// nomme aucune, et le reste du jeu la consulte. Une seule à la fois : le joueur
+        /// prépare un plat, puis le suivant.
         /// </summary>
         public static string CurrentRecipe { get; private set; }
 
@@ -64,10 +68,20 @@ namespace Sc4ve.Multimodality.Intent
 
                 RecipeVocabulary.Recipe match = known.FirstOrDefault(r => r.Uri == recipe);
 
+                // Recette inconnue de l'ontologie — un LLM peut inventer « sven:PizzaMargherita ».
+                // Sans ce garde-fou, CurrentRecipe prenait cette valeur fantôme et la commande
+                // annonçait « … : il faut . », la liste d'exigences étant vide.
+                if (match.Uri == null)
+                {
+                    Debug.LogWarning($"[Prepare] Recette inconnue : {recipe}");
+                    Speak(french ? "Je ne connais pas cette recette." : "I do not know that recipe.");
+                    return;
+                }
+
                 // Famille de plats plutôt que recette précise : « prépare une soupe » désigne
                 // trois candidates. On demande laquelle au lieu d'en choisir une arbitrairement
                 // — c'est exactement la clarification que le système sait le mieux montrer.
-                if (match.Uri != null && !match.IsConcrete)
+                if (!match.IsConcrete)
                 {
                     List<string> children = await ConcreteChildren(recipe, known);
                     string list = string.Join(french ? " ou " : " or ", children);

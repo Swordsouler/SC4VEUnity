@@ -1254,19 +1254,37 @@ namespace Sc4ve.Demonstration.EditorTools
             Directory.CreateDirectory(MaterialsPath);
             string path = $"{MaterialsPath}/{name.Replace(" ", "")}.mat";
 
+            // La couleur est réappliquée MÊME sur un matériau déjà là. Rendre l'existant tel
+            // quel était le dernier test de fraîcheur de l'outil, et il se trompait comme les
+            // précédents : changer une couleur dans le code ne changeait rien à l'écran, le
+            // matériau de la première exécution survivant à toutes les suivantes.
             var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (existing != null) return existing;
+            if (existing != null)
+            {
+                Tint(existing, color);
+                EditorUtility.SetDirty(existing);
+                return existing;
+            }
 
             Shader shader = Shader.Find("Universal Render Pipeline/Lit")
                             ?? Shader.Find("Standard")
                             ?? Shader.Find("Diffuse");
 
             var material = new Material(shader);
-            material.color = color;
-            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
+            Tint(material, color);
 
             AssetDatabase.CreateAsset(material, path);
             return material;
+        }
+
+        /// <summary>
+        /// Pose la couleur sur les deux propriétés : `color` pour les shaders hérités,
+        /// `_BaseColor` pour URP. L'une seule ne suffit pas selon le pipeline actif.
+        /// </summary>
+        private static void Tint(Material material, Color color)
+        {
+            material.color = color;
+            if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
         }
 
         #endregion

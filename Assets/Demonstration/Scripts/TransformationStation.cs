@@ -38,6 +38,22 @@ namespace Sc4ve.Demonstration
         private async void Start()
         {
             _content = GetComponent<ContainerContent>();
+
+            // ATTENDRE que le graphe soit chargé avant de l'interroger. Sans cette attente, la
+            // requête part au premier Start() de la scène, bien avant que GraphController ait
+            // fini de charger les ontologies : elle ne renvoie rien, _state reste null, et la
+            // station ne transforme plus jamais rien de toute la partie.
+            //
+            // Même schéma que SemantizationCore.InitializeAsync, qui attend pour la même raison.
+            for (int attempt = 0; attempt < 5 && !GraphManager.IsGraphInitialized; attempt++)
+                await Task.Delay(2000);
+
+            if (!GraphManager.IsGraphInitialized)
+            {
+                Debug.LogError($"[Station] {name} : graphe non initialisé, la station est inerte.");
+                return;
+            }
+
             _state = await QueryAppliedState();
 
             if (_state == null)

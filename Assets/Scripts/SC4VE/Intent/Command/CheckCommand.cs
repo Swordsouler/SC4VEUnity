@@ -7,13 +7,19 @@ using UnityEngine;
 namespace Sc4ve.Multimodality.Intent
 {
     [RuleBasedTriggers(
+        // « qu'est-ce que c'est » appartient à DescribeCommand, qui le possédait déjà : le
+        // déclencheur était donc déclaré deux fois, à longueur égale, et la boucle de détection
+        // tranchait selon l'ordre de réflexion des types — au hasard. La question est de toute
+        // façon indésambiguïsable lexicalement (elle porte sur une pomme comme sur une assiette) :
+        // c'est la NATURE DE LA CIBLE qui décide, et DescribeCommand délègue ici quand elle
+        // porte un ContainerContent.
         "est-ce que c'est prêt", "est-ce que c'est bon", "c'est prêt", "est-ce conforme",
         "est-ce que c'est conforme", "vérifie", "vérifier", "contrôle", "contrôler",
-        "qu'est-ce que c'est", "is it ready", "is this ready", "is it correct", "check")]
+        "is it ready", "is this ready", "is it correct", "check")]
     [Serializable, CommandDescription(
         "Vérifie qu'un contenant satisfait une recette, et énonce le verdict à voix haute. " +
         "Générer pour « est-ce que c'est prêt ? », « est-ce que c'est une salade de fruits ? », " +
-        "« qu'est-ce que c'est ? ». " +
+        "« qu'est-ce que c'est ? » quand la cible est une assiette. " +
         "Paramètres: SelectionParameter (le contenant à inspecter) et, si la phrase la nomme, " +
         "RecipeParameter (la recette attendue). Sans RecipeParameter, toutes les recettes sont " +
         "essayées et le plat reconnu est annoncé.")]
@@ -55,7 +61,11 @@ namespace Sc4ve.Multimodality.Intent
             return new List<SemantizationCore> { container };
         }
 
-        private static async System.Threading.Tasks.Task Announce(SemantizationCore container, string recipe)
+        /// <summary>
+        /// Énonce le verdict. Interne plutôt que privé : DescribeCommand y délègue quand
+        /// « qu'est-ce que c'est ? » porte sur un contenant.
+        /// </summary>
+        internal static async System.Threading.Tasks.Task Announce(SemantizationCore container, string recipe)
         {
             try
             {
@@ -67,7 +77,19 @@ namespace Sc4ve.Multimodality.Intent
                     return;
                 }
 
-                // Aucune recette nommée : on cherche laquelle est satisfaite. C'est ce qui rend
+                // Aucune recette nommée, mais une préparation en cours : « est-ce que c'est
+                // prêt ? » porte sur ELLE. Sans cette branche, PrepareCommand.CurrentRecipe
+                // n'était jamais lu et la question était traitée comme « qu'est-ce que c'est ? ».
+                if (PrepareCommand.CurrentRecipe != null)
+                {
+                    RecipeConformity.Report current =
+                        await RecipeConformity.Check(container, PrepareCommand.CurrentRecipe);
+                    Debug.Log($"[Check] En cours — {current}");
+                    Speak(Verdict(current));
+                    return;
+                }
+
+                // Sinon on cherche laquelle des recettes est satisfaite. C'est ce qui rend
                 // « qu'est-ce que c'est ? » répondable, et c'est aussi ce dont le client aura
                 // besoin pour accepter ou refuser un plat.
                 List<RecipeVocabulary.Recipe> recipes =
@@ -98,6 +120,10 @@ namespace Sc4ve.Multimodality.Intent
         private static string Verdict(RecipeConformity.Report report)
         {
             bool french = UserData.Locale == "fr";
+            // Recette inconnue : ni oui ni non. Répondre « non, il manque … » avec une liste
+            // vide donnerait « Non : . », qui n'informe de rien.
+            if (!report.RecipeKnown)
+                return french ? "Je ne connais pas cette recette." : "I do not know that recipe.";
             if (report.IsConformant) return french ? "Oui, c'est prêt." : "Yes, it is ready.";
 
             var reasons = new List<string>();
