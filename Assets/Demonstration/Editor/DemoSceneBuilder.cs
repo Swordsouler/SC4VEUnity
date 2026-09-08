@@ -189,7 +189,7 @@ namespace Sc4ve.Demonstration.EditorTools
                 }
 
                 GameObject root = PrefabUtility.LoadPrefabContents(path);
-                bool changed = MakeAnnotatorDynamic(root) | MakeGrabbable(root);
+                bool changed = MakeAnnotatorDynamic(root) | MakeGrabbable(root) | MakeDefaultLayer(root);
                 if (changed)
                 {
                     PrefabUtility.SaveAsPrefabAsset(root, path);
@@ -237,6 +237,27 @@ namespace Sc4ve.Demonstration.EditorTools
         }
 
         /// <summary>Ajoute de quoi saisir l'objet en VR — sans ça GrabCommand ne trouve rien.</summary>
+        /// <summary>
+        /// Ramène le prefab sur la couche Default.
+        ///
+        /// Les prefabs importés du pack arrivent sur la couche 7 « Environment », et le
+        /// masque de raycast des interactors XR l'exclut — à raison : on ne saisit pas les
+        /// murs. Résultat parfaitement silencieux : le XRGrabInteractable est là, le collider
+        /// aussi, et le rayon ne voit tout simplement pas l'objet — ni survol, ni saisie,
+        /// pendant que les onze autres ingrédients, générés sur Default, marchent.
+        /// </summary>
+        private static bool MakeDefaultLayer(GameObject root)
+        {
+            bool changed = false;
+            foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (child.gameObject.layer == 0) continue;
+                child.gameObject.layer = 0;
+                changed = true;
+            }
+            return changed;
+        }
+
         private static bool MakeGrabbable(GameObject root)
         {
             if (root.GetComponentInChildren<XRGrabInteractable>() != null) return false;
