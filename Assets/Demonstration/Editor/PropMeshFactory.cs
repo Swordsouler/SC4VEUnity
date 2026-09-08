@@ -246,14 +246,18 @@ namespace Sc4ve.Demonstration.EditorTools
                             noise: 0.02f, frequency: 2f, seed: 61, boxiness: 0.35f)),
                     cloth),
 
-                // Tête, cou, visage : les meshes du modèle debout, aux mêmes règles
-                // d'enfoncement (la tête mord de 0,09 dans le buste, comme debout).
+                // Tête, cou, visage : les meshes du modèle debout. L'invariant n'est PAS
+                // l'enfoncement absolu (0,09 comme debout : la tête tombait à 53 % de la
+                // hauteur d'un buste court, en pleine zone charnue — soudée aux épaules,
+                // cou invisible) mais l'endroit du PROFIL DE LARGEUR où le bas de la tête
+                // arrive : à 80 % de la demi-hauteur du buste, comme debout, là où
+                // l'ellipsoïde est déjà fin et où le cou se voit.
                 new("Head", Save("PropHead",
                         IngredientMeshFactory.Blob(2, new Vector3(0.24f, 0.28f, 0.24f), taper: 1f,
                             noise: 0.02f, frequency: 3f, seed: 67, boxiness: 0.25f)),
-                    skin, new Vector3(0f, 0.24f, 0f)),
+                    skin, new Vector3(0f, 0.29f, 0f)),
                 new("Neck", Save("PropNeck", IngredientMeshFactory.Cylinder(0.065f, 0.18f, 8)),
-                    skin, new Vector3(0f, 0.14f, 0f)),
+                    skin, new Vector3(0f, 0.19f, 0f)),
 
                 // Bras PROPRES au modèle assis, et non le PropArm du serveur : 0,54 u de
                 // bras tendu dépassait un buste hanches→épaules de 0,38 u — les pointes
@@ -303,10 +307,10 @@ namespace Sc4ve.Demonstration.EditorTools
                 parts.Add(new Part(i == 0 ? "EyeLeft" : "EyeRight",
                     Save("PropEye", i == 0 ? IngredientMeshFactory.Blob(1, Vector3.one * 0.05f,
                         taper: 1f, noise: 0f, frequency: 1f, seed: 0) : null),
-                    pupil, new Vector3(-0.055f + i * 0.11f, 0.285f, -0.105f)));
+                    pupil, new Vector3(-0.055f + i * 0.11f, 0.335f, -0.105f)));
 
             parts.Add(new Part("Mouth", Save("PropMouth", Box(new Vector3(0.09f, 0.022f, 0.03f))),
-                new Color(0.45f, 0.24f, 0.22f), new Vector3(0f, 0.195f, -0.105f)));
+                new Color(0.45f, 0.24f, 0.22f), new Vector3(0f, 0.245f, -0.105f)));
 
             return parts;
         }

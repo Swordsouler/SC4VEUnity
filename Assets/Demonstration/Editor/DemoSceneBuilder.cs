@@ -655,14 +655,14 @@ namespace Sc4ve.Demonstration.EditorTools
             // du fût central.
             Vector3 position = table.transform.position + new Vector3(0f, 0f, 0.62f);
 
-            // 1,35 m et PAS une hauteur « réaliste » choisie seule : c'est la hauteur qui
+            // 1,43 m et PAS une hauteur « réaliste » choisie seule : c'est la hauteur qui
             // donne au modèle assis LE MÊME FACTEUR D'ÉCHELLE que le serveur debout
-            // (1,75 m / 1,09 u ≈ 1,606 ; l'assis fait 0,84 u × 1,606 ≈ 1,35 m). L'invariant
+            // (1,75 m / 1,09 u ≈ 1,606 ; l'assis fait 0,89 u × 1,606 ≈ 1,43 m). L'invariant
             // est là : même tête, même largeur de buste — un assis n'est pas un humain
             // rétréci, c'est le même humain plus bas. Changer la taille des serveurs se
             // répercute donc ici par la même règle de trois.
             GameObject customer = Prop(room, $"Client {(char)('A' + index)}", "sven:Customer",
-                position, height: 1.35f);
+                position, height: 1.43f);
             RestOnSurface(customer, 0f);
             // Rotation IDENTITÉ, comme les serveurs : le visage du modèle est côté -z (les
             // yeux de PropMeshFactory sont à z négatif), donc identité = face à sa table et à
@@ -1401,7 +1401,7 @@ namespace Sc4ve.Demonstration.EditorTools
             {
                 ("Table", "sven:Table", new Vector3(-1.4f, 0f, 2.6f), 0.75f),
                 ("Serveur", "sven:Waiter", new Vector3(0f, 0f, 2.6f), 1.75f),
-                ("Client", "sven:Customer", new Vector3(1.4f, 0f, 2.6f), 1.35f),
+                ("Client", "sven:Customer", new Vector3(1.4f, 0f, 2.6f), 1.43f),
             };
 
             foreach (var (name, semantic, position, height) in actors)
