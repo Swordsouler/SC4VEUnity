@@ -15,7 +15,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using VDS.RDF;
 using VDS.RDF.Parsing;
 using Pointer = Sven.Context.Pointer;
@@ -860,79 +859,10 @@ namespace Sc4ve.Multimodality
             Debug.Log(JsonConvert.SerializeObject(new Sentence("Colorie en rouge les cinq plus grosses citrouilles ou pomme que je vois")));
         }
 
-        private void Update()
-        {
-            HandlePointerDown();
-            // Fire-and-forget délibéré : HandlePointerUp gère toutes ses exceptions en interne.
-            _ = HandlePointerUp();
-        }
-
-        private Parameter thisParameter = null;
-        private Parameter thereParameter = null;
-        private bool _isResolvingCommand = false;
-
-        public void HandlePointerDown()
-        {
-            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
-            {
-                thisParameter = new SelectionParameter
-                {
-                    Filters = new List<FilterElement>
-                    {
-                        new() {
-                            Condition = new Condition
-                            {
-                                Type = "Event",
-                                Value = "Pointeur",
-                                Timestamp = DateTime.Now,
-                            },
-                        }
-                    },
-                    Limit = 1,
-                };
-            }
-        }
-
-        public async Task HandlePointerUp()
-        {
-            if (Mouse.current != null && Mouse.current.leftButton.wasReleasedThisFrame)
-            {
-                thereParameter = new PointParameter
-                {
-                    Value = "Pointeur",
-                    Timestamp = DateTime.Now,
-                };
-                Command moveCommand;
-                moveCommand = new MoveCommand
-                {
-                    Parameters = new List<Parameter>
-                    {
-                        thisParameter,
-                        thereParameter,
-                    }
-                };
-                List<Command> commands = new() { moveCommand };
-                thisParameter = null;
-                thereParameter = null;
-                if (_isResolvingCommand) return;
-                _isResolvingCommand = true;
-                try
-                {
-                    await CommandToGraphOutputCommandAsync(commands);
-                    ResolveCommands(commands);
-                    Debug.Log(JsonConvert.SerializeObject(commands));
-                }
-                catch (Exception e) when (e is not OutOfMemoryException)
-                {
-                    Debug.LogError("[Pointer] MoveCommand failed.");
-                    Debug.LogException(e);
-                }
-                finally
-                {
-                    _isResolvingCommand = false;
-                }
-            }
-        }
+        // Le banc d'essai souris qui vivait ici — un clic gauche simulait « mets ça ici »
+        // en fabriquant un MoveCommand — est retiré : en casque, chaque pression de gâchette
+        // passait par lui et échouait bruyamment dès qu'aucun Pointer SVEN n'était résolu.
+        // La deixis réelle passe par le Pointer du rig, pas par la souris.
 
         #endregion
     }
