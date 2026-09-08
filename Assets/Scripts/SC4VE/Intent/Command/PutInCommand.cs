@@ -10,6 +10,7 @@ namespace Sc4ve.Multimodality.Intent
     [RuleBasedTriggers(
         "mets dans", "met dans", "mettre dans", "mets sur", "met sur", "mettre sur",
         "range dans", "ranger dans", "pose dans", "poser dans", "pose sur", "poser sur",
+        "dépose dans", "déposer dans", "déposez dans", "dépose sur", "déposer sur", "déposez sur",
         "ajoute dans", "ajouter dans", "ajoute à", "verse dans", "verser dans",
         "put in", "put into", "put on", "place in", "place into", "place on", "add to")]
     [Serializable, CommandDescription(

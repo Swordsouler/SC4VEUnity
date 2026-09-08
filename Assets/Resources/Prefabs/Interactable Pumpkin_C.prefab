@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: 754984339237977041}
   - component: {fileID: 7008844418605461127}
   - component: {fileID: 5443037291986834879}
-  m_Layer: 7
+  m_Layer: 0
   m_Name: Interactable Pumpkin_C
   m_TagString: Pickup
   m_Icon: {fileID: 0}

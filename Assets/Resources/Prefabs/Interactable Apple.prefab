@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: 9011243784680204855}
   - component: {fileID: 1354806393922525166}
   - component: {fileID: 4836537913287553543}
-  m_Layer: 7
+  m_Layer: 0
   m_Name: Interactable Apple
   m_TagString: Pickup
   m_Icon: {fileID: 0}

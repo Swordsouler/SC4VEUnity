@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: 4872275564921844472}
   - component: {fileID: 4553609378774671282}
   - component: {fileID: 2164347431329257690}
-  m_Layer: 7
+  m_Layer: 0
   m_Name: Interactable Banana
   m_TagString: Pickup
   m_Icon: {fileID: 0}

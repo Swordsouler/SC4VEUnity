@@ -417,9 +417,14 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // ne peut pas se déclencher. Placé APRÈS MoveCommand : les deux jeux de mots ne se
             // recouvrent pas (« ici / là-bas » contre « dans / sur »), l'ordre est donc sans
             // conséquence, mais on garde la destination déictique prioritaire par principe.
+            // Les formes en -ez y sont : Whisper transcrit volontiers au vouvoiement
+            // (« Déposez les citrouilles dans ce bol »), et « déposer » manquait — la phrase
+            // retombait alors sur le déclencheur « dépose » de ReleaseCommand, qui construisait
+            // UNE sélection « citrouille ET pointée » au lieu de couper au pivot « dans » :
+            // intersection vide, « aucun objet correspondant ».
             string putVerbs = IsFrench
-                ? @"\b(mets|met|mettre|pose|poser|range|ranger|ajoute|ajouter|verse|verser)\b"
-                : @"\b(put|place|add|pour)\b";
+                ? @"\b(mets|mettez|met|mettre|pose|posez|poser|depose|deposez|deposer|range|rangez|ranger|ajoute|ajoutez|ajouter|verse|versez|verser)\b"
+                : @"\b(put|place|add|pour|drop)\b";
             string[] containerPrepositions = IsFrench
                 ? new[] { "dans", "sur", "dedans" }
                 : new[] { "in", "into", "on", "onto" };

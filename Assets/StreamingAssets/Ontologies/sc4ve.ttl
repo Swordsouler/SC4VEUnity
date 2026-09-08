@@ -612,7 +612,7 @@ sc4ve:ReleaseCommand sc4ve:trigger
     "release"@en , "drop"@en , "let go"@en , "put down"@en .
 
 sc4ve:PutInCommand sc4ve:trigger
-    "mets dans"@fr , "met dans"@fr , "mettre dans"@fr , "mets sur"@fr , "met sur"@fr , "mettre sur"@fr , "range dans"@fr , "ranger dans"@fr , "pose dans"@fr , "poser dans"@fr , "pose sur"@fr , "poser sur"@fr , "ajoute dans"@fr , "verse dans"@fr ,
+    "mets dans"@fr , "met dans"@fr , "mettre dans"@fr , "mets sur"@fr , "met sur"@fr , "mettre sur"@fr , "range dans"@fr , "ranger dans"@fr , "pose dans"@fr , "poser dans"@fr , "pose sur"@fr , "poser sur"@fr , "dépose dans"@fr , "déposer dans"@fr , "déposez dans"@fr , "dépose sur"@fr , "déposer sur"@fr , "déposez sur"@fr , "ajoute dans"@fr , "verse dans"@fr ,
     "put in"@en , "put into"@en , "put on"@en , "place in"@en , "place into"@en , "place on"@en , "add to"@en .
 
 sc4ve:MoveCommand sc4ve:trigger

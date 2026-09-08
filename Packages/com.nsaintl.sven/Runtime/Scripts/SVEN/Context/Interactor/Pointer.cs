@@ -204,6 +204,14 @@ namespace Sven.Context
                 if (uniqueHits.ContainsKey(collider))
                     continue;
 
+                // Physics.ClosestPoint ne supporte que les primitives et les MeshColliders
+                // CONVEXES : sur un concave, Unity journalise une erreur PAR APPEL — soit une
+                // par collider concave et par image — et le point rendu est inutilisable. Le
+                // repli en cône ignore donc les concaves ; le lancer direct les touche déjà,
+                // seul le rattrapage périphérique leur est fermé.
+                if (collider is MeshCollider { convex: false })
+                    continue;
+
                 Vector3 axisPoint = ClosestPointOnSegment(origin, coneEnd, collider.bounds.center);
                 Vector3 closest = collider.ClosestPoint(axisPoint);
 
