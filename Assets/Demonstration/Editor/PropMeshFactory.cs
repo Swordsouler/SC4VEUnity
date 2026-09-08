@@ -227,66 +227,78 @@ namespace Sc4ve.Demonstration.EditorTools
             var wood = new Color(0.52f, 0.38f, 0.26f);
             var metal = new Color(0.55f, 0.57f, 0.60f);
 
+            // TOUTES les cotes sont dans les unités du personnage DEBOUT (1,09 u = 1,75 m),
+            // et la hauteur cible du client (1,35 m) est calculée pour que NormalizeHeight
+            // applique le MÊME facteur d'échelle qu'au serveur. C'est l'invariant qui compte :
+            // même tête, même largeur de buste — un assis n'est pas un humain réduit, c'est le
+            // même humain plus bas. La première version normalisait à une hauteur « réaliste »
+            // sans refaire les proportions : le client sortait uniformément rétréci, tête de
+            // 25 cm contre 39 pour le serveur.
+            //
+            // Repères (origine = centre du buste) : assise à -0,20, sol à -0,46, sommet de
+            // tête à +0,38 → total 0,84 u × 1,606 = 1,35 m ; assise réelle 0,42 m.
             var parts = new List<Part>
             {
-                // Buste raccourci du modèle debout : mêmes paramètres, hauteur réduite —
-                // les jambes ne sont plus « impliquées » dans le blob, elles existent.
+                // Buste hip→épaules seulement (0,38 u = 0,61 m) : le buste debout (0,90 u)
+                // « contient » les jambes ; ici elles existent pour de vrai.
                 new(name, Save($"PropBody{name}",
-                        IngredientMeshFactory.Blob(2, new Vector3(0.44f, 0.62f, 0.28f), taper: 0.72f,
+                        IngredientMeshFactory.Blob(2, new Vector3(0.44f, 0.38f, 0.28f), taper: 0.72f,
                             noise: 0.02f, frequency: 2f, seed: 61, boxiness: 0.35f)),
-                    cloth, new Vector3(0f, 0.12f, 0f)),
+                    cloth),
 
-                // Tête, cou, visage : EXACTEMENT les cotes du modèle debout — le buste
-                // raccourci culmine à 0,43 comme l'autre, donc tout se réutilise verbatim.
+                // Tête, cou, visage : les meshes du modèle debout, aux mêmes règles
+                // d'enfoncement (la tête mord de 0,09 dans le buste, comme debout).
                 new("Head", Save("PropHead",
                         IngredientMeshFactory.Blob(2, new Vector3(0.24f, 0.28f, 0.24f), taper: 1f,
                             noise: 0.02f, frequency: 3f, seed: 67, boxiness: 0.25f)),
-                    skin, new Vector3(0f, 0.50f, 0f)),
+                    skin, new Vector3(0f, 0.24f, 0f)),
                 new("Neck", Save("PropNeck", IngredientMeshFactory.Cylinder(0.065f, 0.18f, 8)),
-                    skin, new Vector3(0f, 0.38f, 0f)),
+                    skin, new Vector3(0f, 0.14f, 0f)),
 
-                // Bras légèrement portés vers l'avant (rotation X négative) : mains vers la
-                // table plutôt que ballantes — c'est le geste qui dit « attablé ».
+                // Bras du modèle debout, penchés de 22° vers l'avant : les mains finissent
+                // au-dessus des cuisses — le geste qui dit « attablé ».
                 new("ArmLeft", Save("PropArm",
                         IngredientMeshFactory.Blob(1, new Vector3(0.12f, 0.54f, 0.12f), taper: 0.85f,
                             noise: 0f, frequency: 1f, seed: 0, boxiness: 0.4f)),
-                    cloth, new Vector3(-0.18f, 0.08f, -0.03f), new Vector3(-16f, 0f, 9f)),
+                    cloth, new Vector3(-0.18f, -0.02f, -0.05f), new Vector3(-22f, 0f, 9f)),
                 new("ArmRight", Save("PropArm", null),
-                    cloth, new Vector3(0.18f, 0.08f, -0.03f), new Vector3(-16f, 0f, -9f)),
+                    cloth, new Vector3(0.18f, -0.02f, -0.05f), new Vector3(-22f, 0f, -9f)),
 
-                // Cuisses : un seul bloc horizontal vers -z, enfoncé dans le bas du buste.
+                // Cuisses : un bloc horizontal vers -z (le devant, comme le visage), enfoncé
+                // de 0,11 dans le bas du buste.
                 new("Lap", Save("PropLap",
                         IngredientMeshFactory.Blob(1, new Vector3(0.34f, 0.15f, 0.44f), taper: 0.92f,
                             noise: 0.01f, frequency: 2f, seed: 73, boxiness: 0.55f)),
-                    cloth, new Vector3(0f, -0.16f, -0.16f)),
+                    cloth, new Vector3(0f, -0.155f, -0.16f)),
 
-                // Tibias : les genoux mordent dans l'avant des cuisses, les pieds descendent
-                // au niveau de la base du tabouret.
+                // Tibias : genoux mordant l'avant des cuisses, pieds au sol (-0,46).
                 new("ShinLeft", Save("PropShin",
-                        IngredientMeshFactory.Blob(1, new Vector3(0.11f, 0.46f, 0.11f), taper: 0.9f,
+                        IngredientMeshFactory.Blob(1, new Vector3(0.11f, 0.30f, 0.11f), taper: 0.9f,
                             noise: 0f, frequency: 1f, seed: 0, boxiness: 0.5f)),
-                    cloth, new Vector3(-0.10f, -0.36f, -0.32f)),
+                    cloth, new Vector3(-0.10f, -0.31f, -0.32f)),
                 new("ShinRight", Save("PropShin", null),
-                    cloth, new Vector3(0.10f, -0.36f, -0.32f)),
+                    cloth, new Vector3(0.10f, -0.31f, -0.32f)),
 
-                // Le tabouret, dans le langage de la table : assise + fût + socle.
+                // Le tabouret, dans le langage de la table : assise + fût + socle. L'assise
+                // mord d'un centimètre dans le bas du buste et des cuisses.
                 new("StoolSeat", Save("PropStoolSeat", IngredientMeshFactory.Cylinder(0.21f, 0.035f, 14)),
-                    wood, new Vector3(0f, -0.25f, 0f)),
-                new("StoolPillar", Save("PropStoolPillar", IngredientMeshFactory.Cylinder(0.035f, 0.32f, 8)),
-                    metal, new Vector3(0f, -0.42f, 0f)),
+                    wood, new Vector3(0f, -0.2175f, 0f)),
+                new("StoolPillar", Save("PropStoolPillar", IngredientMeshFactory.Cylinder(0.035f, 0.20f, 8)),
+                    metal, new Vector3(0f, -0.325f, 0f)),
                 new("StoolFoot", Save("PropStoolFoot", IngredientMeshFactory.Cylinder(0.12f, 0.03f, 12)),
-                    metal, new Vector3(0f, -0.585f, 0f)),
+                    metal, new Vector3(0f, -0.445f, 0f)),
             };
 
+            // Yeux et bouche : mêmes écarts au centre de la tête que debout (±0,045).
             var pupil = new Color(0.15f, 0.13f, 0.12f);
             for (int i = 0; i < 2; i++)
                 parts.Add(new Part(i == 0 ? "EyeLeft" : "EyeRight",
                     Save("PropEye", i == 0 ? IngredientMeshFactory.Blob(1, Vector3.one * 0.05f,
                         taper: 1f, noise: 0f, frequency: 1f, seed: 0) : null),
-                    pupil, new Vector3(-0.055f + i * 0.11f, 0.545f, -0.105f)));
+                    pupil, new Vector3(-0.055f + i * 0.11f, 0.285f, -0.105f)));
 
             parts.Add(new Part("Mouth", Save("PropMouth", Box(new Vector3(0.09f, 0.022f, 0.03f))),
-                new Color(0.45f, 0.24f, 0.22f), new Vector3(0f, 0.455f, -0.105f)));
+                new Color(0.45f, 0.24f, 0.22f), new Vector3(0f, 0.195f, -0.105f)));
 
             return parts;
         }
