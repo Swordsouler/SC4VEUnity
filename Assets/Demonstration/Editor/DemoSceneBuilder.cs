@@ -251,14 +251,163 @@ namespace Sc4ve.Demonstration.EditorTools
 
         #region Environnement
 
+        // La salle : de x -3,6 à +3,6, de z -1,6 (derrière le joueur) à +7,0 (derrière les
+        // clients), sous 3 m de plafond. Tout le jeu tient dedans : cuisine 0,7..1,85,
+        // tableau 1,95, tables 3,6/5,4, clients jusqu'à ~6,3.
+        private const float RoomHalfWidth = 3.6f;
+        private const float RoomZMin = -1.6f;
+        private const float RoomZMax = 7.0f;
+        private const float RoomHeight = 3.0f;
+
         private static void BuildEnvironment(Transform root)
         {
+            // Un sol en bois chaud, aux dimensions de la salle — plus le plateau gris de
+            // 20 × 20 m perdu dans le vide.
             GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Plane);
             floor.name = "Sol";
             floor.transform.SetParent(root);
-            floor.transform.localScale = new Vector3(2f, 1f, 2f);
-            floor.GetComponent<Renderer>().sharedMaterial = GetMaterial("Sol", new Color(0.32f, 0.30f, 0.28f));
+            floor.transform.position = new Vector3(0f, 0f, (RoomZMin + RoomZMax) * 0.5f);
+            // Un Plane Unity fait 10 × 10 à l'échelle 1.
+            floor.transform.localScale = new Vector3(RoomHalfWidth * 2f / 10f, 1f, (RoomZMax - RoomZMin) / 10f);
+            floor.GetComponent<Renderer>().sharedMaterial = GetMaterial("Sol", new Color(0.42f, 0.31f, 0.22f));
             floor.isStatic = true;
+
+            BuildRoom(root);
+            BuildLamps(root);
+        }
+
+        /// <summary>
+        /// Les murs et le plafond. Chaque mur est en DEUX bandes — lambris bois en bas, crème
+        /// au-dessus : le deux-tons est ce qui fait lire « restaurant » plutôt que « boîte »,
+        /// pour le prix de quatre boîtes de plus. Le plafond ferme la pièce : la lumière
+        /// directionnelle de la scène, si elle projette des ombres, laisse alors l'intérieur
+        /// aux suspensions — l'ambiance voulue.
+        ///
+        /// Les murs entrent dans la cuisson du NavMesh (des colliders comme les autres) : ils
+        /// bornent la zone de marche des serveurs, ce qui est exactement ce qu'on veut.
+        /// </summary>
+        private static void BuildRoom(Transform root)
+        {
+            var room = new GameObject("Salle fermée").transform;
+            room.SetParent(root);
+
+            var wainscot = new Color(0.33f, 0.24f, 0.17f);
+            var plaster = new Color(0.85f, 0.79f, 0.68f);
+            const float wainscotHeight = 1.0f;
+            const float thickness = 0.15f;
+
+            float zCenter = (RoomZMin + RoomZMax) * 0.5f;
+            float depth = RoomZMax - RoomZMin;
+            float width = RoomHalfWidth * 2f;
+
+            // (nom, centre XZ, taille XZ) — les quatre murs, chacun débordant aux angles.
+            (string name, Vector3 center, Vector3 size)[] walls =
+            {
+                ("Mur nord", new Vector3(0f, 0f, RoomZMax + thickness * 0.5f), new Vector3(width + thickness * 2f, 0f, thickness)),
+                ("Mur sud", new Vector3(0f, 0f, RoomZMin - thickness * 0.5f), new Vector3(width + thickness * 2f, 0f, thickness)),
+                ("Mur est", new Vector3(RoomHalfWidth + thickness * 0.5f, 0f, zCenter), new Vector3(thickness, 0f, depth)),
+                ("Mur ouest", new Vector3(-RoomHalfWidth - thickness * 0.5f, 0f, zCenter), new Vector3(thickness, 0f, depth)),
+            };
+
+            foreach ((string name, Vector3 center, Vector3 size) in walls)
+            {
+                Box(room, $"{name} — lambris",
+                    new Vector3(center.x, wainscotHeight * 0.5f, center.z),
+                    new Vector3(size.x, wainscotHeight, size.z), wainscot);
+                Box(room, $"{name} — haut",
+                    new Vector3(center.x, (RoomHeight + wainscotHeight) * 0.5f, center.z),
+                    new Vector3(size.x, RoomHeight - wainscotHeight, size.z), plaster);
+            }
+
+            Box(room, "Plafond",
+                new Vector3(0f, RoomHeight + 0.075f, zCenter),
+                new Vector3(width + thickness * 2f, 0.15f, depth + thickness * 2f),
+                new Color(0.30f, 0.28f, 0.26f));
+        }
+
+        /// <summary>
+        /// Cinq suspensions — une par table, une au-dessus de la cuisine — chacune : cordon,
+        /// abat-jour, ampoule émissive, et une VRAIE lumière ponctuelle chaude. Portée courte
+        /// (4,5 m) à dessein : chaque objet reste sous la limite de lumières additionnelles
+        /// par objet de l'URP, et la salle garde des zones plus sombres entre les tables —
+        /// c'est ce contraste qui fait « restaurant » plutôt que « salle blanche ».
+        /// Pas d'ombres sur ces lumières : cinq points ombrés coûteraient cher en VR pour un
+        /// gain invisible sous un éclairage aussi doux.
+        /// </summary>
+        private static void BuildLamps(Transform root)
+        {
+            var lamps = new GameObject("Suspensions").transform;
+            lamps.SetParent(root);
+
+            var warm = new Color(1.0f, 0.86f, 0.64f);
+
+            Vector3[] positions =
+            {
+                new(-1.6f, 0f, 3.6f), new(1.6f, 0f, 3.6f),
+                new(-1.6f, 0f, 5.4f), new(1.6f, 0f, 5.4f),
+                new(0f, 0f, 1.2f),
+            };
+
+            for (int i = 0; i < positions.Length; i++)
+            {
+                var lamp = new GameObject($"Suspension {i + 1}").transform;
+                lamp.SetParent(lamps);
+                lamp.position = new Vector3(positions[i].x, 0f, positions[i].z);
+
+                GameObject cord = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                cord.name = "Cordon";
+                cord.transform.SetParent(lamp, false);
+                cord.transform.localPosition = new Vector3(0f, 2.78f, 0f);
+                cord.transform.localScale = new Vector3(0.02f, 0.24f, 0.02f);
+                cord.GetComponent<Renderer>().sharedMaterial =
+                    GetMaterial("SuspensionCordon", new Color(0.12f, 0.12f, 0.12f));
+
+                GameObject shade = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                shade.name = "Abat-jour";
+                shade.transform.SetParent(lamp, false);
+                shade.transform.localPosition = new Vector3(0f, 2.52f, 0f);
+                shade.transform.localScale = new Vector3(0.34f, 0.06f, 0.34f);
+                shade.GetComponent<Renderer>().sharedMaterial =
+                    GetMaterial("SuspensionAbatJour", new Color(0.20f, 0.17f, 0.14f));
+
+                GameObject bulb = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                bulb.name = "Ampoule";
+                bulb.transform.SetParent(lamp, false);
+                bulb.transform.localPosition = new Vector3(0f, 2.44f, 0f);
+                bulb.transform.localScale = Vector3.one * 0.13f;
+                bulb.GetComponent<Renderer>().sharedMaterial = EmissiveMaterial("SuspensionAmpoule", warm);
+
+                // Les primitives d'une lampe n'ont rien à intercepter : ni pointeur XR, ni
+                // cuisson de NavMesh (un abat-jour cuit ferait un trou de marche sous chaque
+                // table — la cuisson rase TOUT collider, à 2,5 m comme au sol).
+                foreach (Collider collider in lamp.GetComponentsInChildren<Collider>())
+                    UnityEngine.Object.DestroyImmediate(collider);
+
+                var light = new GameObject("Lumière").AddComponent<Light>();
+                light.transform.SetParent(lamp, false);
+                light.transform.localPosition = new Vector3(0f, 2.38f, 0f);
+                light.type = LightType.Point;
+                light.color = warm;
+                light.intensity = 1.4f;
+                light.range = 4.5f;
+                light.shadows = LightShadows.None;
+            }
+        }
+
+        /// <summary>
+        /// Matériau émissif — l'ampoule doit paraître SOURCE de lumière, pas objet éclairé.
+        /// GetMaterial re-teinte le matériau existant à chaque reconstruction ; l'émission se
+        /// rétablit ici de la même façon.
+        /// </summary>
+        private static Material EmissiveMaterial(string name, Color color)
+        {
+            Material material = GetMaterial(name, color);
+            material.EnableKeyword("_EMISSION");
+            if (material.HasProperty("_EmissionColor"))
+                material.SetColor("_EmissionColor", color * 2.4f);
+            material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            EditorUtility.SetDirty(material);
+            return material;
         }
 
         #endregion
