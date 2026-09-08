@@ -1315,7 +1315,7 @@ namespace Sc4ve.Demonstration.EditorTools
         /// <summary>
         /// Pose le simulateur XR dans la scène, DÉSACTIVÉ : l'activer dans la hiérarchie
         /// permet de jouer toute la démo au clavier-souris, sans casque — tête et manettes
-        /// simulées, pendant que la voix (touche T), Whisper, Piper et les agents tournent
+        /// simulées, pendant que la voix (touche V), Whisper, Piper et les agents tournent
         /// déjà en pur bureau.
         ///
         /// Désactivé par défaut parce qu'ACTIF AVEC un casque branché, il se disputerait les
