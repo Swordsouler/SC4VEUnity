@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AI;
 using VDS.RDF;
@@ -70,6 +71,25 @@ namespace Sc4ve.Multimodality
                                  "garde-fou, un serveur bloqué reste occupé pour toute la partie.")]
         [Range(5f, 120f)]
         private float _timeout = 30f;
+
+        [SerializeField, Tooltip("Secondes (temps de jeu) passées à la table pendant que le client " +
+                                 "parle. La synthèse est un processus externe sans borne de fin " +
+                                 "exploitable : on reste un temps LISIBLE plutôt que de partir dos " +
+                                 "au client au milieu de sa phrase.")]
+        [Range(1f, 12f)]
+        private float _listenDuration = 4f;
+
+        [SerializeField, Tooltip("Secondes RÉELLES accordées au verdict du client (requête sur le " +
+                                 "graphe). En temps réel, pas de jeu : la requête tourne hors du " +
+                                 "ralenti, et Time.time triplerait le délai d'abandon sous ralenti.")]
+        [Range(2f, 30f)]
+        private float _verdictTimeout = 8f;
+
+        /// <summary>
+        /// Vrai si la dernière attente de tâche (AwaitTask) n'a pas abouti — même motif que
+        /// _walkFailed : une coroutine ne peut rien retourner.
+        /// </summary>
+        private bool _awaitFailed;
 
         private NavMeshAgent _agent;
         private Vector3 _home;
@@ -238,11 +258,107 @@ namespace Sc4ve.Multimodality
             SetActivity(Activity.Acting, _taskLabel);
             yield return Wait(_actionDuration);
 
-            Drop(DropPointOn(table));
-            Say(French ? "Voilà, bon appétit." : "Here you are, enjoy.");
+            // Le client juge (§1.2 du plan). Sans client à cette table, on sert comme au
+            // lot 3 : le plat est déposé, personne ne le conteste.
+            CustomerOrder customer = CustomerOrder.At(table);
+            if (customer == null)
+            {
+                Drop(DropPointOn(table.transform));
+                Say(French ? "Voilà, bon appétit." : "Here you are, enjoy.");
+            }
+            else
+            {
+                Task<CustomerOrder.Verdict> judging = customer.Judge(_carried);
+                yield return AwaitTask(judging);
+
+                if (_awaitFailed)
+                {
+                    // Panne d'infrastructure : elle ne doit JAMAIS passer pour une réussite de
+                    // jeu. Le plat revient à la passe, non marqué — la panne coûte du temps,
+                    // pas de la nourriture.
+                    Say(French ? "Je ne peux pas servir ce plat." : "I cannot serve this dish.");
+                    yield return ReturnDishToPass();
+                }
+                else if (judging.Result.Outcome == CustomerOrder.Outcome.Accepted)
+                {
+                    Drop(DropPointOn(table.transform));
+                    // Une seule voix par événement : le client reste muet à l'acceptation,
+                    // c'est le serveur qui conclut.
+                    Say(French ? "Voilà, bon appétit." : "Here you are, enjoy.");
+                }
+                else
+                {
+                    // Refusé (le client vient de dire pourquoi) : le plat revient à la passe,
+                    // PORTÉ et visible — il ne disparaît pas et ne se vide pas tout seul (§8).
+                    yield return ReturnDishToPass();
+                }
+            }
 
             yield return Walk(_home);
             Finish();
+        }
+
+        /// <summary>
+        /// Attend une tâche depuis une coroutine SANS jamais lire .Result sur une tâche
+        /// fautée : l'exception se relèverait DANS la coroutine, la tuerait en silence, et le
+        /// serveur resterait Acting pour le reste de la partie — IsBusy vrai, tous les ordres
+        /// suivants refusés par « Je termine cette table ».
+        ///
+        /// Échéance en Time.unscaledTime : la requête tourne en temps réel, et Time.time
+        /// triplerait le délai d'abandon sous le ralenti du §2.
+        /// </summary>
+        private IEnumerator AwaitTask(Task task)
+        {
+            _awaitFailed = true;
+
+            float deadline = Time.unscaledTime + _verdictTimeout;
+            while (!task.IsCompleted)
+            {
+                if (Time.unscaledTime > deadline)
+                {
+                    Debug.LogError($"[Serveur] {name} : verdict sans réponse après " +
+                                   $"{_verdictTimeout:0} s — tâche abandonnée.");
+                    yield break;
+                }
+                yield return null;
+            }
+
+            if (task.Status != TaskStatus.RanToCompletion)
+            {
+                Debug.LogError($"[Serveur] {name} : verdict en échec — " +
+                               $"{task.Exception?.GetBaseException().Message ?? task.Status.ToString()}");
+                yield break;
+            }
+
+            _awaitFailed = false;
+        }
+
+        /// <summary>
+        /// Rapporte le plat porté jusqu'à la passe et l'y dépose. Si la passe est introuvable
+        /// ou la marche échoue, dépose sur place et le DIT — jamais de dépôt silencieux.
+        /// Ne rend pas la main : l'appelant enchaîne sur le retour au poste, comme toutes les
+        /// macros — sans quoi les deux serveurs, volontairement indiscernables (§3), dériveraient
+        /// vers des positions qui les distinguent.
+        /// </summary>
+        private IEnumerator ReturnDishToPass()
+        {
+            Transform pass = Pass();
+            if (pass == null)
+            {
+                Say(French ? "Je repose le plat ici." : "I am putting the dish down here.");
+                Drop(transform.position + transform.forward * 0.4f);
+                yield break;
+            }
+
+            yield return Walk(pass.position);
+            if (_walkFailed)
+            {
+                Say(French ? "Je repose le plat ici." : "I am putting the dish down here.");
+                Drop(transform.position + transform.forward * 0.4f);
+                yield break;
+            }
+
+            Drop(DropPointOn(pass));
         }
 
         private IEnumerator TakeOrderTask(SemantizationCore table)
@@ -255,8 +371,31 @@ namespace Sc4ve.Multimodality
             SetActivity(Activity.Acting, _taskLabel);
             yield return Wait(_actionDuration);
 
-            // Lot 4 : c'est ici que le client énoncera sa commande.
-            Say(French ? "J'ai la commande." : "I have the order.");
+            // Le client ne parle QU'ICI — l'unique site d'appel d'Announce dans tout le
+            // projet, après une marche réussie : c'est la garantie structurelle du critère 1
+            // (« un client ne parle qu'une fois qu'un serveur est arrivé »).
+            CustomerOrder customer = CustomerOrder.At(table);
+            if (customer == null)
+            {
+                Say(French ? "Il n'y a personne à cette table." : "There is nobody at this table.");
+            }
+            else if (customer.State == CustomerOrder.Stage.Gone)
+            {
+                Say(French ? "Cette table est partie." : "This table has left.");
+            }
+            else if (customer.Announce())
+            {
+                // On reste le temps que le client parle. La synthèse est un processus externe
+                // sans borne de fin exploitable : un temps fixe LISIBLE vaut mieux qu'un
+                // serveur qui tourne le dos au milieu de la phrase.
+                yield return Wait(_listenDuration);
+            }
+            else
+            {
+                // Vocabulaire pas encore lu (Announce a relancé la lecture) : le dire, et le
+                // joueur n'a qu'à renvoyer un serveur.
+                Say(French ? "Je n'ai pas pu prendre la commande." : "I could not take the order.");
+            }
 
             yield return Walk(_home);
             transform.rotation = _homeRotation;
@@ -346,20 +485,40 @@ namespace Sc4ve.Multimodality
                 : onFloor;
         }
 
-        /// <summary>Où poser un plat sur une table : au-dessus d'elle, côté serveur.</summary>
-        private Vector3 DropPointOn(SemantizationCore table)
+        /// <summary>Où poser un plat sur un support (table, passe) : au-dessus, côté serveur.</summary>
+        private Vector3 DropPointOn(Transform surface)
         {
-            Renderer renderer = table.GetComponentInChildren<Renderer>();
-            float top = renderer != null ? renderer.bounds.max.y : table.transform.position.y + 0.75f;
+            Renderer renderer = surface.GetComponentInChildren<Renderer>();
+            float top = renderer != null ? renderer.bounds.max.y : surface.position.y + 0.75f;
 
-            Vector3 towardsWaiter = transform.position - table.transform.position;
+            Vector3 towardsWaiter = transform.position - surface.position;
             towardsWaiter.y = 0f;
             if (towardsWaiter.sqrMagnitude < 0.01f) towardsWaiter = Vector3.forward;
 
-            return table.transform.position
+            return surface.position
                    + towardsWaiter.normalized * 0.22f
-                   + Vector3.up * (top - table.transform.position.y + 0.05f);
+                   + Vector3.up * (top - surface.position.y + 0.05f);
         }
+
+        /// <summary>
+        /// La passe — là où le joueur pose ce qui est fini et où reviennent les plats refusés.
+        /// Deux fonctions en dépendent : renommer l'objet « Passe » dans DemoSceneBuilder les
+        /// casserait toutes deux, d'où l'avertissement au premier échec plutôt qu'un null muet.
+        /// </summary>
+        private static Transform Pass()
+        {
+            GameObject pass = GameObject.Find("Passe");
+            if (pass == null && !_passMissingWarned)
+            {
+                _passMissingWarned = true;
+                Debug.LogWarning("[Serveur] Aucun objet « Passe » dans la scène : les plats se " +
+                                 "cherchent et se reposent autour des serveurs. L'objet est créé " +
+                                 "par « SC4VE > Démonstration > 1 » — renommé ?");
+            }
+            return pass != null ? pass.transform : null;
+        }
+
+        private static bool _passMissingWarned;
 
         // ─────────────────────────────────────────────────────────────────────
         // Portage
@@ -376,13 +535,18 @@ namespace Sc4ve.Multimodality
         /// </summary>
         private ContainerContent FindReadyDish()
         {
-            GameObject pass = GameObject.Find("Passe");
-            Vector3 reference = pass != null ? pass.transform.position : transform.position;
+            Transform pass = Pass();
+            Vector3 reference = pass != null ? pass.position : transform.position;
 
             return UnityEngine.Object
                 .FindObjectsByType<ContainerContent>(FindObjectsInactive.Exclude)
                 .Where(c => c != null && c.Content.Count > 0 && !IsCarriedBySomeone(c))
                 .Where(IsPlate)
+                // Jamais un plat déjà refusé : sans ce filtre, le serveur reprendrait le plat
+                // reposé à la passe et le porterait se faire refuser à nouveau, en boucle.
+                // (Et si ce filtre disparaissait, sven:Customer sven:excludes sven:Refused
+                // l'attraperait de toute façon — mais après un aller-retour pour rien.)
+                .Where(c => !CustomerOrder.HoldsRefused(c))
                 .OrderBy(c => Vector3.SqrMagnitude(c.transform.position - reference))
                 .FirstOrDefault();
         }

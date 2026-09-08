@@ -76,6 +76,32 @@ sven:forbidsState rdf:type owl:AnnotationProperty ;
 #    Object Properties
 #################################################################
 
+###  https://sven.lisn.upsaclay.fr/ontology#excludes
+#    Ce qu'une classe de personne refuse de manger.
+#
+#    Déclaré ici plutôt que codé dans le composant, exactement comme sven:appliesState pour
+#    les stations : ajouter une contrainte alimentaire revient à écrire une ligne de Turtle,
+#    pas à toucher au C#. C'est la « règle absolue » du §6.5 du README rendue exécutable —
+#    il n'existe NULLE PART de booléen isVegetarian sur un plat.
+#
+#    La valeur est une CLASSE D'ANNOTATION, à n'importe quel niveau : une branche (sven:Meat),
+#    une feuille (sven:Banana) ou un état (sven:Refused). Le C# calcule la fermeture
+#    DESCENDANTE (?c rdfs:subClassOf* ?exclu) une fois, puis intersecte cet ensemble avec les
+#    annotations de chaque aliment. « Pas de viande » rejette donc le poulet sans qu'aucune
+#    règle n'ait été écrite pour ce cas, et ajouter sven:Pork sous sven:Meat la fait marcher
+#    toute seule.
+#
+#    owl:AnnotationProperty et non owl:ObjectProperty, pour la raison exacte de sven:ingredient
+#    et de sven:appliesState : son objet est une CLASSE, et une propriété d'objet dont l'objet
+#    est une classe sort d'OWL DL. Aucun raisonneur ne doit en tirer quoi que ce soit : la
+#    conformité reste une requête SPARQL, jamais une classification OWL (§6.3).
+sven:excludes rdf:type owl:AnnotationProperty ;
+              rdfs:comment "An annotation class a person refuses to eat: a branch, a leaf or a state. Subclasses are excluded too, by the query, not by a rule."@en ,
+                           "Une classe d'annotation qu'une personne refuse de manger : branche, feuille ou état. Ses sous-classes le sont aussi, par la requête et non par une règle."@fr ;
+              rdfs:label "excludes"@en ,
+                         "exclut"@fr .
+
+
 ###  https://sven.lisn.upsaclay.fr/ontology#appliesState
 #    Ce qu'une station donne à ce qu'on y pose. Déclaré ici plutôt que codé dans le composant :
 #    ajouter une station revient alors à écrire une ligne de Turtle, pas à toucher au C#.
@@ -109,6 +135,44 @@ sven:carrying rdf:type owl:ObjectProperty ;
                            "Relie un composant de délégation au contenant que l'agent porte. Absent s'il ne porte rien."@fr ;
               rdfs:label "carrying"@en ,
                          "porte"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#orders
+#    Le plat demandé par un client. La valeur est TOUJOURS une classe de FAMILLE
+#    (sven:Salad, sven:Soup, sven:Sandwich) et jamais une recette concrète : c'est ce qui
+#    rend la commande sous-spécifiée (§6.4), ce qui laisse la contrainte alimentaire décider
+#    du plat acceptable, et ce qui fait que rien ne choisit jamais parmi les trois soupes.
+#
+#    AUCUN rdfs:range, volontairement. SVEN n'attache pas la valeur au prédicat : le triplet
+#    produit est « composant sven:orders nœud-propriété », et c'est le nœud-propriété qui
+#    porte sven:value. Déclarer un range ferait typer ce nœud comme un plat — faux.
+sven:orders rdf:type owl:ObjectProperty ;
+            rdfs:comment "Relates a customer order component to the dish FAMILY asked for. Never a concrete recipe: the order stays under-specified."@en ,
+                         "Relie un composant de commande client à la FAMILLE de plat demandée. Jamais une recette concrète : la commande reste sous-spécifiée."@fr ;
+            rdfs:label "orders"@en ,
+                       "commande"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#seatedAt
+#    Sans elle, « quel client est à cette table ? » n'est pas répondable : les tables ne sont
+#    pas numérotées et rien — ni la proximité, ni le parentage — ne relie les deux objets.
+#    Pas de rdfs:range, même raison que sven:orders.
+sven:seatedAt rdf:type owl:ObjectProperty ;
+              rdfs:comment "Relates a customer order component to the table the customer sits at."@en ,
+                           "Relie un composant de commande client à la table où le client est installé."@fr ;
+              rdfs:label "seated at"@en ,
+                         "installé à"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#customerActivity
+#    Propriété DISTINCTE de sven:activity, et non un élargissement de son domaine : « quels
+#    agents sont disponibles ? » ne doit jamais répondre avec des clients. Même raison, et
+#    même nommage, que sven:Delegation pour le serveur.
+sven:customerActivity rdf:type owl:ObjectProperty ;
+                      rdfs:comment "Relates a customer order component to the customer's current stage."@en ,
+                                   "Relie un composant de commande client à l'étape courante du client."@fr ;
+                      rdfs:label "customer activity"@en ,
+                                 "activité de client"@fr .
 
 
 #################################################################
@@ -493,6 +557,42 @@ sven:Cooked rdf:type owl:Class ;
                        "Cuite"@fr .
 
 
+###  https://sven.lisn.upsaclay.fr/ontology#RefusedComponent
+sven:RefusedComponent rdf:type owl:Class ;
+                      rdfs:subClassOf sven:FoodStateComponent, sven:AnnotationComponent ;
+                      rdfs:comment "A refused state component."@en ,
+                                   "Un composant d'état refusé."@fr ;
+                      rdfs:label "Refused"@en ,
+                                 "Refusé"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Refused
+#    Un aliment qu'un client a refusé À CAUSE DE SA CONTRAINTE. C'est un état comme Coupé ou
+#    Cuit : POSITIF, orthogonal au type, et il ne se retire jamais — on ne « dérefuse » pas.
+#
+#    Un plat simplement porté à la mauvaise table n'est PAS refusé au sens de cet état : il
+#    n'est pas gâté, il est mal adressé. Seule la violation de contrainte marque la nourriture.
+#
+#    Son SEUL effet est déclaré plus bas, sur sven:Customer : personne ne mange ce qui a déjà
+#    été refusé. C'est ce qui interdit de représenter le même plat à la table suivante, et ce
+#    qui donne au passage par la poubelle sa raison d'être (§8).
+sven:Refused rdf:type owl:Class ;
+             rdfs:subClassOf sven:FoodState ;
+             owl:equivalentClass [
+                 rdf:type owl:Class ;
+                 owl:intersectionOf (
+                     sven:Node
+                     [ rdf:type owl:Restriction ;
+                       owl:onProperty sven:component ;
+                       owl:someValuesFrom sven:RefusedComponent
+                     ]
+                 )
+             ] ;
+             rdfs:comment "Has been refused by a customer over a dietary constraint. Never eaten again."@en ,
+                          "A été refusé par un client au titre de sa contrainte alimentaire. Ne sera plus jamais mangé."@fr ;
+             rdfs:label "Refused"@en ,
+                        "Refusé"@fr .
+
+
 #################################################################
 #    Contenants et stations
 #
@@ -861,6 +961,190 @@ sven:Customer rdf:type owl:Class ;
               rdfs:label "Customer"@en ,
                          "Client"@fr ,
                          "Cliente"@fr .
+
+
+#################################################################
+#    Le client : ce qu'il attend, où il est assis, où il en est
+#################################################################
+
+###  https://sven.lisn.upsaclay.fr/ontology#CustomerOrder
+#    Composant qui expose au graphe ce qu'un client attend.
+#
+#    Il s'appelle CustomerOrder et non Customer parce que sven:Customer est déjà la CLASSE
+#    d'objet « client » et sven:CustomerComponent son composant d'annotation : un troisième
+#    homonyme rendrait le vocabulaire ambigu. Même raison, et même nommage, que
+#    sven:Delegation pour le serveur — ce composant ne dit pas ce que l'objet EST, mais ce
+#    qu'il attend.
+#
+#    rdfs:subClassOf sven:Component et NON sven:AnnotationComponent : il ne classe rien, et
+#    ISemanticAnnotation.GetAllAvailableTypes ne ramasse que les sous-classes DIRECTES de
+#    sven:AnnotationComponent. L'y ranger ferait entrer le mot « commande » dans les filtres
+#    de sélection, et « prends la commande de cette table » se mettrait à sélectionner.
+#
+#    À sémantiser en Dynamic : la commande apparaît en cours de partie. En Static elle serait
+#    observée une fois au démarrage — donc vide — et plus jamais.
+sven:CustomerOrder rdf:type owl:Class ;
+                   rdfs:subClassOf sven:Component ;
+                   rdfs:comment "A component exposing the dish family a customer waits for, where they sit and how far along they are."@en ,
+                                "Un composant exposant la famille de plat qu'un client attend, où il est installé et où il en est."@fr ;
+                   rdfs:label "Customer order"@en ,
+                              "Commande client"@fr .
+
+
+###  https://sven.lisn.upsaclay.fr/ontology#CustomerActivity
+#    Les quatre étapes d'un client. Aussi grossières que celles du serveur et pour la même
+#    raison : ce que le joueur doit lire, c'est « a-t-il commandé ? a-t-il été servi ? ».
+#
+#    ATTENTION : les noms locaux DOIVENT rester identiques aux valeurs de l'énumération
+#    CustomerOrder.Stage en C#, qui construit l'URI par concaténation (« sven: » + étape).
+#    GraphManager.CreateUriNode ne vérifie rien : renommer l'un sans l'autre produit une URI
+#    que personne n'a déclarée, sans la moindre erreur, et toute requête sur l'état de client
+#    cesse de répondre. RestaurantOntologyConsistencyTests monte la garde.
+sven:CustomerActivity rdf:type owl:Class ;
+                      rdfs:comment "A stage in a customer's visit."@en ,
+                                   "Une étape de la visite d'un client."@fr ;
+                      rdfs:label "Customer activity"@en ,
+                                 "Activité de client"@fr .
+
+sven:Seated rdf:type owl:NamedIndividual , sven:CustomerActivity ;
+            rdfs:comment "Sat down, has not spoken yet. The patience gauge is already running."@en ,
+                         "Installé, n'a pas encore parlé. La jauge de patience tourne déjà."@fr ;
+            rdfs:label "Seated"@en ,
+                       "Installé"@fr .
+
+sven:Ordered rdf:type owl:NamedIndividual , sven:CustomerActivity ;
+             rdfs:comment "Has spoken the order; waiting for a dish."@en ,
+                          "A énoncé sa commande ; attend son plat."@fr ;
+             rdfs:label "Ordered"@en ,
+                        "A commandé"@fr .
+
+sven:Served rdf:type owl:NamedIndividual , sven:CustomerActivity ;
+            rdfs:comment "Has accepted a dish. The patience gauge stops."@en ,
+                         "A accepté un plat. La jauge de patience s'arrête."@fr ;
+            rdfs:label "Served"@en ,
+                       "Servi"@fr .
+
+sven:Gone rdf:type owl:NamedIndividual , sven:CustomerActivity ;
+          rdfs:comment "Left, out of patience, without being served."@en ,
+                       "Parti, à bout de patience, sans avoir été servi."@fr ;
+          rdfs:label "Gone"@en ,
+                     "Parti"@fr .
+
+
+#################################################################
+#    Contraintes alimentaires — le cœur de la démonstration (§6.5)
+#
+#    Une contrainte est une CLASSE DE PERSONNE, annotée de ce qu'elle exclut. Le client la
+#    porte comme n'importe quelle annotation, à côté de sven:Customer : c'est exactement la
+#    mécanique orthogonale de « sven:Beef ET sven:Cooked » pour un aliment.
+#
+#    Pourquoi une classe de personne, et non un individu « contrainte » relié par une
+#    propriété : une annotation dit ce que l'objet EST. Annoter un client de sven:Vegetarian
+#    dit « ce client est végétarien », ce qui est vrai ; l'annoter d'un individu-contrainte
+#    dirait « ce client est une contrainte », ce qui ne l'est pas.
+#
+#    AJOUTER UNE CONTRAINTE : une classe ici, un sven:excludes, deux labels. RIEN D'AUTRE —
+#    aucun C#, aucune recompilation. Le composant client lit ses propres annotations et joint
+#    sur sven:excludes, exactement comme une station lit son sven:appliesState.
+#
+#    NE JAMAIS ajouter une contrainte SANS sven:excludes : elle ne refuserait rien tout en
+#    paraissant active. Un test EditMode le vérifie, et la requête de DietaryVocabulary exige
+#    sven:excludes dans son corps — une contrainte muette n'est jamais annoncée.
+#
+#    Ces classes n'ont volontairement AUCUN XComponent : leurs labels (« sans banane »,
+#    « végétarien ») entreraient dans le vocabulaire d'annotation, et « mets tous les fruits
+#    sans banane dans le saladier » sélectionnerait les CLIENTS en mangeant le mot « banane »
+#    avant la passe des ingrédients. Le prix accepté : « sélectionne les végétariens » ne
+#    marche pas. Les labels ne servent qu'à la parole du client et au tableau.
+#
+#    Les labels @fr sont en MINUSCULES, contrairement aux aliments : ils sont PRONONCÉS au
+#    milieu d'une phrase (« Attention : sans banane. »).
+#
+#    La colonne « plats conformes » du §6.5 n'est écrite NULLE PART : elle se déduit de
+#    sven:requires/sven:ingredient et de rdfs:subClassOf*.
+#################################################################
+
+###  https://sven.lisn.upsaclay.fr/ontology#DietaryConstraint
+#    Le nom dit la contrainte, la classe désigne la personne qui la porte. Sous sven:Person et
+#    non sous sven:Customer : rien n'interdit qu'un serveur en porte une un jour.
+sven:DietaryConstraint rdf:type owl:Class ;
+                       rdfs:subClassOf sven:Person ;
+                       rdfs:comment "A person who refuses one or more classes of food."@en ,
+                                    "Une personne qui refuse une ou plusieurs classes d'aliment."@fr ;
+                       rdfs:label "constrained eater"@en ,
+                                  "contrainte alimentaire"@fr .
+
+
+###  Les six contraintes du §6.5. Chacune découpe un sous-ensemble DIFFÉRENT et non trivial
+###  des neuf recettes — ce n'est pas décoratif, c'est ce qui rend la mécanique jouable.
+
+sven:Vegetarian rdf:type owl:Class ;
+                rdfs:subClassOf sven:DietaryConstraint ;
+                sven:excludes sven:Meat , sven:Fish ;
+                rdfs:comment "Refuses meat and fish, at every level of the hierarchy."@en ,
+                             "Refuse la viande et le poisson, à tous les niveaux de la hiérarchie."@fr ;
+                rdfs:label "vegetarian"@en ,
+                           "végétarien"@fr .
+
+sven:Vegan rdf:type owl:Class ;
+           rdfs:subClassOf sven:DietaryConstraint ;
+           sven:excludes sven:Meat , sven:Fish , sven:Dairy ;
+           rdfs:comment "Refuses meat, fish and dairy."@en ,
+                        "Refuse la viande, le poisson et les produits laitiers."@fr ;
+           rdfs:label "vegan"@en ,
+                      "végétalien"@fr .
+
+###  Le README dit « allergique au poisson » ; le label dit « sans poisson » parce qu'il est
+###  PRONONCÉ tel quel (« Non : sans poisson — Saumon. »). L'allergie reste dans le commentaire.
+sven:FishAllergy rdf:type owl:Class ;
+                 rdfs:subClassOf sven:DietaryConstraint ;
+                 sven:excludes sven:Fish ;
+                 rdfs:comment "Allergic to fish. Rejects fish soup and salmon sandwich only."@en ,
+                              "Allergique au poisson. Ne rejette que la soupe de poisson et le sandwich au saumon."@fr ;
+                 rdfs:label "no fish"@en ,
+                            "sans poisson"@fr .
+
+sven:GlutenFree rdf:type owl:Class ;
+                rdfs:subClassOf sven:DietaryConstraint ;
+                sven:excludes sven:Bakery ;
+                rdfs:comment "Refuses baked goods — the game's only source of gluten."@en ,
+                             "Refuse les produits de boulangerie — la seule source de gluten du jeu."@fr ;
+                rdfs:label "gluten free"@en ,
+                           "sans gluten"@fr .
+
+sven:LactoseFree rdf:type owl:Class ;
+                 rdfs:subClassOf sven:DietaryConstraint ;
+                 sven:excludes sven:Dairy ;
+                 rdfs:comment "Refuses dairy."@en ,
+                              "Refuse les produits laitiers."@fr ;
+                 rdfs:label "lactose free"@en ,
+                            "sans lactose"@fr .
+
+###  La SEULE contrainte qui vise une FEUILLE et non une branche. Elle est là pour ça : elle
+###  prouve que le mécanisme est indifférent au niveau visé dans la hiérarchie, et c'est elle
+###  que le critère 4 du lot 4 met à l'épreuve. Elle ne rejette qu'un plat sur neuf, la
+###  salade de fruits — colonne CALCULÉE, écrite nulle part.
+###
+###  C'est aussi elle qui impose rdfs:subClassOf* (et non +) dans la fermeture : la classe
+###  exclue EST la classe exigée. Avec +, « sans banane » ne rejetterait rien du tout.
+sven:NoBanana rdf:type owl:Class ;
+              rdfs:subClassOf sven:DietaryConstraint ;
+              sven:excludes sven:Banana ;
+              rdfs:comment "Refuses banana, and nothing else."@en ,
+                           "Refuse la banane, et rien d'autre."@fr ;
+              rdfs:label "no banana"@en ,
+                         "sans banane"@fr .
+
+
+###  Règle UNIVERSELLE, portée par la classe que TOUS les clients portent déjà : personne ne
+###  mange ce qui a été refusé. Elle est lue par la MÊME requête que les six contraintes
+###  ci-dessus — le composant client joint sur sven:excludes à partir de TOUTES ses
+###  annotations, et sven:Customer en fait partie. Une ligne de Turtle, zéro C#.
+###
+###  C'est elle qui donne son coût au refus (§8) : un plat refusé ne peut pas être représenté
+###  à la table suivante ; il faut le vider à la poubelle et recommencer. LA SUPPRIMER fait
+###  tomber le critère 5 sans le moindre message — un test EditMode monte la garde.
+sven:Customer sven:excludes sven:Refused .
 
 
 #################################################################

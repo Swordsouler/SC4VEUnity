@@ -113,7 +113,13 @@ namespace Sc4ve.Multimodality.Intent
             string family, List<RecipeVocabulary.Recipe> known)
         {
             var children = new List<string>();
-            foreach (RecipeVocabulary.Recipe candidate in known.Where(r => r.IsConcrete))
+            // GroupBy sur l'URI : GetAvailableRecipesAsync crée UN Recipe par couple
+            // (uri, label), et sven:PumpkinSoup porte deux labels @fr — sans ce
+            // dédoublonnage, la clarification énoncerait QUATRE soupes pour trois, à
+            // l'instant exact où le critère 7 du lot 4 est mis en scène.
+            foreach (RecipeVocabulary.Recipe candidate in known.Where(r => r.IsConcrete)
+                                                               .GroupBy(r => r.Uri)
+                                                               .Select(g => g.First()))
                 if (await RecipeVocabulary.IsSubClassOf(candidate.Uri, family))
                     children.Add(candidate.Label);
             return children;

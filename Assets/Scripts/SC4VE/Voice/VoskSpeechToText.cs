@@ -465,6 +465,11 @@ namespace Sc4ve.Voice
 
         private void HandleRecordingStart()
         {
+            // Ouvre la fenêtre de parole : en push-to-talk le micro ne s'arrête jamais, donc
+            // c'est la touche — et elle seule — qui borne l'énoncé pour les abonnés
+            // (le ralenti du §2, entre autres).
+            if (VoiceProcessor != null) VoiceProcessor.SetSpeaking(true);
+
             if (_isFirstRecording)
             {
                 _recognizerInitializedAt = DateTime.Now;
@@ -485,6 +490,8 @@ namespace Sc4ve.Voice
 
         private void HandleRecordingStop()
         {
+            if (VoiceProcessor != null) VoiceProcessor.SetSpeaking(false);
+
             _recordingStoppedAt = DateTime.Now;
             _running = false;
         }

@@ -85,11 +85,54 @@ namespace Sc4ve.Multimodality.Intent
             }
 
             Dictionary<string, HashSet<string>> content = await QueryContent(container);
+            Match(content, requirements, report);
+            return report;
+        }
 
-            // Appariement glouton : chaque exigence consomme un objet distinct. Suffisant tant
-            // que deux exigences d'une même recette portent sur des ingrédients différents, ce
-            // qui est le cas des neuf recettes (§6.4). Si cela changeait, il faudrait un
-            // couplage maximal plutôt qu'un parcours simple.
+        /// <summary>
+        /// Le meilleur rapport parmi plusieurs recettes candidates — les trois soupes d'une
+        /// famille, par exemple. Rend le premier rapport conforme ; à défaut, le moins mauvais
+        /// (manques + surplus minimaux), pour que le refus puisse être suivi du détail.
+        ///
+        /// UNE seule lecture du contenu pour toutes les candidates : appeler Check en boucle
+        /// poserait la requête d'intervalles (LIMIT 10000) une fois par recette, sur le chemin
+        /// critique de chaque service. Rend un rapport RecipeKnown == false si aucune
+        /// candidate n'est connue de l'ontologie.
+        /// </summary>
+        public static async Task<Report> CheckAny(SemantizationCore container, IReadOnlyList<string> recipes)
+        {
+            if (container == null || recipes == null || recipes.Count == 0)
+                return new Report { Recipe = "(aucune candidate)", RecipeKnown = false };
+
+            Dictionary<string, HashSet<string>> content = await QueryContent(container);
+
+            Report best = null;
+            foreach (string recipe in recipes)
+            {
+                List<Requirement> requirements = await Requirements(recipe);
+                if (requirements.Count == 0) continue;
+
+                var report = new Report { Recipe = recipe };
+                Match(content, requirements, report);
+                if (report.IsConformant) return report;
+
+                if (best == null ||
+                    report.Missing.Count + report.Extra.Count < best.Missing.Count + best.Extra.Count)
+                    best = report;
+            }
+
+            return best ?? new Report { Recipe = recipes[0], RecipeKnown = false };
+        }
+
+        /// <summary>
+        /// Appariement glouton : chaque exigence consomme un objet distinct. Suffisant tant
+        /// que deux exigences d'une même recette portent sur des ingrédients différents, ce
+        /// qui est le cas des neuf recettes (§6.4). Si cela changeait, il faudrait un
+        /// couplage maximal plutôt qu'un parcours simple.
+        /// </summary>
+        private static void Match(Dictionary<string, HashSet<string>> content,
+                                  List<Requirement> requirements, Report report)
+        {
             var unused = new HashSet<string>(content.Keys);
 
             foreach (Requirement requirement in requirements)
@@ -103,8 +146,6 @@ namespace Sc4ve.Multimodality.Intent
             // distingue une salade de fruits d'une assiette contenant en plus un steak.
             foreach (string item in unused)
                 report.Extra.Add(DescribeItem(content[item]));
-
-            return report;
         }
 
         private static bool Satisfies(HashSet<string> classes, Requirement requirement)
@@ -245,7 +286,9 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>";
         /// </summary>
         private static string DescribeItem(HashSet<string> classes)
         {
-            string[] generic = { "Food", "Fruit", "Vegetable", "Meat", "Fish", "Dairy", "Bakery", "FoodState" };
+            // « Refused » y figure : sans lui, « en trop : Refused » sortirait au lieu de
+            // « en trop : Banana », au hasard de l'ordre du HashSet.
+            string[] generic = { "Food", "Fruit", "Vegetable", "Meat", "Fish", "Dairy", "Bakery", "FoodState", "Refused" };
             string specific = classes.Select(Local).FirstOrDefault(c => !generic.Contains(c));
             return specific ?? string.Join("/", classes.Select(Local));
         }

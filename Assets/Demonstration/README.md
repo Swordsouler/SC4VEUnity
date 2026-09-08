@@ -28,7 +28,7 @@ Menu **SC4VE > Démonstration** :
 
 | | |
 |---|---|
-| **1 — (Re)construire le contenu du mini-jeu** | remplit `Scenes/Demo Mini Game.unity` : sol, cuisine (plan de travail, étagère, 11 ingrédients ×2, 2 stations, 6 assiettes, poubelle, passe), salle (4 tables non numérotées, 2 serveurs identiques), et le rig XR s'il manque |
+| **1 — (Re)construire le contenu du mini-jeu** | remplit `Scenes/Demo Mini Game.unity` : sol, cuisine (plan de travail, étagère, 11 ingrédients ×2, 2 stations, 6 assiettes, poubelle, passe), salle (4 tables non numérotées, 2 serveurs identiques, 4 clients avec jauge de patience), tableau des commandes, `ListeningTimeScale`, NavMesh cuit, et le rig XR s'il manque |
 | **2 — Corriger les prefabs existants** | passe le `SemanticAnnotator` des prefabs de fruits en `Dynamic` et leur ajoute un `XRGrabInteractable`. Idempotent. L'outil 1 l'exécute d'abord. |
 | **3 — Générer les meshes des ingrédients** | fabrique les meshes low-poly des 8 ingrédients sans modèle, dans `Meshes/`. L'outil 1 l'exécute aussi. |
 | **4 — Peupler la scène d'exposition** | aligne un exemplaire de chaque objet manipulable dans `Scenes/Demo Exposition.unity`, à sa taille réelle et étiqueté |
@@ -90,7 +90,10 @@ accède librement aux types SC4VE et SVEN sans asmdef ni configuration.
 | `Assets/Scripts/SC4VE/Intent/Command/XRGrabSupport.cs` | accès XRI pour `GrabCommand` / `ReleaseCommand` |
 | `Assets/Scripts/SC4VE/Voice/VoiceProcessor.cs` | ajout de l'événement `OnSpeechStart` |
 | `Assets/Scripts/SC4VE/ContainerContent.cs` | la contenance, que SVEN ne modélise pas (§6.3) |
-| `Assets/Scripts/SC4VE/Waiter.cs` | le registre de délégation (§8) |
+| `Assets/Scripts/SC4VE/Delegation.cs` | le registre de délégation (§8) — nommé `Delegation` et non `Waiter` : le nom simple `Waiter` se résolvait sur la classe d'annotation depuis les outils, et le builder posait le mauvais composant (voir `NamespaceCollisionTests`) |
+| `Assets/Scripts/SC4VE/CustomerOrder.cs` | le client : famille commandée, contrainte, patience, verdict (§6.5) |
+| `Assets/Scripts/SC4VE/Intent/DietaryVocabulary.cs` | la fermeture des classes exclues, en SPARQL sur la taxonomie déclarée |
+| `Assets/Scripts/SC4VE/Intent/OntologyLabels.cs` | libellés localisés, en cache par locale |
 | `Assets/Scripts/SC4VE/Intent/RecipeConformity.cs` | la vérification de conformité (§6.5) |
 | `Assets/Scripts/SC4VE/Intent/DelegationRoles.cs` | qui est l'agent, qui est la table |
 | `Assets/Scripts/SC4VE/Intent/Command/*.cs` | les onze commandes du §7 déjà écrites |
@@ -968,6 +971,55 @@ compile pas** sous 6000.5 (`GetInstanceID` y est obsolète au rang d'erreur) —
 Arrivée des clients, `TakeOrderCommand` bouclée de bout en bout, commande énoncée en TTS et
 inscrite au tableau, `RepeatOrderCommand`, jauge de patience en temps de jeu, contrainte
 alimentaire, refus d'un plat non conforme et retour du contenant.
+
+**Écrit, compilé, testé unitairement, non joué.** La décision qui structure tout le lot :
+
+- **Le client commande une FAMILLE (« une soupe »), jamais une recette concrète, et ne la
+  précise jamais.** Trois juges adversariaux ont démontré, indépendamment, que si le client
+  commandait une recette concrète compatible avec sa contrainte, la contrainte ne changerait
+  JAMAIS le verdict : la clôture de `RecipeConformity` (« et rien d'autre ») range déjà tout
+  objet non apparié dans `Extra`, donc tout plat violant la contrainte est déjà non conforme.
+  Le §6.5 — « le cœur de la démonstration » — serait décoratif. Avec une commande-famille, le
+  mécanisme redevient décisif : la table A commande « une salade, sans banane », le joueur
+  prépare une salade de fruits **parfaitement conforme**, et le client la refuse quand même —
+  ce refus n'a aucun autre chemin de code. Et le critère 7 tombe sans théâtre : rien ne
+  choisit jamais parmi les trois soupes, le tableau affiche « Soupe **?** », et la
+  clarification qui se déclenche est la vraie, celle de `PrepareCommand`, quand le joueur dit
+  « prépare une soupe ».
+- **Les couples (famille, contrainte) des quatre tables sont écrits dans `DemoSceneBuilder`,
+  jamais tirés au sort** : les critères 4 et 7 doivent être montrables à chaque lancement.
+  A = Salade + sans banane (le critère 4 à la lettre : exclusion d'une feuille), B = Soupe +
+  sans poisson (l'inférence de branche : Salmon ⊑ Fish, couple que personne n'a écrit),
+  C = Salade + végétarien (l'union de branches : un seul plat conforme), D = Sandwich + sans
+  lactose. La colonne « plats acceptables » n'est écrite nulle part : le client la calcule, et
+  un test EditMode la recalcule pour interdire les couples dégénérés.
+- **Une contrainte est une classe de personne** (`sven:NoBanana rdfs:subClassOf
+  sven:DietaryConstraint ; sven:excludes sven:Banana`), portée en annotation à côté de
+  `sven:Customer`. La fermeture descendante (`rdfs:subClassOf*`) est calculée en SPARQL sur la
+  taxonomie déclarée, une fois ; le contrôle par plat est une intersection d'ensembles avec
+  les annotations matérialisées. `classes.Overlaps(_excluded)` **est** toute la logique.
+  Aucun fichier C# ne contient « banane », « viande » ni « végétarien ».
+- **`sven:Customer sven:excludes sven:Refused`** : la règle universelle « personne ne remange
+  un plat refusé » est UNE ligne de Turtle, lue par la même requête que les contraintes —
+  `sven:Customer` est une annotation du client comme les autres. C'est elle qui donne son
+  coût au refus (§8) : le plat marqué revient à la passe, gris, et le contenant ne redevient
+  productif qu'une fois vidé à la poubelle.
+- **Les contraintes n'ont volontairement AUCUN `XComponent`** : leurs libellés (« sans
+  banane ») entreraient dans le vocabulaire d'annotation, et « mets tous les fruits sans
+  banane dans le saladier » sélectionnerait les clients en mangeant le mot « banane ». Le prix
+  accepté : « sélectionne les végétariens » ne marche pas.
+- **Une seule voix par événement.** Le client parle exactement deux fois : sa commande à
+  l'arrivée du serveur (l'unique site d'appel d'`Announce` est `Delegation.TakeOrderTask`,
+  après une marche réussie — c'est la garantie STRUCTURELLE du critère 1), et son refus. À
+  l'acceptation il se tait, c'est le serveur qui conclut. À bout de patience, il part EN
+  SILENCE — une phrase violerait le critère 1 à la lettre.
+- **Le tableau est une projection, jamais une seconde source de vérité** : il relit les
+  `CustomerOrder` de la scène à 4 Hz (temps réel — l'affichage ne se fige pas au ralenti) et
+  n'a aucun membre public.
+- Correctifs préalables sans lesquels le critère 6 était inobservable : `VoiceProcessor`
+  gagne `SetSpeaking(bool)` — en mode push-to-talk (le défaut), `OnRecordingStop` était
+  INATTEIGNABLE, et poser `ListeningTimeScale` aurait verrouillé le jeu à 0,3× pour toute la
+  session. Les deux STT bornent maintenant l'énoncé par la touche.
 
 > **Vérifier :**
 > 1. un client ne parle **qu'une fois** qu'un serveur est arrivé à sa table ;

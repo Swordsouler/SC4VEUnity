@@ -85,11 +85,15 @@ namespace Sc4ve.Voice
             if (keyPressed && !_pttKeyActive)
             {
                 _pttKeyActive = true;
+                // La touche borne l'énoncé pour les abonnés du VoiceProcessor (ralenti du §2) :
+                // le micro, lui, ne s'arrête jamais en push-to-talk.
+                if (_voiceProcessor != null) _voiceProcessor.SetSpeaking(true);
                 BeginBuffer();
             }
             else if (!keyPressed && _pttKeyActive)
             {
                 _pttKeyActive = false;
+                if (_voiceProcessor != null) _voiceProcessor.SetSpeaking(false);
                 _ = TranscribeBufferAsync();
             }
         }

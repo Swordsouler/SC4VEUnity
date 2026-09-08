@@ -222,6 +222,36 @@ namespace Sc4ve.Voice
         }
 
         /// <summary>
+        /// Ouvre ou ferme la fenêtre de parole SANS toucher au micro.
+        ///
+        /// Nécessaire au push-to-talk : le micro reste ouvert entre deux appuis
+        /// (StartRecording n'est appelé qu'une fois à l'initialisation), donc ni OnSpeechStart
+        /// ni OnRecordingStop n'avaient de site d'émission — en mode _autoDetect == false,
+        /// ProcessAudioBuffer force _audioDetected à vrai en PERMANENCE : OnSpeechStart
+        /// partait une fois au premier échantillon, et la branche qui émet OnRecordingStop
+        /// était inatteignable. Tout ce qui s'abonne aux bornes de l'énoncé — le ralenti du
+        /// §2 (ListeningTimeScale) — restait donc verrouillé dans l'état où le premier
+        /// échantillon l'avait mis, pour toute la session.
+        ///
+        /// Dans ce mode, c'est le STT qui borne l'énoncé : il appelle SetSpeaking(true) à
+        /// l'appui de la touche et SetSpeaking(false) au relâchement.
+        /// </summary>
+        public void SetSpeaking(bool speaking)
+        {
+            if (speaking)
+            {
+                if (_didDetect) return;
+                _didDetect = true;
+                OnSpeechStart?.Invoke();
+            }
+            else if (_didDetect)
+            {
+                _didDetect = false;
+                OnRecordingStop?.Invoke();
+            }
+        }
+
+        /// <summary>
         /// Stops recording audio
         /// </summary>
         public void StopRecording()
@@ -235,18 +265,22 @@ namespace Sc4ve.Voice
                     Microphone.End(CurrentDeviceName);
                     Destroy(_audioClip);
                     _audioClip = null;
-                    _didDetect = false;
 
                     if (_recordCoroutine != null) StopCoroutine(_recordCoroutine);
                     break;
                 case RecordingMode.AudioFile:
                     Microphone.End(null);
                     _audioClip = null;
-                    _didDetect = false;
 
                     if (_recordCoroutine != null) StopCoroutine(_recordCoroutine);
                     break;
             }
+
+            // Ferme la fenêtre de parole EN ÉMETTANT OnRecordingStop, au lieu de l'ancien
+            // « _didDetect = false » muet : la coroutine vient d'être tuée, donc son propre
+            // OnRecordingStop de fin de boucle ne partira jamais. Sans cette ligne, un arrêt
+            // explicite laissait la fenêtre ouverte pour toujours — et le ralenti avec elle.
+            SetSpeaking(false);
         }
 
         /// <summary>
@@ -423,8 +457,16 @@ namespace Sc4ve.Voice
             //Debug.Log(_audioDetected + " " + _transmit);
             if (_audioDetected)
             {
-                if (!_didDetect) OnSpeechStart?.Invoke();
-                _didDetect = true;
+                // Les bornes de l'énoncé ne sont émises ICI que si la détection automatique
+                // est active. Sinon (_autoDetect == false, le défaut du projet), _audioDetected
+                // est vrai en PERMANENCE : l'événement partirait une fois puis plus jamais, et
+                // la branche else ci-dessous serait inatteignable. Dans ce mode, c'est le STT
+                // qui borne l'énoncé, par SetSpeaking.
+                if (_autoDetect && !_didDetect)
+                {
+                    _didDetect = true;
+                    OnSpeechStart?.Invoke();
+                }
                 // converts to 16-bit int samples
                 short[] pcmBuffer = new short[buffer.Length];
                 for (int i = 0; i < buffer.Length; i++)
@@ -446,10 +488,10 @@ namespace Sc4ve.Voice
             }
             else
             {
-                if (_didDetect)
+                if (_autoDetect && _didDetect)
                 {
-                    OnRecordingStop?.Invoke();
                     _didDetect = false;
+                    OnRecordingStop?.Invoke();
                 }
             }
         }

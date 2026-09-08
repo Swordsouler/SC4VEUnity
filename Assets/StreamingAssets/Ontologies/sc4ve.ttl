@@ -470,6 +470,20 @@ sc4ve:TakeOrderCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
     [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
     rdfs:label "Take Order Command"@en , "Commande de Prise de Commande"@fr .
 
+###  Réénonciation de la commande d'une table (lot 4).
+###
+###  Elle ne délègue rien et ne change rien au monde : elle parle, tout de suite (§7 du
+###  README). UN seul SelectionParameter — la table pointée, ou le client, indifféremment :
+###  le rôle se lit dans l'objet désigné (DelegationRoles), pas dans sa position dans la
+###  phrase. La restriction est un MINIMUM et le repli sur la sélection courante suffit à la
+###  satisfaire ; c'est Execute qui réclame ce qui manque (« Quelle table ? »), et c'est
+###  pourquoi RepeatOrderCommand DOIT figurer dans ClarificationVocabulary._reportsEmptyResult
+###  — sans quoi GetNoMatchPrompt répondrait « aucun objet correspondant » et retournerait
+###  AVANT d'exécuter la commande.
+sc4ve:RepeatOrderCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Repeat Order Command"@en , "Commande de Rappel de Commande"@fr .
+
 ###  AUCUNE restriction : « stop » sans cible arrête tous les serveurs occupés. Exiger une
 ###  sélection ferait demander « sur quels objets ? » au moment précis où le joueur veut que
 ###  tout s'arrête.
@@ -731,6 +745,7 @@ sc4ve:SelectAllCommand rdfs:comment "Sélectionne tous les objets actifs de la s
 sc4ve:ResetSceneCommand rdfs:comment "Remet tous les objets à leur état initial."@fr , "Resets all objects to their initial state."@en .
 sc4ve:UndoCommand rdfs:comment "Annule la dernière action."@fr , "Undoes the last action."@en .
 sc4ve:RedoCommand rdfs:comment "Rétablit la dernière action annulée."@fr , "Redoes the last undone action."@en .
+sc4ve:RepeatOrderCommand rdfs:comment "Réénonce à voix haute la commande DÉJÀ prise à une table, sans envoyer de serveur et sans rien changer au monde. Générer pour « répète la commande de cette table », « c'est quoi la commande ? ». Paramètre: UN SelectionParameter — la table, ou le client, désigné au pointage. Ne PAS générer pour « va prendre la commande » : c'est TakeOrderCommand, qui envoie un serveur."@fr , "Says out loud again the order ALREADY taken at a table, without sending a waiter and without changing anything in the world. Generate for « repeat the order of that table », « what is the order? ». Parameter: ONE SelectionParameter — the table, or the customer, pointed at. Do NOT generate for « go take the order »: that is TakeOrderCommand, which sends a waiter."@en .
 
 
 #################################################################
@@ -833,6 +848,16 @@ sc4ve:TakeOrderCommand sc4ve:trigger
     "prends la commande"@fr , "prendre la commande"@fr , "va prendre la commande"@fr ,
     "take the order"@en , "go take the order"@en .
 
+###  Aucun déclencheur mono-mot : « commande » seul entrerait en collision frontale avec
+###  TakeOrderCommand. Toutes les formes sont multi-mots et portent leur verbe.
+###  DetectCommandType compare du plus long au plus court : « c'est quoi la commande » (22)
+###  bat « c'est quoi » (10, DescribeCommand), et aucune de ces formes ne contient un
+###  déclencheur de TakeOrderCommand.
+sc4ve:RepeatOrderCommand sc4ve:trigger
+    "répète la commande"@fr , "répéter la commande"@fr , "redis la commande"@fr ,
+    "rappelle la commande"@fr , "quelle est la commande"@fr , "c'est quoi la commande"@fr ,
+    "repeat the order"@en , "say the order again"@en , "what is the order"@en .
+
 sc4ve:StopCommand sc4ve:trigger
     "stop"@fr , "attends"@fr , "attendre"@fr , "arrête"@fr , "arrêter"@fr ,
     "stop"@en , "wait"@en , "halt"@en .
@@ -840,5 +865,8 @@ sc4ve:StopCommand sc4ve:trigger
 ###  Pas de grounding sur les commandes de délégation : le serveur parle lui-même à chaque
 ###  transition (accusé de réception, refus, échec, fin de tâche). Un « 1 objet » générique
 ###  par-dessus sa réponse ferait deux voix pour un seul événement.
+###  Pas de grounding non plus sur RepeatOrderCommand : elle EST une énonciation. Un
+###  « 1 objet » générique par-dessus la commande réénoncée couvrirait précisément
+###  l'information que le joueur vient de demander.
 sc4ve:PrepareCommand          sc4ve:grounding "Recette en cours"@fr , "Recipe started"@en .
 sc4ve:CheckCommand            sc4ve:grounding "Vérification"@fr , "Checked"@en .

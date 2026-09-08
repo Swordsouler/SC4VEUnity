@@ -32,9 +32,38 @@ namespace Sc4ve.Multimodality.Intent
                 .Select(o => o.GetComponent<Delegation>())
                 .FirstOrDefault(w => w != null);
 
-        /// <summary>La table de la sélection, ou null.</summary>
+        /// <summary>
+        /// La table de la sélection, ou null.
+        ///
+        /// La route par le CLIENT est indispensable depuis le lot 4 : un client d'1,20 m avec
+        /// son collider est assis à côté de chaque table, et « cette table-là 👆 » le touche
+        /// souvent lui. Sans ce détour, les deux commandes de délégation du lot 3 répondraient
+        /// « Quelle table ? » dans la configuration exacte que le lot 4 installe.
+        /// </summary>
         public static SemantizationCore Table(IEnumerable<SemantizationCore> selection)
-            => Annotated(selection, "sven:Table");
+        {
+            SemantizationCore direct = Annotated(selection, "sven:Table");
+            if (direct != null) return direct;
+
+            CustomerOrder customer = Customer(selection);
+            return customer != null ? customer.Table : null;
+        }
+
+        /// <summary>
+        /// Le client visé : son composant est désigné directement, ou il est installé à la
+        /// table désignée. Même motif qu'Agent — le rôle se lit dans l'objet.
+        /// </summary>
+        public static CustomerOrder Customer(IEnumerable<SemantizationCore> selection)
+        {
+            CustomerOrder direct = selection?
+                .Where(o => o != null)
+                .Select(o => o.GetComponent<CustomerOrder>())
+                .FirstOrDefault(c => c != null);
+            if (direct != null) return direct;
+
+            SemantizationCore table = Annotated(selection, "sven:Table");
+            return table != null ? CustomerOrder.At(table) : null;
+        }
 
         private static SemantizationCore Annotated(
             IEnumerable<SemantizationCore> selection, string semanticType)

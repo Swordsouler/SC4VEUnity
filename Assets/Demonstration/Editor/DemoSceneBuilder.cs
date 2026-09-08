@@ -87,11 +87,13 @@ namespace Sc4ve.Demonstration.EditorTools
             BuildEnvironment(root);
             BuildKitchen(root);
             BuildDiningRoom(root);
+            BuildOrderBoard(root);
             bool rigCreated = EnsureXRRig();
             // Hors du bloc ci-dessus : la caméra parasite doit aussi disparaître des scènes
             // où le rig existait déjà avant cette version de l'outil.
             RemoveStrayMainCamera(FindRigRoot());
             EnsureGraphController();
+            EnsureListeningTimeScale();
             BakeNavMesh(root);
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -105,7 +107,8 @@ namespace Sc4ve.Demonstration.EditorTools
                     ? "Rig XR complet mis en place (contrôleurs + Pointer + PointOfView), " +
                       "locomotion désactivée.\n\n"
                     : "Rig XR déjà utilisable, laissé tel quel ; interactors SVEN vérifiés.\n\n") +
-                "NavMesh cuit : les serveurs peuvent circuler.\n\n" +
+                "4 clients installés (couples famille+contrainte fixes), tableau des " +
+                "commandes au-dessus de la passe, NavMesh cuit.\n\n" +
                 "Reste à faire à la main :\n" +
                 "• ajouter le MultimodalityController et le pipeline vocal",
                 "OK");
@@ -565,12 +568,31 @@ namespace Sc4ve.Demonstration.EditorTools
                 new(-1.6f, 0f, 5.4f), new(1.6f, 0f, 5.4f),
             };
 
+            // Le couple (famille, contrainte) de chaque table est ÉCRIT, jamais tiré : les
+            // critères 4 et 7 du lot 4 doivent être montrables à CHAQUE lancement, pas dans
+            // 74 % des cas. Les quatre couples découpent quatre sous-ensembles différents et
+            // non dégénérés des neuf recettes — vérifié contre les sven:requires réels :
+            //   A  Salade    sans banane   → refuse la salade de fruits POURTANT CONFORME
+            //   B  Soupe     sans poisson  → l'inférence de branche (Salmon ⊑ Fish)
+            //   C  Salade    végétarien    → l'union de branches, un seul plat conforme
+            //   D  Sandwich  sans lactose  → Cheese ⊑ Dairy
+            // La colonne « plats acceptables » n'est écrite nulle part : le client la CALCULE.
+            (string family, string constraint)[] couples =
+            {
+                ("sven:Salad",    "sven:NoBanana"),
+                ("sven:Soup",     "sven:FishAllergy"),
+                ("sven:Salad",    "sven:Vegetarian"),
+                ("sven:Sandwich", "sven:LactoseFree"),
+            };
+
             for (int i = 0; i < tables.Length; i++)
             {
                 GameObject table = Prop(room, $"Table {(char)('A' + i)}", "sven:Table",
                     tables[i], height: 0.75f);
                 RestOnSurface(table, 0f);
                 table.isStatic = true;
+
+                MakeCustomer(room, table, couples[i].family, couples[i].constraint, i);
             }
 
             // Deux serveurs délibérément identiques : sans une paire indiscernable,
@@ -609,6 +631,103 @@ namespace Sc4ve.Demonstration.EditorTools
 
             if (waiter.TryGetComponent(out SemantizationCore core))
                 Register(core, delegation, SemanticProcessingMode.Dynamic);
+        }
+
+        /// <summary>
+        /// Installe un client à sa table : modèle, annotation de contrainte, jauge de
+        /// patience, et composant CustomerOrder sémantisé en Dynamic.
+        ///
+        /// La contrainte est ajoutée EXPLICITEMENT aux annotations, et non par
+        /// SemanticHierarchy : il n'existe aucune classe C# pour les six contraintes, et c'est
+        /// le but — en ajouter une septième est une ligne de Turtle, pas une recompilation.
+        /// GetSemanticTypes lèverait, et le repli poserait l'annotation sans son parent.
+        /// </summary>
+        private static void MakeCustomer(Transform room, GameObject table,
+                                         string family, string constraint, int index)
+        {
+            // Du côté OPPOSÉ à la cuisine (z de la table + 0,55) : le serveur arrive toujours
+            // du côté cuisine et n'a jamais à traverser le client pour atteindre la table.
+            Vector3 position = table.transform.position + new Vector3(0f, 0f, 0.55f);
+
+            GameObject customer = Prop(room, $"Client {(char)('A' + index)}", "sven:Customer",
+                position, height: 1.20f);
+            RestOnSurface(customer, 0f);
+            // Face à la table (et à la cuisine derrière elle).
+            customer.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+
+            // Exclu de la cuisson du NavMesh. Sans cela, son collider concave serait CUIT en
+            // obstacle à 55 cm de la table — CollectObjects.Children ramasse tout collider,
+            // les drapeaux static n'y changent rien — et le serveur expirerait sur « je
+            // n'arrive pas à passer » sans qu'aucune erreur ne dise pourquoi. Les serveurs,
+            // eux, sont exclus d'office par leur NavMeshAgent.
+            var modifier = customer.AddComponent<NavMeshModifier>();
+            modifier.ignoreFromBuild = true;
+
+            if (customer.TryGetComponent(out SemanticAnnotator annotator))
+            {
+                if (!annotator.Annotations.Contains(constraint)) annotator.Annotations.Add(constraint);
+                if (!annotator.Annotations.Contains("sven:DietaryConstraint"))
+                    annotator.Annotations.Add("sven:DietaryConstraint");
+            }
+
+            Transform gaugeFill = MakeGauge(customer.transform);
+
+            var order = customer.AddComponent<CustomerOrder>();
+            order.Bind(table.GetComponent<SemantizationCore>(), gaugeFill, family, constraint);
+
+            if (customer.TryGetComponent(out SemantizationCore customerCore))
+                Register(customerCore, order, SemanticProcessingMode.Dynamic);
+        }
+
+        /// <summary>
+        /// La jauge de patience, au-dessus de la tête, face à la cuisine. Rend le PIVOT dont
+        /// CustomerOrder pilote l'échelle X (1 → 0, le remplissage fond vers la gauche).
+        ///
+        /// Le porte-jauge annule l'échelle du client : le modèle est mis à l'échelle pour
+        /// faire 1,20 m, et tout enfant en hériterait — exactement le piège documenté par
+        /// Delegation.Awake pour la main. Les colliders des primitives sont détruits : ils
+        /// intercepteraient le pointeur XR (« mets ça ici 👆 » viserait la jauge).
+        /// </summary>
+        private static Transform MakeGauge(Transform customer)
+        {
+            var holder = new GameObject("Jauge");
+            holder.transform.SetParent(customer, worldPositionStays: false);
+            Vector3 s = customer.lossyScale;
+            holder.transform.localScale = new Vector3(1f / Mathf.Max(0.001f, s.x),
+                                                      1f / Mathf.Max(0.001f, s.y),
+                                                      1f / Mathf.Max(0.001f, s.z));
+            holder.transform.localPosition = Vector3.Scale(
+                new Vector3(0f, 1.45f, 0f), holder.transform.localScale);
+            // Le client regarde -z (tourné de 180°) ; la jauge doit regarder la cuisine comme
+            // lui — donc pas de rotation supplémentaire dans son repère local.
+            holder.transform.localRotation = Quaternion.identity;
+
+            GameObject back = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            back.name = "Fond";
+            back.transform.SetParent(holder.transform, worldPositionStays: false);
+            back.transform.localPosition = Vector3.zero;
+            back.transform.localScale = new Vector3(0.5f, 0.08f, 0.02f);
+            back.GetComponent<Renderer>().sharedMaterial =
+                GetMaterial("JaugeFond", new Color(0.12f, 0.12f, 0.12f));
+            UnityEngine.Object.DestroyImmediate(back.GetComponent<Collider>());
+
+            var pivot = new GameObject("Pivot");
+            pivot.transform.SetParent(holder.transform, worldPositionStays: false);
+            // Au bord GAUCHE du fond : réduire l'échelle X du pivot fait fondre le
+            // remplissage vers la gauche au lieu de le rétrécir par les deux bouts.
+            pivot.transform.localPosition = new Vector3(-0.24f, 0f, 0f);
+            pivot.transform.localScale = Vector3.one;
+
+            GameObject fill = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            fill.name = "Remplissage";
+            fill.transform.SetParent(pivot.transform, worldPositionStays: false);
+            fill.transform.localPosition = new Vector3(0.24f, 0f, 0f);
+            fill.transform.localScale = new Vector3(0.48f, 0.06f, 0.015f);
+            fill.GetComponent<Renderer>().sharedMaterial =
+                GetMaterial("JaugeRemplissage", new Color(0.35f, 0.65f, 0.30f));
+            UnityEngine.Object.DestroyImmediate(fill.GetComponent<Collider>());
+
+            return pivot.transform;
         }
 
         #endregion
@@ -802,6 +921,72 @@ namespace Sc4ve.Demonstration.EditorTools
                 if (found != null) return found;
             }
             return null;
+        }
+
+        /// <summary>
+        /// Le panneau de bons de commande, au-dessus de la passe, face à la cuisine (§5).
+        /// Ni collider, ni SemantizationCore : c'est du HUD — un collider intercepterait le
+        /// pointeur XR, une sémantisation ferait répondre « sélectionne le tableau ».
+        /// </summary>
+        private static void BuildOrderBoard(Transform root)
+        {
+            var board = new GameObject("Tableau des commandes");
+            board.transform.SetParent(root);
+            board.transform.position = new Vector3(0f, 1.75f, 1.95f);
+            board.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+
+            GameObject back = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            back.name = "Fond";
+            back.transform.SetParent(board.transform, worldPositionStays: false);
+            back.transform.localPosition = new Vector3(0f, 0f, 0.015f);
+            back.transform.localScale = new Vector3(1.15f, 0.62f, 0.02f);
+            back.GetComponent<Renderer>().sharedMaterial =
+                GetMaterial("TableauFond", new Color(0.16f, 0.20f, 0.17f));
+            UnityEngine.Object.DestroyImmediate(back.GetComponent<Collider>());
+
+            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var textHolder = new GameObject("Texte");
+            textHolder.transform.SetParent(board.transform, worldPositionStays: false);
+            textHolder.transform.localPosition = new Vector3(0f, 0.26f, 0f);
+
+            var mesh = textHolder.AddComponent<TextMesh>();
+            mesh.text = "COMMANDES";
+            mesh.font = font;
+            mesh.fontSize = 64;
+            mesh.characterSize = 0.011f;
+            mesh.anchor = TextAnchor.UpperCenter;
+            mesh.alignment = TextAlignment.Center;
+            mesh.color = new Color(0.92f, 0.90f, 0.82f);
+            if (font != null) textHolder.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+
+            // Le composant vit dans Assembly-CSharp (Demonstration/Scripts) : il ne fait que
+            // relire les CustomerOrder de la scène — aucune commande ne le référence.
+            textHolder.AddComponent<Sc4ve.Demonstration.OrderBoard>();
+        }
+
+        /// <summary>
+        /// Pose le ralenti-pendant-la-parole (§2) sur l'objet SVEN — l'infrastructure de scène
+        /// qui survit aux reconstructions, même précédent qu'EnsureGraphController.
+        ///
+        /// PAS sur le GameObject du VoiceProcessor : le builder ne construit pas le pipeline
+        /// vocal, donc à la construction il n'existe le plus souvent PAS ENCORE — l'accrocher
+        /// là reviendrait à ne jamais le poser. ListeningTimeScale résout lui-même son
+        /// VoiceProcessor dans Awake, et journalise s'il n'en trouve pas.
+        /// </summary>
+        private static void EnsureListeningTimeScale()
+        {
+            if (UnityEngine.Object.FindAnyObjectByType<ListeningTimeScale>() != null) return;
+
+            GameObject host = UnityEngine.Object.FindAnyObjectByType<GraphController>() is { } controller
+                ? controller.gameObject
+                : new GameObject("SVEN");
+            host.AddComponent<ListeningTimeScale>();
+
+            if (UnityEngine.Object.FindAnyObjectByType<Sc4ve.Voice.VoiceProcessor>() == null)
+                Debug.LogWarning("[DemoSceneBuilder] ListeningTimeScale posé, mais aucun " +
+                                 "VoiceProcessor dans la scène : le ralenti du §2 restera " +
+                                 "inactif — et le critère 6 du lot 4 inobservable — tant que " +
+                                 "le pipeline vocal n'est pas ajouté.");
         }
 
         /// <summary>

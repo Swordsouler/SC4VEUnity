@@ -35,7 +35,10 @@ namespace Sc4ve.Multimodality.Intent
 
         // Commandes qui rapportent elles-mêmes un résultat vide (« 0 objet », « aucun objet à
         // décrire ») → on ne déclenche pas le message générique « aucun objet correspondant ».
-        private static readonly HashSet<string> _reportsEmptyResult = new() { "CountCommand", "DescribeCommand" };
+        // RepeatOrderCommand y est VITAL : GetNoMatchPrompt retourne AVANT l'exécution, donc
+        // sans cette entrée « répète la commande » sans pointage répondrait « aucun objet
+        // correspondant » et la branche « Quelle table ? » d'Execute serait du code mort.
+        private static readonly HashSet<string> _reportsEmptyResult = new() { "CountCommand", "DescribeCommand", "RepeatOrderCommand" };
 
         /// <summary>Message « je n'ai pas compris » localisé (manque de sens).</summary>
         public static string NotUnderstood => _notUnderstood;

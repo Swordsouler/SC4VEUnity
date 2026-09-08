@@ -149,6 +149,73 @@ ASK {{ {child} rdfs:subClassOf+ {parent} . }}";
             return results != null && results.Result;
         }
 
+        /// <summary>
+        /// Les recettes concrètes d'une famille — les trois soupes, par exemple — en URI
+        /// préfixées, dédoublonnées et triées.
+        ///
+        /// Lue dans le graphe ONTOLOGIQUE (OntologyCache) et non dans le graphe d'exécution :
+        /// appelée au Start d'un client, potentiellement avant l'initialisation de
+        /// GraphManager — GetAvailableRecipesAsync avalerait l'exception et rendrait une liste
+        /// vide, sans erreur, et le client n'aurait jamais de commande.
+        ///
+        /// SELECT DISTINCT ?child SANS le label : sven:PumpkinSoup porte deux rdfs:label@fr,
+        /// et joindre le label dupliquerait la recette. Le motif sven:requires écarte la
+        /// famille elle-même, qui n'en déclare aucun.
+        /// </summary>
+        public static async Task<List<string>> ConcreteChildrenAsync(string family)
+        {
+            var children = new List<string>();
+            if (string.IsNullOrWhiteSpace(family) || !family.StartsWith("sven:")) return children;
+
+            VDS.RDF.Graph graph = await OntologyCache.GetGraphAsync();
+            string query = $@"PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT DISTINCT ?child
+WHERE {{
+    ?child rdfs:subClassOf* {family} ;
+           sven:requires    ?requirement .
+}} ORDER BY ?child";
+
+            if (graph.ExecuteQuery(query) is SparqlResultSet results)
+                foreach (SparqlResult result in results.Cast<SparqlResult>())
+                {
+                    string uri = result["child"]?.ToString();
+                    if (uri != null) children.Add(ToPrefixed(uri));
+                }
+            return children;
+        }
+
+        /// <summary>
+        /// Les classes d'ingrédients qu'une recette exige, en URI préfixées — la forme que
+        /// contiennent SemanticAnnotator.Annotations et la fermeture des classes exclues.
+        /// C'est ce qui permet de calculer les « plats acceptables » d'un client par simple
+        /// intersection d'ensembles ; RecipeConformity.Requirements ne convient pas ici : il
+        /// rend des URI complètes et interroge le graphe d'exécution.
+        /// </summary>
+        public static async Task<HashSet<string>> RequiredIngredientClassesAsync(string recipe)
+        {
+            var ingredients = new HashSet<string>();
+            if (string.IsNullOrWhiteSpace(recipe) || !recipe.StartsWith("sven:")) return ingredients;
+
+            VDS.RDF.Graph graph = await OntologyCache.GetGraphAsync();
+            string query = $@"PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
+
+SELECT DISTINCT ?ingredient
+WHERE {{
+    {recipe} sven:requires ?requirement .
+    ?requirement sven:ingredient ?ingredient .
+}}";
+
+            if (graph.ExecuteQuery(query) is SparqlResultSet results)
+                foreach (SparqlResult result in results.Cast<SparqlResult>())
+                {
+                    string uri = result["ingredient"]?.ToString();
+                    if (uri != null) ingredients.Add(ToPrefixed(uri));
+                }
+            return ingredients;
+        }
+
         private static string ToPrefixed(string uri)
         {
             const string svenNamespace = "https://sven.lisn.upsaclay.fr/ontology#";

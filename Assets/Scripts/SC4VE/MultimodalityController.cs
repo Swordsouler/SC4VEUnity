@@ -120,8 +120,12 @@ namespace Sc4ve.Multimodality
         private PendingDisambiguation _pendingDisambiguation;
 
         // Commandes d'agrégat/requête : agissent sur TOUTES les correspondances → pas de désambiguïsation.
+        // RepeatOrderCommand : « répète la commande de cette table » doit répondre
+        // IMMÉDIATEMENT (critère 3 du lot 4) — une désambiguïsation « j'ai trouvé N objets… »
+        // par-dessus retarderait précisément l'information demandée ; Execute prend le premier
+        // client résolu et réclame lui-même ce qui manque (« Quelle table ? »).
         private static readonly HashSet<string> _noDisambiguation =
-            new() { "CountCommand", "DescribeCommand", "MeasureCommand" };
+            new() { "CountCommand", "DescribeCommand", "MeasureCommand", "RepeatOrderCommand" };
 
         // Le modèle du prompt système et sa compilation vivent dans LlmIntentService
         // (classe sans dépendance UnityEngine, partagée avec le harnais EditMode).
