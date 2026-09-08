@@ -149,8 +149,11 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 ? Regex.Replace(text, selectionRefPattern, " ")
                 : text;
 
-            // 1. Détection du type de commande via les attributs [RuleBasedTriggers]
-            string commandType = DetectCommandType(commandText);
+            // 1. Détection du type de commande via les attributs [RuleBasedTriggers].
+            // L'ajout à la sélection se détecte d'abord, sur le texte COMPLET : le mot
+            // « sélection » vient d'être retiré du texte de détection, or c'est lui qui
+            // distingue « ajoute les bananes à la sélection » d'un rangement (PutIn).
+            string commandType = DetectAddToSelection(text) ?? DetectCommandType(commandText);
             if (commandType == null)
             {
                 Debug.LogWarning($"[RuleBased] Aucune commande reconnue pour : \"{sentence.Text}\"");
@@ -184,6 +187,15 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // force la coréférence vers la sélection courante.
             bool hasCoreference = referencesSelection
                 || (annotations.Count == 0 && deictics.Count == 0 && HasCoreference(text));
+
+            // Pour un AJOUT à la sélection, « la sélection » est la destination, pas la cible.
+            // La coréférence forcée ci-dessus ferait ignorer les annotations
+            // (BuildSelectionParameter ne construit QUE le filtre Coreference quand elle est
+            // posée) : « ajoute les bananes à la sélection » re-sélectionnerait l'existant au
+            // lieu d'y ajouter les bananes. Avec une cible explicite ou pointée, elle saute ;
+            // sans cible (« rajoute-les »), elle reste le moyen de désigner quoi ajouter.
+            if (commandType == "AddToSelectionCommand" && (annotations.Count > 0 || deictics.Count > 0))
+                hasCoreference = false;
 
             // « sélectionne toutes les citrouilles » : « tout/toutes » quantifie ici un type
             // précis (annotation, couleur ou déictique) → ce n'est pas « tout sélectionner »
@@ -380,6 +392,35 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         private static string Stem(string normalized) =>
             IsFrench ? FrenchStemmer.Stem(normalized) : normalized;
 
+        /// <summary>
+        /// Pré-vérification : verbe d'ajout + mention de la sélection → AddToSelectionCommand.
+        /// Elle se joue sur le texte COMPLET, avant DetectCommandType : Recognize retire le mot
+        /// « sélection » du texte de détection (il force la coréférence pour « les objets
+        /// sélectionnés »), donc aucun déclencheur multi-mots (« ajoute à la sélection ») ne
+        /// peut le voir. Une préposition de contenant garde la lecture rangement : « ajoute les
+        /// tomates sélectionnées dans le bol » reste un PutInCommand.
+        /// </summary>
+        private static string DetectAddToSelection(string text)
+        {
+            string normalized = FrenchStemmer.NormalizeAccents(text);
+            string addVerbs = IsFrench
+                ? @"\b(ajoute|ajoutez|ajouter|rajoute|rajoutez|rajouter)\b"
+                : @"\b(add|adds)\b";
+            // Le NOM « sélection(s) » seulement : ni le verbe « sélectionne » ni le participe
+            // « sélectionné » (dans leurs formes normalisées, « selection » est suivi d'une
+            // lettre — pas de frontière de mot).
+            if (!Regex.IsMatch(normalized, addVerbs) || !Regex.IsMatch(normalized, @"\bselections?\b"))
+                return null;
+
+            string[] containerPrepositions = IsFrench
+                ? new[] { "dans", "sur", "dedans" }
+                : new[] { "in", "into", "on", "onto" };
+            if (containerPrepositions.Any(p => Regex.IsMatch(normalized, $@"\b{p}\b")))
+                return null;
+
+            return "AddToSelectionCommand";
+        }
+
         private string DetectCommandType(string text)
         {
             // Normalisation des accents pour la comparaison
@@ -422,8 +463,10 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // retombait alors sur le déclencheur « dépose » de ReleaseCommand, qui construisait
             // UNE sélection « citrouille ET pointée » au lieu de couper au pivot « dans » :
             // intersection vide, « aucun objet correspondant ».
+            // « rajoute » y est aussi : sans lui, « rajoute une banane dans le bol » passerait
+            // au tour des déclencheurs, où « rajoute » appartient à AddToSelectionCommand.
             string putVerbs = IsFrench
-                ? @"\b(mets|mettez|met|mettre|pose|posez|poser|depose|deposez|deposer|range|rangez|ranger|ajoute|ajoutez|ajouter|verse|versez|verser)\b"
+                ? @"\b(mets|mettez|met|mettre|pose|posez|poser|depose|deposez|deposer|range|rangez|ranger|ajoute|ajoutez|ajouter|rajoute|rajoutez|rajouter|verse|versez|verser)\b"
                 : @"\b(put|place|add|pour|drop)\b";
             string[] containerPrepositions = IsFrench
                 ? new[] { "dans", "sur", "dedans" }

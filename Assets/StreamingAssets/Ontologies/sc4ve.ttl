@@ -237,6 +237,20 @@ sc4ve:ScaleToCommand rdf:type owl:Class ;
                                 "Scale To Command"@en .
 
 
+###  https://sc4ve.lisn.upsaclay.fr/ontology#AddToSelectionCommand
+sc4ve:AddToSelectionCommand rdf:type owl:Class ;
+                            rdfs:subClassOf sc4ve:Command ,
+                                            [ rdf:type owl:Restriction ;
+                                              owl:onProperty sc4ve:hasParameter ;
+                                              owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ;
+                                              owl:onClass sc4ve:SelectionParameter
+                                            ] ;
+                            rdfs:comment "A command to add objects to the current selection without replacing it."@en ,
+                                         "Une commande pour ajouter des objets à la sélection courante, sans la remplacer."@fr ;
+                            rdfs:label "Commande d'Ajout à la Sélection"@fr ,
+                                       "Add To Selection Command"@en .
+
+
 ###  https://sc4ve.lisn.upsaclay.fr/ontology#SelectCommand
 sc4ve:SelectCommand rdf:type owl:Class ;
                     rdfs:subClassOf sc4ve:Command ,
@@ -578,6 +592,14 @@ sc4ve:SelectCommand sc4ve:trigger
     "sélectionne"@fr , "sélectionner"@fr , "choisis"@fr , "choisir"@fr , "marque"@fr , "marquer"@fr ,
     "select"@en , "selects"@en , "choose"@en , "pick"@en , "mark"@en .
 
+# « ajoute/rajoute … à la sélection » n'a pas besoin de déclencheur : la phrase est routée par
+# une pré-vérification (verbe d'ajout + mot « sélection », cf. DetectAddToSelection) — le mot
+# « sélection » est retiré du texte de détection avant le tour des déclencheurs.
+sc4ve:AddToSelectionCommand sc4ve:trigger
+    "sélectionne aussi"@fr , "sélectionnez aussi"@fr , "sélectionner aussi"@fr ,
+    "sélectionne également"@fr , "sélectionnez également"@fr , "rajoute"@fr , "rajouter"@fr , "rajoutez"@fr ,
+    "also select"@en , "select also"@en , "add to selection"@en , "add to the selection"@en .
+
 sc4ve:ColorizeCommand sc4ve:trigger
     "colorie"@fr , "colorise"@fr , "coloriser"@fr , "peins"@fr , "recolore"@fr , "change la couleur"@fr , "mets en couleur"@fr , "met"@fr , "mets"@fr , "mettre"@fr ,
     "colorize"@en , "colour"@en , "color"@en , "paint"@en , "recolor"@en , "make"@en .
@@ -784,6 +806,9 @@ sc4ve:grounding rdf:type owl:DatatypeProperty ;
 sc4ve:SelectCommand          sc4ve:grounding "{n} objet(s) sélectionné(s)"@fr , "{n} object(s) selected"@en .
 sc4ve:SelectAllCommand       sc4ve:grounding "{n} objet(s) sélectionné(s)"@fr , "{n} object(s) selected"@en .
 sc4ve:InvertSelectionCommand sc4ve:grounding "{n} objet(s) sélectionné(s)"@fr , "{n} object(s) selected"@en .
+# Le compte est le TOTAL de la sélection après union (retour d'Execute), comme les autres
+# commandes de sélection : entendre le total passer de 2 à 4 confirme que l'ajout a eu lieu.
+sc4ve:AddToSelectionCommand  sc4ve:grounding "{n} objet(s) sélectionné(s)"@fr , "{n} object(s) selected"@en .
 sc4ve:MoveCommand            sc4ve:grounding "{n} objet(s) déplacé(s)"@fr , "{n} object(s) moved"@en .
 sc4ve:PutInCommand           sc4ve:grounding "{n} objet(s) rangé(s)"@fr , "{n} object(s) put in"@en .
 sc4ve:DuplicateCommand       sc4ve:grounding "{n} objet(s) dupliqué(s)"@fr , "{n} object(s) duplicated"@en .

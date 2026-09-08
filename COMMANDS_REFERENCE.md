@@ -389,6 +389,20 @@ Trigger générique `« tourne »` sans précision de direction → rotation dro
 
 ---
 
+### AddToSelectionCommand
+**Ajoute des objets à la sélection persistante**, sans retirer ceux qui y sont déjà. La confirmation vocale annonce le TOTAL après union (« 4 objets sélectionnés »), ce qui rend l'ajout audible.
+
+| Phrase | Résultat attendu |
+|---|---|
+| `« Sélectionne aussi les tomates. »` | Les tomates rejoignent la sélection courante. |
+| `« Ajoute les bananes à la sélection. »` | Idem avec les bananes. |
+| `« Rajoute la sélection des tomates. »` | Idem — formulation entendue en démo. |
+| `« 👆 Rajoute ça. »` | L'objet pointé rejoint la sélection. |
+
+> ⚠️ `« Rajoute une banane dans le bol »` reste un `PutInCommand` : la préposition de contenant (« dans », « sur ») garde la lecture rangement.
+
+---
+
 ### UnselectCommand
 **Retire des objets de la sélection.** Sans cible (« désélectionne tout »), vide entièrement la sélection.
 
@@ -535,6 +549,7 @@ Commandes annulables : `RotateLeft`, `RotateRight`, `Flip`, `ResetScale`, `Reset
 | `DuplicateCommand` | Manipulation | — | SelectionParameter | RB + LLM |
 | `DeleteCommand` | Manipulation | ✅ | SelectionParameter | RB + LLM |
 | `SelectCommand` | Sélection | — | SelectionParameter | RB + LLM |
+| `AddToSelectionCommand` | Sélection | — | SelectionParameter | RB + LLM |
 | `UnselectCommand` | Sélection | — | SelectionParameter | RB + LLM |
 | `SelectAllCommand` | Sélection | — | *(aucun)* | RB + LLM |
 | `InvertSelectionCommand` | Sélection | — | *(aucun)* | RB + LLM |

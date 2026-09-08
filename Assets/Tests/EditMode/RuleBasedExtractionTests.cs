@@ -298,5 +298,62 @@ namespace Sc4ve.Tests.EditMode
                 cmd.Parameters.OfType<RecipeParameter>().First().Value,
                 "« soupe de carottes » doit l'emporter sur la famille « soupe ».");
         }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Ajout à la sélection
+        // ─────────────────────────────────────────────────────────────────────
+
+        [Test]
+        public void AddToSelection_SelectAlso_TargetsTheAnnotation()
+        {
+            AddToSelectionCommand cmd =
+                RecognizeSingle<AddToSelectionCommand>("sélectionne aussi les bananes");
+            List<Condition> conditions = AllConditions(cmd);
+            Assert.AreEqual(1, conditions.Count);
+            Assert.AreEqual("Annotation", conditions[0].Type);
+            Assert.AreEqual("Banane", conditions[0].Value);
+        }
+
+        [Test]
+        public void AddToSelection_AddToTheSelection_KeepsAnnotationNotCoreference()
+        {
+            // Le mot « sélection » force normalement la coréférence (« les objets
+            // sélectionnés ») ; pour un AJOUT il désigne la destination — la cible reste
+            // l'annotation, sinon l'union re-sélectionnerait l'existant au lieu d'y
+            // ajouter les bananes.
+            AddToSelectionCommand cmd =
+                RecognizeSingle<AddToSelectionCommand>("ajoute les bananes à la sélection");
+            List<Condition> conditions = AllConditions(cmd);
+            Assert.AreEqual(1, conditions.Count);
+            Assert.AreEqual("Annotation", conditions[0].Type);
+            Assert.AreEqual("Banane", conditions[0].Value);
+        }
+
+        [Test]
+        public void AddToSelection_DemoPhrasing_RajouteLaSelectionDes()
+        {
+            // La formulation entendue en démo : « Rajoute la sélection des tomates ».
+            AddToSelectionCommand cmd =
+                RecognizeSingle<AddToSelectionCommand>("rajoute la sélection des bananes");
+            Assert.AreEqual("Banane",
+                AllConditions(cmd).Single(c => c.Type == "Annotation").Value);
+        }
+
+        [Test]
+        public void AddToSelection_EncliticPronoun_UsesCoreference()
+        {
+            // Sans cible (« rajoute-les »), la coréférence désigne quoi ajouter.
+            AddToSelectionCommand cmd = RecognizeSingle<AddToSelectionCommand>("rajoute-les");
+            Assert.IsTrue(AllConditions(cmd).Any(c => c.IsCoreference),
+                "« rajoute-les » doit porter un filtre Coreference.");
+        }
+
+        [Test]
+        public void Rajoute_WithContainerPreposition_RemainsPutIn()
+        {
+            // « rajoute … dans » est un rangement : la pré-vérification putVerbs doit gagner
+            // sur le déclencheur « rajoute » d'AddToSelectionCommand.
+            RecognizeSingle<PutInCommand>("rajoute une banane dans le bol");
+        }
     }
 }
