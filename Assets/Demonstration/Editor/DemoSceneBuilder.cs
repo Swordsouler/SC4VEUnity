@@ -95,6 +95,7 @@ namespace Sc4ve.Demonstration.EditorTools
             EnsureGraphController();
             EnsureVoicePipeline();
             EnsureListeningTimeScale();
+            EnsureDeviceSimulator();
             BakeNavMesh(root);
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -1306,6 +1307,43 @@ namespace Sc4ve.Demonstration.EditorTools
                 if (!File.Exists(absolute))
                     Debug.LogWarning($"[DemoSceneBuilder] StreamingAssets/{path} manquant : {role}.");
             }
+        }
+
+        private const string SimulatorPrefabPath =
+            "Assets/Samples/XR Interaction Toolkit/3.5.1/XR Device Simulator/XR Device Simulator.prefab";
+
+        /// <summary>
+        /// Pose le simulateur XR dans la scène, DÉSACTIVÉ : l'activer dans la hiérarchie
+        /// permet de jouer toute la démo au clavier-souris, sans casque — tête et manettes
+        /// simulées, pendant que la voix (touche T), Whisper, Piper et les agents tournent
+        /// déjà en pur bureau.
+        ///
+        /// Désactivé par défaut parce qu'ACTIF AVEC un casque branché, il se disputerait les
+        /// entrées avec les vraies manettes. Posé hors de la racine générée, comme le rig :
+        /// l'état choisi (activé ou non) survit aux reconstructions.
+        /// </summary>
+        private static void EnsureDeviceSimulator()
+        {
+            if (GameObject.Find("XR Device Simulator") != null) return;
+            // GameObject.Find ignore les objets INACTIFS — c'est le cas normal du simulateur.
+            foreach (Transform root in EditorSceneManager.GetActiveScene().GetRootGameObjects()
+                         .Select(go => go.transform))
+                if (root.name == "XR Device Simulator") return;
+
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SimulatorPrefabPath);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[DemoSceneBuilder] Simulateur introuvable : {SimulatorPrefabPath} " +
+                                 "— importer l'échantillon « XR Device Simulator » du XR " +
+                                 "Interaction Toolkit pour tester sans casque.");
+                return;
+            }
+
+            var simulator = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            simulator.SetActive(false);
+            Debug.Log("[DemoSceneBuilder] Simulateur XR posé, DÉSACTIVÉ. Pour tester sans " +
+                      "casque : activer l'objet « XR Device Simulator » dans la hiérarchie, " +
+                      "puis Play. Le désactiver avant de rejouer avec le casque.");
         }
 
         /// <summary>
