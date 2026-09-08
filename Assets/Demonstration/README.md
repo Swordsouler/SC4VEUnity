@@ -32,6 +32,7 @@ Menu **SC4VE > Démonstration** :
 | **2 — Corriger les prefabs existants** | passe le `SemanticAnnotator` des prefabs de fruits en `Dynamic` et leur ajoute un `XRGrabInteractable`. Idempotent. L'outil 1 l'exécute d'abord. |
 | **3 — Générer les meshes des ingrédients** | fabrique les meshes low-poly des 8 ingrédients sans modèle, dans `Meshes/`. L'outil 1 l'exécute aussi. |
 | **4 — Peupler la scène d'exposition** | aligne un exemplaire de chaque objet manipulable dans `Scenes/Demo Exposition.unity`, à sa taille réelle et étiqueté |
+| **5 — Copier le pipeline vocal** | copie `MultimodalityController` + SpeechToText (Whisper) + TextToSpeech (Piper) depuis `Assets/Scenes/New Demo.unity` vers la scène active, en un seul clone (références croisées préservées), sans l'afficheur de debug ni la clé OpenAI. L'outil 1 l'exécute aussi s'il manque. Les **modèles** de StreamingAssets restent à installer à la main (gitignorés) — la console liste ceux qui manquent |
 
 **La scène d'exposition est une planche de contact**, pas une scène de jeu : elle sert à
 repérer d'un coup d'œil un modèle raté, une taille incohérente ou une pièce décollée. Les
@@ -56,8 +57,10 @@ délibéré : le contenu se reconstruit à chaque exécution, donc un NavMesh cu
 périmé dès la reconstruction suivante — et un NavMesh périmé ne produit aucune erreur, seulement
 des serveurs qui refusent de bouger.
 
-Ce que l'outil ne fait pas, et qui reste manuel : poser le `MultimodalityController` et le
-pipeline vocal.
+Ce que l'outil ne fait pas, et qui reste manuel : installer les modèles vocaux dans
+`StreamingAssets/` (`Whisper/ggml-medium.bin`, `Piper/piper.exe`, les voix `.onnx`) — ils sont
+gitignorés, et sans eux le pipeline copié est sourd et muet, sans autre symptôme que les
+avertissements de la console.
 
 ### Ce qui ne doit PAS venir ici
 

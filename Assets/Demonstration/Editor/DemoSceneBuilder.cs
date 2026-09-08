@@ -93,6 +93,7 @@ namespace Sc4ve.Demonstration.EditorTools
             // où le rig existait déjà avant cette version de l'outil.
             RemoveStrayMainCamera(FindRigRoot());
             EnsureGraphController();
+            EnsureVoicePipeline();
             EnsureListeningTimeScale();
             BakeNavMesh(root);
 
@@ -109,8 +110,11 @@ namespace Sc4ve.Demonstration.EditorTools
                     : "Rig XR déjà utilisable, laissé tel quel ; interactors SVEN vérifiés.\n\n") +
                 "4 clients installés (couples famille+contrainte fixes), tableau des " +
                 "commandes au-dessus de la passe, NavMesh cuit.\n\n" +
-                "Reste à faire à la main :\n" +
-                "• ajouter le MultimodalityController et le pipeline vocal",
+                "Pipeline vocal copié depuis « New Demo » s'il manquait " +
+                "(MultimodalityController + Whisper + Piper, mode RuleBased).\n\n" +
+                "Reste à faire à la main : installer les modèles dans StreamingAssets " +
+                "(Whisper/ggml-*.bin, Piper/piper.exe + voix .onnx) — la console dit " +
+                "précisément lesquels manquent.",
                 "OK");
         }
 
@@ -962,6 +966,157 @@ namespace Sc4ve.Demonstration.EditorTools
             // Le composant vit dans Assembly-CSharp (Demonstration/Scripts) : il ne fait que
             // relire les CustomerOrder de la scène — aucune commande ne le référence.
             textHolder.AddComponent<Sc4ve.Demonstration.OrderBoard>();
+        }
+
+        /// <summary>Scène de référence du pipeline vocal — celle du banc d'essai de la thèse.</summary>
+        private const string VoicePipelineScenePath = "Assets/Scenes/New Demo.unity";
+
+        [MenuItem("SC4VE/Démonstration/5 — Copier le pipeline vocal", priority = 5)]
+        public static void CopyVoicePipelineMenu()
+        {
+            Scene scene = EditorSceneManager.GetActiveScene();
+            if (EnsureVoicePipeline())
+            {
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+            }
+        }
+
+        /// <summary>
+        /// Copie le pipeline vocal — MultimodalityController, SpeechToText (VoiceProcessor +
+        /// WhisperManager + WhisperSpeechToText), TextToSpeech (Piper + AudioSource) — depuis
+        /// la scène du banc d'essai, où il est réglé et éprouvé, vers la scène active. Même
+        /// logique que le rig : copié s'il manque, jamais touché s'il existe.
+        ///
+        /// Les trois objets sont clonés EN UN SEUL Instantiate, parentés d'abord sous un
+        /// porte-copie temporaire : cloner racine par racine laisserait les références
+        /// croisées (_speechToText du contrôleur → composant Whisper de l'objet voisin)
+        /// pointer vers les originaux de la scène source — qui est déchargée juste après.
+        /// Elles deviendraient « Missing » sans une seule erreur à la copie, et le pipeline
+        /// serait muet à l'exécution.
+        ///
+        /// La scène source n'est JAMAIS enregistrée : le reparentage sous le porte-copie
+        /// n'existe qu'en mémoire et part avec le déchargement.
+        /// </summary>
+        /// <returns>Vrai si une copie a eu lieu.</returns>
+        private static bool EnsureVoicePipeline()
+        {
+            if (UnityEngine.Object.FindAnyObjectByType<MultimodalityController>() != null)
+            {
+                Debug.Log("[DemoSceneBuilder] Pipeline vocal déjà présent : laissé tel quel.");
+                return false;
+            }
+
+            Scene active = EditorSceneManager.GetActiveScene();
+            if (active.path == VoicePipelineScenePath)
+            {
+                Debug.LogError("[DemoSceneBuilder] La scène active EST la scène source du " +
+                               "pipeline : rien à copier ici.");
+                return false;
+            }
+
+            if (!File.Exists(VoicePipelineScenePath))
+            {
+                Debug.LogError($"[DemoSceneBuilder] Scène source introuvable : {VoicePipelineScenePath} " +
+                               "— le pipeline vocal reste à poser à la main.");
+                return false;
+            }
+
+            Scene source = EditorSceneManager.OpenScene(VoicePipelineScenePath, OpenSceneMode.Additive);
+            try
+            {
+                var roots = new List<GameObject>();
+                foreach (GameObject root in source.GetRootGameObjects())
+                    if (root.GetComponentInChildren<MultimodalityController>(true) != null ||
+                        root.GetComponentInChildren<Sc4ve.Voice.VoiceProcessor>(true) != null ||
+                        root.GetComponentInChildren<Sc4ve.Voice.PiperTextToSpeech>(true) != null)
+                        roots.Add(root);
+
+                if (roots.Count == 0)
+                {
+                    Debug.LogError("[DemoSceneBuilder] Aucun composant du pipeline vocal dans " +
+                                   $"{VoicePipelineScenePath} : rien copié.");
+                    return false;
+                }
+
+                var holder = new GameObject("Pipeline vocal");
+                SceneManager.MoveGameObjectToScene(holder, source);
+                foreach (GameObject root in roots)
+                    root.transform.SetParent(holder.transform, worldPositionStays: true);
+
+                // Instantiate sans parent atterrit dans la scène ACTIVE — l'ouverture
+                // additive ne l'a pas changée.
+                GameObject copy = UnityEngine.Object.Instantiate(holder);
+                copy.name = "Pipeline vocal";
+                SanitizeVoicePipeline(copy);
+
+                Debug.Log($"[DemoSceneBuilder] Pipeline vocal copié depuis {VoicePipelineScenePath} : " +
+                          string.Join(", ", roots.Select(r => r.name)) + ".");
+                WarnIfVoiceModelMissing();
+                return true;
+            }
+            finally
+            {
+                // Décharge SANS enregistrer : la scène source reste intacte sur disque.
+                EditorSceneManager.CloseScene(source, removeScene: true);
+            }
+        }
+
+        /// <summary>
+        /// Ce que la copie ne doit PAS emporter.
+        ///
+        /// SSTResultTMP : son ResultText pointe un canvas resté dans la scène source. La
+        /// référence serait « Missing », et la NullReference jetée à la première transcription
+        /// partirait DANS la chaîne d'événements OnTranscriptionResult — elle couperait les
+        /// abonnés suivants et casserait le pipeline entier, pour un simple afficheur de debug.
+        ///
+        /// La clé OpenAI : les scènes sont commitées. Si quelqu'un saisit un jour une clé dans
+        /// la scène source, la copie la propagerait silencieusement dans un second fichier
+        /// versionné. Le mode de la démo est RuleBased : la clé n'y sert à rien.
+        /// </summary>
+        private static void SanitizeVoicePipeline(GameObject copy)
+        {
+            foreach (Sc4ve.Voice.SSTResultTMP display in
+                     copy.GetComponentsInChildren<Sc4ve.Voice.SSTResultTMP>(true))
+                UnityEngine.Object.DestroyImmediate(display);
+
+            foreach (MultimodalityController controller in
+                     copy.GetComponentsInChildren<MultimodalityController>(true))
+            {
+                var serialized = new SerializedObject(controller);
+                SerializedProperty key = serialized.FindProperty("_openAiApiKey");
+                if (key != null && !string.IsNullOrEmpty(key.stringValue))
+                {
+                    key.stringValue = "";
+                    serialized.ApplyModifiedPropertiesWithoutUndo();
+                    Debug.LogWarning("[DemoSceneBuilder] Clé OpenAI trouvée dans la scène " +
+                                     "source : NON copiée — les scènes sont versionnées. La " +
+                                     "ressaisir ici si le mode LLM/OpenAI est voulu.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Les modèles sont dans StreamingAssets, qui est gitignoré : le pipeline copié est
+        /// muet et sourd tant qu'ils ne sont pas installés — sans autre symptôme. Les chemins
+        /// vérifiés sont ceux sérialisés dans la scène source.
+        /// </summary>
+        private static void WarnIfVoiceModelMissing()
+        {
+            (string path, string role)[] models =
+            {
+                ("Whisper/ggml-medium.bin", "le modèle Whisper — sans lui, AUCUNE commande vocale n'est transcrite"),
+                ("Piper/piper.exe", "l'exécutable Piper — sans lui, serveurs et clients sont muets"),
+                ("Piper/models/fr_FR-siwis-medium.onnx", "la voix française de Piper"),
+                ("Piper/models/en_US-lessac-medium.onnx", "la voix anglaise de Piper (facultative en démo française)"),
+            };
+
+            foreach ((string path, string role) in models)
+            {
+                string absolute = Path.Combine(Application.streamingAssetsPath, path);
+                if (!File.Exists(absolute))
+                    Debug.LogWarning($"[DemoSceneBuilder] StreamingAssets/{path} manquant : {role}.");
+            }
         }
 
         /// <summary>
