@@ -283,7 +283,7 @@ namespace Sc4ve.Demonstration.EditorTools
                 // mord d'un centimètre dans le bas du buste et des cuisses.
                 new("StoolSeat", Save("PropStoolSeat", IngredientMeshFactory.Cylinder(0.21f, 0.035f, 14)),
                     wood, new Vector3(0f, -0.2175f, 0f)),
-                new("StoolPillar", Save("PropStoolPillar", IngredientMeshFactory.Cylinder(0.035f, 0.20f, 8)),
+                new("StoolPillar", Save("PropStoolPillar", IngredientMeshFactory.Cylinder(0.035f, 0.22f, 8)),
                     metal, new Vector3(0f, -0.325f, 0f)),
                 new("StoolFoot", Save("PropStoolFoot", IngredientMeshFactory.Cylinder(0.12f, 0.03f, 12)),
                     metal, new Vector3(0f, -0.445f, 0f)),
