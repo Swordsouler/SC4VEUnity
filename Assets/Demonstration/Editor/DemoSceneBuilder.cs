@@ -653,11 +653,17 @@ namespace Sc4ve.Demonstration.EditorTools
             // du côté cuisine et n'a jamais à traverser le client pour atteindre la table.
             Vector3 position = table.transform.position + new Vector3(0f, 0f, 0.55f);
 
+            // 1,70 m — la taille du client de la scène d'exposition. Le 1,20 m « assis »
+            // d'abord essayé lisait comme un enfant à côté des serveurs d'1,75 m, faute de
+            // chaise pour raconter la posture.
             GameObject customer = Prop(room, $"Client {(char)('A' + index)}", "sven:Customer",
-                position, height: 1.20f);
+                position, height: 1.70f);
             RestOnSurface(customer, 0f);
-            // Face à la table (et à la cuisine derrière elle).
-            customer.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            // Rotation IDENTITÉ, comme les serveurs : le visage du modèle est côté -z (les
+            // yeux de PropMeshFactory sont à z négatif), donc identité = face à sa table et à
+            // la cuisine. Le 180° d'abord écrit leur tournait le dos — les yeux se voyaient
+            // depuis le fond de la salle.
+            customer.transform.rotation = Quaternion.identity;
 
             // Exclu de la cuisson du NavMesh. Sans cela, son collider concave serait CUIT en
             // obstacle à 55 cm de la table — CollectObjects.Children ramasse tout collider,
@@ -694,17 +700,22 @@ namespace Sc4ve.Demonstration.EditorTools
         /// </summary>
         private static Transform MakeGauge(Transform customer)
         {
+            // Le sommet MESURÉ du modèle, avant que la jauge n'ajoute ses propres renderers.
+            // L'offset fixe depuis le pivot d'abord écrit (pivot ≈ mi-corps + 1,45 m) faisait
+            // flotter la jauge un mètre au-dessus de la tête — le pivot d'un Prop n'est pas
+            // à ses pieds, et sa hauteur dépend de l'échelle appliquée au modèle.
+            Bounds bounds = WorldBounds(customer.gameObject);
+
             var holder = new GameObject("Jauge");
             holder.transform.SetParent(customer, worldPositionStays: false);
             Vector3 s = customer.lossyScale;
             holder.transform.localScale = new Vector3(1f / Mathf.Max(0.001f, s.x),
                                                       1f / Mathf.Max(0.001f, s.y),
                                                       1f / Mathf.Max(0.001f, s.z));
-            holder.transform.localPosition = Vector3.Scale(
-                new Vector3(0f, 1.45f, 0f), holder.transform.localScale);
-            // Le client regarde -z (tourné de 180°) ; la jauge doit regarder la cuisine comme
-            // lui — donc pas de rotation supplémentaire dans son repère local.
-            holder.transform.localRotation = Quaternion.identity;
+            holder.transform.position = new Vector3(bounds.center.x,
+                                                    bounds.max.y + 0.15f,
+                                                    bounds.center.z);
+            holder.transform.rotation = Quaternion.identity;
 
             GameObject back = GameObject.CreatePrimitive(PrimitiveType.Cube);
             back.name = "Fond";
