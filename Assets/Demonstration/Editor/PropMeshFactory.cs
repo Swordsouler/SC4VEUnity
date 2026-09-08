@@ -255,14 +255,22 @@ namespace Sc4ve.Demonstration.EditorTools
                 new("Neck", Save("PropNeck", IngredientMeshFactory.Cylinder(0.065f, 0.18f, 8)),
                     skin, new Vector3(0f, 0.14f, 0f)),
 
-                // Bras du modèle debout, penchés de 22° vers l'avant : les mains finissent
-                // au-dessus des cuisses — le geste qui dit « attablé ».
-                new("ArmLeft", Save("PropArm",
-                        IngredientMeshFactory.Blob(1, new Vector3(0.12f, 0.54f, 0.12f), taper: 0.85f,
+                // Bras PROPRES au modèle assis, et non le PropArm du serveur : 0,54 u de
+                // bras tendu dépassait un buste hanches→épaules de 0,38 u — les pointes
+                // sortaient au-dessus des épaules. Et la rotation X doit être POSITIVE :
+                // +Y tourne vers +z, donc X positif envoie le BAS du bras vers -z, l'avant.
+                // Le -22° d'abord écrit faisait l'inverse — coudes vers la table, mains
+                // derrière le dos. Ici : ancré dans la partie CHARNUE du buste (haut du bras à
+                // 0,155, où l'ellipsoïde est encore large — à 92 % de sa hauteur, la largeur
+                // tend vers zéro et l'épaule flotterait), mains
+                // qui plongent dans le dessus des cuisses, ramenées vers le centre par le
+                // même ±8° en Z que le modèle debout.
+                new("ArmLeft", Save("PropArmSeated",
+                        IngredientMeshFactory.Blob(1, new Vector3(0.12f, 0.44f, 0.12f), taper: 0.85f,
                             noise: 0f, frequency: 1f, seed: 0, boxiness: 0.4f)),
-                    cloth, new Vector3(-0.18f, -0.02f, -0.05f), new Vector3(-22f, 0f, 9f)),
-                new("ArmRight", Save("PropArm", null),
-                    cloth, new Vector3(0.18f, -0.02f, -0.05f), new Vector3(-22f, 0f, -9f)),
+                    cloth, new Vector3(-0.175f, -0.03f, -0.06f), new Vector3(32f, 0f, 8f)),
+                new("ArmRight", Save("PropArmSeated", null),
+                    cloth, new Vector3(0.175f, -0.03f, -0.06f), new Vector3(32f, 0f, -8f)),
 
                 // Cuisses : un bloc horizontal vers -z (le devant, comme le visage), enfoncé
                 // de 0,11 dans le bas du buste.
