@@ -68,10 +68,16 @@ namespace Sc4ve.Multimodality
         [Range(30f, 600f)]
         private float _patience = 180f;
 
-        private SemantizationCore _table;
-        private Transform _gaugeFill;
-        private string _family = "";
-        private string _constraint = "";
+        // SÉRIALISÉS, et c'est vital : Bind() les remplit À L'ÉDITION, depuis
+        // DemoSceneBuilder. Un champ privé non sérialisé rempli dans l'éditeur est effacé au
+        // passage en Play (désérialisation de la scène) — les quatre clients démarraient sans
+        // table, sans jauge et sans famille, pendant que la contrainte, portée par le
+        // SemanticAnnotator sérialisé, survivait. Aucune erreur à la construction : tout
+        // paraissait câblé.
+        [SerializeField] private SemantizationCore _table;
+        [SerializeField] private Transform _gaugeFill;
+        [SerializeField] private string _family = "";
+        [SerializeField] private string _constraint = "";
 
         private Stage _stage = Stage.Seated;
         private float _remaining;

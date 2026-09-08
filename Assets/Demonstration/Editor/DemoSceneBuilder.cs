@@ -1102,7 +1102,10 @@ namespace Sc4ve.Demonstration.EditorTools
             var board = new GameObject("Tableau des commandes");
             board.transform.SetParent(root);
             board.transform.position = new Vector3(0f, 1.75f, 1.95f);
-            board.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            // Rotation IDENTITÉ : un TextMesh se lit depuis le -z de son transform, et le
+            // joueur est en cuisine, à z plus petit que le tableau. Le 180° d'abord écrit le
+            // présentait à l'envers — lisible depuis la salle, en miroir depuis la cuisine.
+            board.transform.rotation = Quaternion.identity;
 
             GameObject back = GameObject.CreatePrimitive(PrimitiveType.Cube);
             back.name = "Fond";
