@@ -26,7 +26,7 @@ namespace Sc4ve.Demonstration.EditorTools
             "CuttingBoard" => CuttingBoard(),
             "Table" => Table(),
             "Waiter" => Person("Waiter", new Color(0.30f, 0.42f, 0.68f), apron: true),
-            "Customer" => Person("Customer", new Color(0.72f, 0.45f, 0.35f), apron: false),
+            "Customer" => SeatedPerson("Customer", new Color(0.72f, 0.45f, 0.35f)),
             "Knife" => Knife(),
             _ => new List<Part>(),
         };
@@ -198,8 +198,95 @@ namespace Sc4ve.Demonstration.EditorTools
                 new Color(0.45f, 0.24f, 0.22f), new Vector3(0f, 0.455f, -0.105f)));
 
             if (apron)
+                // z NÉGATIF : le visage est à z négatif (les yeux à -0,105), donc le devant
+                // aussi. À +0,15, le tablier était noué dans le dos.
                 parts.Add(new Part("Apron", Save("PropApron", Box(new Vector3(0.34f, 0.46f, 0.04f))),
-                    new Color(0.93f, 0.93f, 0.90f), new Vector3(0f, -0.16f, 0.15f)));
+                    new Color(0.93f, 0.93f, 0.90f), new Vector3(0f, -0.16f, -0.15f)));
+
+            return parts;
+        }
+
+        /// <summary>
+        /// Personne ASSISE sur un tabouret — le client. Même visage, même cou, mêmes bras que
+        /// le personnage debout (les meshes partagés sont réutilisés tels quels) : seule la
+        /// POSTURE change, et c'est elle qui distingue un client d'un serveur au premier coup
+        /// d'œil, avant même la couleur.
+        ///
+        /// Un tabouret et non une chaise : pas de dossier à faire cohabiter avec le buste, et
+        /// la silhouette reste lisible de tous les côtés. Cuisses et tibias sont des pièces
+        /// séparées, ENFONCÉES l'une dans l'autre (la règle des personnages : une pièce ne se
+        /// pose pas sur une surface courbe, elle s'y enfonce) — cuisses dans le bas du buste,
+        /// genoux dans l'avant des cuisses.
+        ///
+        /// Le devant est à z NÉGATIF, comme le visage : cuisses et tibias partent vers -z,
+        /// donc sous la table quand le client lui fait face.
+        /// </summary>
+        private static List<Part> SeatedPerson(string name, Color cloth)
+        {
+            var skin = new Color(0.86f, 0.70f, 0.56f);
+            var wood = new Color(0.52f, 0.38f, 0.26f);
+            var metal = new Color(0.55f, 0.57f, 0.60f);
+
+            var parts = new List<Part>
+            {
+                // Buste raccourci du modèle debout : mêmes paramètres, hauteur réduite —
+                // les jambes ne sont plus « impliquées » dans le blob, elles existent.
+                new(name, Save($"PropBody{name}",
+                        IngredientMeshFactory.Blob(2, new Vector3(0.44f, 0.62f, 0.28f), taper: 0.72f,
+                            noise: 0.02f, frequency: 2f, seed: 61, boxiness: 0.35f)),
+                    cloth, new Vector3(0f, 0.12f, 0f)),
+
+                // Tête, cou, visage : EXACTEMENT les cotes du modèle debout — le buste
+                // raccourci culmine à 0,43 comme l'autre, donc tout se réutilise verbatim.
+                new("Head", Save("PropHead",
+                        IngredientMeshFactory.Blob(2, new Vector3(0.24f, 0.28f, 0.24f), taper: 1f,
+                            noise: 0.02f, frequency: 3f, seed: 67, boxiness: 0.25f)),
+                    skin, new Vector3(0f, 0.50f, 0f)),
+                new("Neck", Save("PropNeck", IngredientMeshFactory.Cylinder(0.065f, 0.18f, 8)),
+                    skin, new Vector3(0f, 0.38f, 0f)),
+
+                // Bras légèrement portés vers l'avant (rotation X négative) : mains vers la
+                // table plutôt que ballantes — c'est le geste qui dit « attablé ».
+                new("ArmLeft", Save("PropArm",
+                        IngredientMeshFactory.Blob(1, new Vector3(0.12f, 0.54f, 0.12f), taper: 0.85f,
+                            noise: 0f, frequency: 1f, seed: 0, boxiness: 0.4f)),
+                    cloth, new Vector3(-0.18f, 0.08f, -0.03f), new Vector3(-16f, 0f, 9f)),
+                new("ArmRight", Save("PropArm", null),
+                    cloth, new Vector3(0.18f, 0.08f, -0.03f), new Vector3(-16f, 0f, -9f)),
+
+                // Cuisses : un seul bloc horizontal vers -z, enfoncé dans le bas du buste.
+                new("Lap", Save("PropLap",
+                        IngredientMeshFactory.Blob(1, new Vector3(0.34f, 0.15f, 0.44f), taper: 0.92f,
+                            noise: 0.01f, frequency: 2f, seed: 73, boxiness: 0.55f)),
+                    cloth, new Vector3(0f, -0.16f, -0.16f)),
+
+                // Tibias : les genoux mordent dans l'avant des cuisses, les pieds descendent
+                // au niveau de la base du tabouret.
+                new("ShinLeft", Save("PropShin",
+                        IngredientMeshFactory.Blob(1, new Vector3(0.11f, 0.46f, 0.11f), taper: 0.9f,
+                            noise: 0f, frequency: 1f, seed: 0, boxiness: 0.5f)),
+                    cloth, new Vector3(-0.10f, -0.36f, -0.32f)),
+                new("ShinRight", Save("PropShin", null),
+                    cloth, new Vector3(0.10f, -0.36f, -0.32f)),
+
+                // Le tabouret, dans le langage de la table : assise + fût + socle.
+                new("StoolSeat", Save("PropStoolSeat", IngredientMeshFactory.Cylinder(0.21f, 0.035f, 14)),
+                    wood, new Vector3(0f, -0.25f, 0f)),
+                new("StoolPillar", Save("PropStoolPillar", IngredientMeshFactory.Cylinder(0.035f, 0.32f, 8)),
+                    metal, new Vector3(0f, -0.42f, 0f)),
+                new("StoolFoot", Save("PropStoolFoot", IngredientMeshFactory.Cylinder(0.12f, 0.03f, 12)),
+                    metal, new Vector3(0f, -0.585f, 0f)),
+            };
+
+            var pupil = new Color(0.15f, 0.13f, 0.12f);
+            for (int i = 0; i < 2; i++)
+                parts.Add(new Part(i == 0 ? "EyeLeft" : "EyeRight",
+                    Save("PropEye", i == 0 ? IngredientMeshFactory.Blob(1, Vector3.one * 0.05f,
+                        taper: 1f, noise: 0f, frequency: 1f, seed: 0) : null),
+                    pupil, new Vector3(-0.055f + i * 0.11f, 0.545f, -0.105f)));
+
+            parts.Add(new Part("Mouth", Save("PropMouth", Box(new Vector3(0.09f, 0.022f, 0.03f))),
+                new Color(0.45f, 0.24f, 0.22f), new Vector3(0f, 0.455f, -0.105f)));
 
             return parts;
         }

@@ -649,15 +649,16 @@ namespace Sc4ve.Demonstration.EditorTools
         private static void MakeCustomer(Transform room, GameObject table,
                                          string family, string constraint, int index)
         {
-            // Du côté OPPOSÉ à la cuisine (z de la table + 0,55) : le serveur arrive toujours
-            // du côté cuisine et n'a jamais à traverser le client pour atteindre la table.
-            Vector3 position = table.transform.position + new Vector3(0f, 0f, 0.55f);
+            // Du côté OPPOSÉ à la cuisine (z de la table + 0,50) : le serveur arrive toujours
+            // du côté cuisine et n'a jamais à traverser le client pour atteindre la table —
+            // et à 0,50 du centre, les genoux du modèle assis passent sous le plateau.
+            Vector3 position = table.transform.position + new Vector3(0f, 0f, 0.50f);
 
-            // 1,70 m — la taille du client de la scène d'exposition. Le 1,20 m « assis »
-            // d'abord essayé lisait comme un enfant à côté des serveurs d'1,75 m, faute de
-            // chaise pour raconter la posture.
+            // 1,30 m : la hauteur d'un adulte ASSIS, tabouret compris. Le modèle est la
+            // version assise de PropMeshFactory — le 1,20 m debout d'abord essayé lisait
+            // comme un enfant, et le 1,70 m debout comme un client qui refuse de s'installer.
             GameObject customer = Prop(room, $"Client {(char)('A' + index)}", "sven:Customer",
-                position, height: 1.70f);
+                position, height: 1.30f);
             RestOnSurface(customer, 0f);
             // Rotation IDENTITÉ, comme les serveurs : le visage du modèle est côté -z (les
             // yeux de PropMeshFactory sont à z négatif), donc identité = face à sa table et à
@@ -1396,7 +1397,7 @@ namespace Sc4ve.Demonstration.EditorTools
             {
                 ("Table", "sven:Table", new Vector3(-1.4f, 0f, 2.6f), 0.75f),
                 ("Serveur", "sven:Waiter", new Vector3(0f, 0f, 2.6f), 1.75f),
-                ("Client", "sven:Customer", new Vector3(1.4f, 0f, 2.6f), 1.70f),
+                ("Client", "sven:Customer", new Vector3(1.4f, 0f, 2.6f), 1.30f),
             };
 
             foreach (var (name, semantic, position, height) in actors)
