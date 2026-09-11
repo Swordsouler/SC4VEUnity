@@ -102,7 +102,7 @@ Ajouter le composant `WhisperSpeechToText` sur un GameObject :
 | **Whisper Manager** | Référence vers le composant `WhisperManager` de la scène |
 | **Voice Processor** | Référence vers le composant `VoiceProcessor` de la scène |
 | **Auto Start** | ✅ (démarre l'écoute automatiquement) |
-| **Push To Talk** | ☐ (ou ✅ pour mode bouton, touche `V` — `T` est réservée par le XR Device Simulator) |
+| **Push To Talk** | ☐ (ou ✅ pour mode bouton, touche `F` — la seule lettre que le XR Device Simulator ne lie pas) |
 
 Sur le composant `WhisperManager` :
 

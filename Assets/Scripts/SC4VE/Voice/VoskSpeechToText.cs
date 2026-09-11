@@ -342,9 +342,9 @@ namespace Sc4ve.Voice
 
             if (_pushToTalk)
             {
-                // V (comme Voix) et pas T : le XR Device Simulator réserve T pour basculer sur
-                // la manette gauche — même touche que le push-to-talk Whisper.
-                bool pttKeyIsPressed = Keyboard.current != null && Keyboard.current.vKey.isPressed;
+                // F : la seule lettre libre du XR Device Simulator (T basculait la manette,
+                // V déclenchait « Reset ») — même touche que le push-to-talk Whisper.
+                bool pttKeyIsPressed = Keyboard.current != null && Keyboard.current.fKey.isPressed;
 
                 // Key was just pressed
                 if (pttKeyIsPressed && !_pttKeyActive)

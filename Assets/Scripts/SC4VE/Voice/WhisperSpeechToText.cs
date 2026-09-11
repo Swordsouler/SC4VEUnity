@@ -17,7 +17,7 @@ namespace Sc4ve.Voice
         [BoxGroup("Settings"), SerializeField, Tooltip("Démarre l'écoute automatiquement au lancement.")]
         private bool _autoStart = true;
 
-        [BoxGroup("Settings"), SerializeField, Tooltip("Active le mode Push-to-Talk (touche V).")]
+        [BoxGroup("Settings"), SerializeField, Tooltip("Active le mode Push-to-Talk (touche F).")]
         private bool _pushToTalk = false;
 
         private DateTime _recognizerStartedAt;
@@ -80,9 +80,11 @@ namespace Sc4ve.Voice
         {
             if (!_pushToTalk) return;
 
-            // V (comme Voix) et pas T : le XR Device Simulator réserve T pour basculer sur la
-            // manette gauche — chaque prise de parole déclenchait aussi une prise de manette.
-            bool keyPressed = Keyboard.current != null && Keyboard.current.vKey.isPressed;
+            // F : la SEULE lettre que le XR Device Simulator ne lie pas. Son inputactions
+            // couvre tout le reste du clavier — T basculait la manette gauche à chaque prise
+            // de parole, et V (essayé ensuite) est « Reset », qui recentre les périphériques
+            // simulés.
+            bool keyPressed = Keyboard.current != null && Keyboard.current.fKey.isPressed;
 
             if (keyPressed && !_pttKeyActive)
             {
