@@ -771,9 +771,11 @@ namespace Sc4ve.Demonstration.EditorTools
             }
 
             // Deux serveurs délibérément identiques : sans une paire indiscernable,
-            // la clarification ne se déclenche jamais (§3 du README).
-            MakeWaiter(Prop(room, "Serveur 1", "sven:Waiter", new Vector3(-0.7f, 0f, 2.6f), 1.75f));
-            MakeWaiter(Prop(room, "Serveur 2", "sven:Waiter", new Vector3(0.7f, 0f, 2.6f), 1.75f));
+            // la clarification ne se déclenche jamais (§3 du README). Sur les FLANCS, pas au
+            // centre : à (±0,7, 2,6) ils se tenaient en plein milieu de l'axe joueur→tables —
+            // le croquis les veut de part et d'autre du joueur, la salle dégagée devant lui.
+            MakeWaiter(Prop(room, "Serveur 1", "sven:Waiter", new Vector3(-2.8f, 0f, 2.1f), 1.75f));
+            MakeWaiter(Prop(room, "Serveur 2", "sven:Waiter", new Vector3(2.8f, 0f, 2.1f), 1.75f));
         }
 
         /// <summary>
@@ -929,6 +931,15 @@ namespace Sc4ve.Demonstration.EditorTools
         private const string RigPrefabName = "XR Origin (XR Rig)";
 
         /// <summary>
+        /// Le joueur se tient DEVANT la passe, dos à la cuisine, face à la salle — la
+        /// disposition du croquis : cuisine derrière lui, un serveur sur chaque flanc, les
+        /// quatre tables dégagées devant. Le rig vivait à l'origine (z = 0), DERRIÈRE les
+        /// comptoirs : le joueur voyait cuisine, serveurs et tables empilés dans son axe de
+        /// regard, et pointer une table exigeait de viser entre les serveurs.
+        /// </summary>
+        private static readonly Vector3 PlayerSpawn = new(0f, 0f, 2.35f);
+
+        /// <summary>
         /// Met en place un rig XR **utilisable**, c'est-à-dire muni de contrôleurs.
         ///
         /// Le menu « GameObject > XR > XR Origin (VR) » d'Unity ne crée qu'une origine, un
@@ -937,7 +948,9 @@ namespace Sc4ve.Demonstration.EditorTools
         /// On instancie donc le prefab des Starter Assets, qui apporte les deux contrôleurs.
         ///
         /// Le rig vit HORS de la racine générée : il survit aux reconstructions et peut être
-        /// réglé à la main. Un rig déjà pourvu d'interactors n'est jamais remplacé.
+        /// réglé à la main. Un rig déjà pourvu d'interactors n'est jamais remplacé — mais sa
+        /// POSITION fait partie de la disposition de la salle : elle se réapplique à chaque
+        /// reconstruction.
         /// </summary>
         /// <returns>Vrai si un rig a été mis en place, faux s'il en existait déjà un d'utilisable.</returns>
         private static bool EnsureXRRig()
@@ -947,6 +960,7 @@ namespace Sc4ve.Demonstration.EditorTools
             {
                 if (existing.GetComponentInChildren<XRBaseInteractor>(true) != null)
                 {
+                    existing.transform.SetPositionAndRotation(PlayerSpawn, Quaternion.identity);
                     EnsureInteractionManager();
                     EnsureSvenInteractors(existing);
                     return false;
@@ -969,7 +983,7 @@ namespace Sc4ve.Demonstration.EditorTools
 
             var rig = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
             PrefabUtility.UnpackPrefabInstance(rig, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            rig.transform.position = Vector3.zero;
+            rig.transform.SetPositionAndRotation(PlayerSpawn, Quaternion.identity);
 
             DisableLocomotion(rig);
             EnsureInteractionManager();
@@ -1124,10 +1138,11 @@ namespace Sc4ve.Demonstration.EditorTools
             var board = new GameObject("Tableau des commandes");
             board.transform.SetParent(root);
             board.transform.position = new Vector3(0f, 1.75f, 1.95f);
-            // Rotation IDENTITÉ : un TextMesh se lit depuis le -z de son transform, et le
-            // joueur est en cuisine, à z plus petit que le tableau. Le 180° d'abord écrit le
-            // présentait à l'envers — lisible depuis la salle, en miroir depuis la cuisine.
-            board.transform.rotation = Quaternion.identity;
+            // 180° : un TextMesh se lit depuis le -z de son transform, et le joueur se tient
+            // maintenant DEVANT la passe (PlayerSpawn, z ≈ 2,35), côté salle — il se retourne
+            // vers la cuisine pour lire le tableau. L'identité valait pour l'ancien joueur
+            // posé derrière les comptoirs, à z plus petit que le tableau.
+            board.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
 
             GameObject back = GameObject.CreatePrimitive(PrimitiveType.Cube);
             back.name = "Fond";
