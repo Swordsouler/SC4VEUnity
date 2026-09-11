@@ -786,15 +786,14 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 .Replace(text, " ", 1);
 
         /// <summary>
-        /// Vérifie si le texte contient une phrase (multi-mots ou mot unique avec frontière).
+        /// Vérifie si le texte contient une phrase, AVEC frontière de mots — multi-mots
+        /// compris. Le Contains brut d'origine faisait gagner « sélectionne tout » À
+        /// L'INTÉRIEUR de « deselectionne tout » (Whisper écrit volontiers sans accents) :
+        /// « désélectionne tout » sélectionnait les 46 objets de la scène au lieu de vider
+        /// la sélection. Même règle que ContainsCommandTrigger côté contrôleur.
         /// </summary>
         private bool ContainsPhrase(string text, string phrase)
-        {
-            if (phrase.Contains(' '))
-                return text.Contains(phrase, StringComparison.OrdinalIgnoreCase);
-
-            return Regex.IsMatch(text, $@"\b{Regex.Escape(phrase)}\b", RegexOptions.IgnoreCase);
-        }
+            => Regex.IsMatch(text, $@"\b{Regex.Escape(phrase)}\b", RegexOptions.IgnoreCase);
 
         /// <summary>
         /// Détermine si une couleur est la couleur CIBLE (à appliquer) plutôt qu'un filtre SOURCE

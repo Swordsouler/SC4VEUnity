@@ -58,6 +58,15 @@ namespace Sc4ve.Multimodality.Intent
         private static void SetOutline(SemantizationCore obj, bool on)
         {
             if (obj == null) return;
+
+            // Les objets statiques (les tables) sont fondus par le static batching dans un
+            // mesh combiné NON LISIBLE : QuickOutline en lit les sommets à l'Awake et Unity
+            // crache trois erreurs par objet. Pas de contour pour eux — la sélection reste
+            // vraie partout ailleurs (graphe, voix, commandes), seul le liseré manque.
+            foreach (UnityEngine.MeshFilter filter in obj.GetComponentsInChildren<UnityEngine.MeshFilter>())
+                if (filter.sharedMesh != null && !filter.sharedMesh.isReadable)
+                    return;
+
             try
             {
                 if (!obj.TryGetComponent(out Outline outline))

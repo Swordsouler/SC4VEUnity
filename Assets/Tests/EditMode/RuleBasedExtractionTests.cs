@@ -193,6 +193,23 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void DeselectionneTout_IsUnselect_NotSelectAll()
+        {
+            // Frontières de mots sur les déclencheurs multi-mots : « deselectionne tout »
+            // CONTIENT la sous-chaîne « selectionne tout », et un Contains brut faisait
+            // gagner SelectAllCommand — « désélectionne tout » sélectionnait les 46 objets
+            // de la scène au lieu de vider la sélection.
+            RecognizeSingle<UnselectCommand>("désélectionne tout");
+        }
+
+        [Test]
+        public void DeselectionneTout_WithoutAccents_IsStillUnselect()
+        {
+            // Whisper écrit volontiers sans accents — la forme exacte du bug observé en démo.
+            RecognizeSingle<UnselectCommand>("deselectionne tout.");
+        }
+
+        [Test]
         public void English_MakeColorPattern_TriggersColorize()
         {
             // Bascule complète en anglais (locale + vocabulaire de triggers + recognizer).
