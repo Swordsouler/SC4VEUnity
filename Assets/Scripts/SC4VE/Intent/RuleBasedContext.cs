@@ -32,7 +32,9 @@ namespace Sc4ve.Multimodality.Intent
         // Coefficient d'intensité des adverbes graduables (« un peu » → 0.5, « beaucoup » → 2) ;
         // 1 = neutre. Les commandes l'appliquent à l'ÉCART de leur transformation à l'identité.
         public float MagnitudeModifier { get; init; } = 1f;
-        // « les pommes OU les bananes » : les filtres d'annotation sont joints par OR (UNION).
+        // « les pommes OU les bananes », « les pommes ET les bananes » : une énumération de
+        // types d'objets joint les filtres d'annotation par OR (UNION) — l'intersection de
+        // deux annotations ne sélectionne jamais rien.
         public bool HasDisjunction { get; init; }
         // Tri ordinal superlatif (« les 3 plus petites » → size croissant) ; null = aucun tri.
         public Order Order { get; init; }

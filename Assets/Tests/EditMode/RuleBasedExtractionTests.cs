@@ -117,6 +117,37 @@ namespace Sc4ve.Tests.EditMode
             Assert.IsFalse(filters.Any(f => f.IsOperator && f.Operator == "OR"));
         }
 
+        [Test]
+        public void Enumeration_EtAlsoJoinsAnnotationsWithOr()
+        {
+            // « et » énumère deux TYPES d'objets : union, comme « ou ». L'intersection de
+            // deux annotations ne sélectionne jamais rien — « sélectionne les pommes et les
+            // bananes » répondait « aucun objet correspondant ».
+            ShowCommand cmd = RecognizeSingle<ShowCommand>("montre les pommes et les bananes");
+            List<FilterElement> filters = Selection(cmd).Filters;
+            Assert.AreEqual(3, filters.Count);
+            Assert.IsTrue(filters[1].IsOperator && filters[1].Operator == "OR",
+                "« et » entre deux annotations doit produire un OR.");
+        }
+
+        [Test]
+        public void PointedPair_EtKeepsUnionBetweenAnnotations_AndForPointing()
+        {
+            // « sélectionne ce serveur et cette table » : (Serveur OU Table) ET pointé —
+            // le pointage reste une intersection, l'énumération une union.
+            _recognizer = MakeRecognizer(
+                Language.French,
+                annotationTypes: new List<string> { "Serveur", "Table" });
+
+            SelectCommand cmd = RecognizeSingle<SelectCommand>("sélectionne ce serveur et cette table");
+            List<FilterElement> filters = Selection(cmd).Filters;
+            Assert.IsTrue(filters[1].IsOperator && filters[1].Operator == "OR",
+                "Les deux annotations doivent être jointes par OR.");
+            Assert.IsTrue(filters[^2].IsOperator && filters[^2].Operator == "AND",
+                "Le pointage (Event) doit rester une intersection.");
+            Assert.AreEqual("Event", filters[^1].Condition.Type);
+        }
+
         // ─────────────────────────────────────────────────────────────────────
         // Tri ordinal superlatif
         // ─────────────────────────────────────────────────────────────────────

@@ -259,9 +259,13 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 ScaleValue       = scaleValue,
                 Angle            = angle,
                 MagnitudeModifier = DetectMagnitudeModifier(text),
-                // « les pommes ou les bananes » : la conjonction bascule les filtres
-                // d'annotation en OR (UNION SPARQL) au lieu du AND par défaut.
-                HasDisjunction   = Regex.IsMatch(text, @"\b(ou|or)\b", RegexOptions.IgnoreCase),
+                // « les pommes ou les bananes » MAIS AUSSI « les pommes et les bananes » :
+                // une énumération de deux TYPES d'objets est une union, quelle que soit la
+                // conjonction. Le AND (intersection) entre deux annotations ne sélectionne
+                // jamais rien — « sélectionne ce serveur et cette table » cherchait un objet
+                // à la fois serveur ET table. Le AND par défaut reste pour les jonctions
+                // annotation-couleur et annotation-pointage (« la pomme rouge », « ce bol »).
+                HasDisjunction   = Regex.IsMatch(text, @"\b(et|ou|and|or)\b", RegexOptions.IgnoreCase),
                 Order            = DetectOrder(text),
                 SingularIntent   = singularIntent,
                 Recipe           = recipe
