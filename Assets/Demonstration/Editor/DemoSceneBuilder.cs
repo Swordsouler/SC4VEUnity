@@ -783,20 +783,20 @@ namespace Sc4ve.Demonstration.EditorTools
                 MakeCustomer(room, table, couples[i].family, couples[i].constraint, i);
             }
 
-            // Deux serveurs délibérément identiques : sans une paire indiscernable,
-            // la clarification ne se déclenche jamais (§3 du README). Sur les FLANCS, pas au
-            // centre : à (±0,7, 2,6) ils se tenaient en plein milieu de l'axe joueur→tables —
-            // le croquis les veut de part et d'autre du joueur, la salle dégagée devant lui.
-            // Tournés VERS le joueur (l'avant du modèle debout est +z, cf. PropMeshFactory) :
-            // Delegation capture cette orientation comme _homeRotation et la restaure au
-            // retour de chaque course.
-            GameObject left = Prop(room, "Serveur 1", "sven:Waiter", new Vector3(-2.8f, 0f, 2.1f), 1.75f);
-            left.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
-            MakeWaiter(left);
-
-            GameObject right = Prop(room, "Serveur 2", "sven:Waiter", new Vector3(2.8f, 0f, 2.1f), 1.75f);
-            right.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
-            MakeWaiter(right);
+            // UN SEUL serveur. Le second existait pour rendre « quel serveur ? » possible : sans
+            // paire indiscernable, la clarification d'agent ne se déclenche jamais (§3 du README).
+            // Mais la démonstration porte désormais sur la DÉLÉGATION, pas sur la levée
+            // d'ambiguïté entre deux clones — celle-ci se montre bien mieux sur les quatre
+            // tables, qui sont de vraies cibles concurrentes. Rétablir le second serveur est
+            // une ligne si le besoin revient.
+            //
+            // Sur le FLANC, pas au centre : à (±0,7, 2,6) il se tenait en plein milieu de l'axe
+            // joueur→tables. Tourné VERS le joueur (l'avant du modèle debout est +z, cf.
+            // PropMeshFactory) : Delegation capture cette orientation comme _homeRotation et la
+            // restaure au retour de chaque course.
+            GameObject waiter = Prop(room, "Serveur 1", "sven:Waiter", new Vector3(-2.8f, 0f, 2.1f), 1.75f);
+            waiter.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+            MakeWaiter(waiter);
 
             // UN SEUL cuisinier, et c'est la simplification qui compte : « prépare une soupe de
             // carottes » n'a personne à désigner. Le pointage reste là où il porte du sens —
@@ -1128,46 +1128,113 @@ namespace Sc4ve.Demonstration.EditorTools
                 Register(core, camera, SemanticProcessingMode.Dynamic);
             }
 
-            // Un Pointer par contrôleur. Valeurs reprises de « New Demo », la scène de
-            // référence qui fonctionne : portée 4 m, cône de 5°.
-            string[] controllers = { "Right Controller", "Left Controller" };
-            for (int i = 0; i < controllers.Length; i++)
+            // Le pointage est à DROITE, et à droite SEULEMENT. La main gauche porte la tablette
+            // des commandes : un second rayon dans le champ ne ferait que concurrencer celui qui
+            // désigne, et surtout DEUX Pointer écrivent deux pointages dans le graphe — la
+            // requête de deixis prendrait alors l'un ou l'autre selon les horodatages, c'est-à-dire
+            // au hasard de la main qui traînait devant un objet.
+            //
+            // Valeurs reprises de « New Demo », la scène de référence : portée 4 m, cône de 5°.
+            Transform pointing = FindDeep(rig.transform, "Right Controller");
+            if (pointing == null)
             {
-                Transform hand = FindDeep(rig.transform, controllers[i]);
-                if (hand == null)
-                {
-                    Debug.LogWarning($"[DemoSceneBuilder] « {controllers[i]} » introuvable dans le rig : " +
-                                     "pas de Pointer pour cette main.");
-                    continue;
-                }
-
-                Pointer pointer = hand.GetComponent<Pointer>();
+                Debug.LogWarning("[DemoSceneBuilder] « Right Controller » introuvable dans le rig : " +
+                                 "aucun pointage, la deixis est intestable.");
+            }
+            else
+            {
+                Pointer pointer = pointing.GetComponent<Pointer>();
                 if (pointer == null)
                 {
-                    pointer = hand.gameObject.AddComponent<Pointer>();
-                    pointer.PointerIndex = i;
+                    pointer = pointing.gameObject.AddComponent<Pointer>();
+                    pointer.PointerIndex = 0;
                     pointer.PointerDistance = 4f;
                     pointer.PointerConeAngle = 5f;
-                    Debug.Log($"[DemoSceneBuilder] Pointer ajouté sur « {controllers[i]} » (index {i}).");
+                    Debug.Log("[DemoSceneBuilder] Pointer ajouté sur « Right Controller ».");
                 }
 
                 // Le contour blanc de l'objet visé : le joueur doit voir ce qu'il désigne avant
                 // de parler. Purement visuel, il n'écrit rien dans le graphe.
-                if (hand.GetComponent<Sc4ve.Multimodality.Intent.PointerHighlight>() == null)
-                    hand.gameObject.AddComponent<Sc4ve.Multimodality.Intent.PointerHighlight>();
+                if (pointing.GetComponent<Sc4ve.Multimodality.Intent.PointerHighlight>() == null)
+                    pointing.gameObject.AddComponent<Sc4ve.Multimodality.Intent.PointerHighlight>();
 
                 // Le Transform ET le composant Pointer, sinon `pointerHitPosition` n'atteint
                 // jamais le graphe et PointParameter.QueryPoint ne trouve aucun point :
                 // « mets ça ici 👆 » resterait sans effet.
-                var core = hand.GetComponent<SemantizationCore>();
-                Register(core, hand, SemanticProcessingMode.Dynamic);
+                var core = pointing.GetComponent<SemantizationCore>();
+                Register(core, pointing, SemanticProcessingMode.Dynamic);
                 Register(core, pointer, SemanticProcessingMode.Dynamic);
             }
+
+            Transform tabletHand = FindDeep(rig.transform, "Left Controller");
+            if (tabletHand != null) StripPointing(tabletHand);
 
             // Ici, et non dans la construction de la salle : la tablette vit sur le rig, qui
             // est hors de la racine générée. C'est le seul point par lequel passent les DEUX
             // chemins — rig neuf et rig déjà présent.
             EnsureHandTablet(rig);
+        }
+
+        /// <summary>
+        /// Retire d'une main tout ce qui pointe : le Pointer de SVEN, son contour, et les
+        /// interactors XR avec leur rayon.
+        ///
+        /// Rétroactif autant qu'idempotent : une scène construite par une version précédente de
+        /// l'outil porte un Pointer sur les DEUX mains, et le rig survit aux reconstructions. Se
+        /// contenter de ne plus en ajouter laisserait donc l'ancien en place, et le défaut
+        /// qu'on corrige resterait entier.
+        ///
+        /// Les interactors sont désactivés et non détruits : ils se référencent entre eux et
+        /// référencent les fournisseurs de locomotion, qu'une suppression laisserait en
+        /// références nulles. Le contrôleur lui-même reste actif — c'est lui que la tablette suit.
+        /// </summary>
+        private static void StripPointing(Transform hand)
+        {
+            var core = hand.GetComponent<SemantizationCore>();
+            bool stripped = false;
+
+            if (hand.TryGetComponent(out Pointer pointer))
+            {
+                Unregister(core, pointer);
+                UnityEngine.Object.DestroyImmediate(pointer);
+                stripped = true;
+            }
+
+            // Et sa POSITION sort aussi du graphe. Une main qui ne désigne plus rien n'a plus
+            // aucune requête qui la consulte, mais elle continuerait d'écrire sa transformation
+            // plusieurs fois par seconde — or c'est précisément le volume de triplets qui
+            // finit par faire vider le graphe en cours de partie.
+            if (core != null && core.componentsToSemanticize.Any(c => c != null && c.Component == hand))
+            {
+                Unregister(core, hand);
+                stripped = true;
+            }
+
+            if (hand.TryGetComponent(out Sc4ve.Multimodality.Intent.PointerHighlight highlight))
+            {
+                UnityEngine.Object.DestroyImmediate(highlight);
+                stripped = true;
+            }
+
+            foreach (Transform child in hand)
+                if (child.name.Contains("Interactor") && child.gameObject.activeSelf)
+                {
+                    child.gameObject.SetActive(false);
+                    stripped = true;
+                }
+
+            foreach (LineRenderer line in hand.GetComponentsInChildren<LineRenderer>(true))
+                line.enabled = false;
+
+            if (stripped)
+                Debug.Log($"[DemoSceneBuilder] « {hand.name} » ne pointe plus : elle ne porte que la tablette.");
+        }
+
+        /// <summary>Décoche un composant de la liste de sémantisation. Inverse de <see cref="Register"/>.</summary>
+        private static void Unregister(SemantizationCore core, Component component)
+        {
+            if (core == null || component == null) return;
+            core.componentsToSemanticize.RemoveAll(c => c != null && c.Component == component);
         }
 
         /// <summary>

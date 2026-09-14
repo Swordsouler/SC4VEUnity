@@ -116,6 +116,13 @@ namespace Sc4ve.Multimodality.Intent
                 table ??= Table(selected);
             }
 
+            // Un seul serveur dans la scène : il n'y a rien à demander. « Quel serveur ? » ne
+            // veut dire quelque chose que devant un choix ; le poser devant une évidence donne
+            // un système qui a l'air de ne pas voir ce que le joueur voit. Le seuil est
+            // EXACTEMENT un — dès qu'il y en a deux, la question redevient légitime, et c'est
+            // elle qui porte la démonstration de clarification.
+            agent ??= OnlyWaiter();
+
             // Ce qui est connu reste sélectionné : sans cela, une question sur le rôle manquant
             // ferait perdre le rôle déjà acquis, et le dialogue tournerait en rond.
             var known = new List<SemantizationCore>(targets);
@@ -124,6 +131,15 @@ namespace Sc4ve.Multimodality.Intent
             if (table != null && !known.Contains(table)) known.Add(table);
 
             return (agent, table, known);
+        }
+
+        /// <summary>Le serveur de la scène s'il est SEUL, null sinon.</summary>
+        private static Delegation OnlyWaiter()
+        {
+            Delegation[] waiters = UnityEngine.Object
+                .FindObjectsByType<Delegation>(UnityEngine.FindObjectsInactive.Exclude,
+                                               UnityEngine.FindObjectsSortMode.None);
+            return waiters.Length == 1 ? waiters[0] : null;
         }
     }
 }
