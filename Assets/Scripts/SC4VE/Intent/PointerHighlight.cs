@@ -35,6 +35,12 @@ namespace Sc4ve.Multimodality.Intent
 
         private void Awake() => _pointer = GetComponent<Pointer>();
 
+        // Trace unique : sans elle, « il n'y a pas de contour » ne distingue pas un composant
+        // absent de la scène d'un rayon qui ne touche rien.
+        private void Start() =>
+            Debug.Log($"[PointerHighlight] Actif sur « {name} » " +
+                      $"(portée {(_pointer != null ? _pointer.PointerDistance : _fallbackDistance)} m).");
+
         private void Update()
         {
             SemantizationCore target = Aimed();
@@ -71,6 +77,13 @@ namespace Sc4ve.Multimodality.Intent
             foreach (RaycastHit hit in hits)
             {
                 if (hit.distance >= nearestDistance) continue;
+
+                // On ne se contoure pas soi-même. Le contrôleur porte un SemantizationCore (il
+                // le faut : c'est lui l'émetteur des CollisionEvent de pointage), et son propre
+                // collider est le premier que le rayon rencontre — la main restait donc éclairée
+                // en permanence et aucune cible ne passait jamais devant elle.
+                if (hit.transform.IsChildOf(transform.root)) continue;
+
                 if (!hit.collider.TryGetComponent(out SemantizationCore core)) continue;
 
                 nearest = core;

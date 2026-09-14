@@ -189,6 +189,11 @@ namespace Sc4ve.Multimodality
         /// </summary>
         private async void Start()
         {
+            // AVANT l'attente du graphe : le contour du pointé est un retour visuel, il n'a
+            // aucune raison d'attendre les ontologies — ni de dépendre d'une reconstruction de
+            // scène pour exister.
+            EnsurePointerHighlights();
+
             for (int attempt = 0; attempt < 15 && !GraphManager.IsGraphInitialized; attempt++)
                 await Task.Delay(1000);
             if (!GraphManager.IsGraphInitialized) return;
@@ -203,6 +208,21 @@ namespace Sc4ve.Multimodality
             {
                 Debug.LogError($"[Multimodality] Préchauffage des vocabulaires impossible : {e}");
             }
+        }
+
+        /// <summary>
+        /// Pose le contour blanc du pointé sur chaque pointeur de la scène.
+        ///
+        /// À l'exécution et non à la construction : un retour visuel ne doit pas exiger une
+        /// reconstruction de scène pour apparaître, ni manquer dans une scène montée à la main.
+        /// DemoSceneBuilder le pose aussi, et c'est sans conséquence — PointerHighlight est
+        /// DisallowMultipleComponent et on vérifie avant d'ajouter.
+        /// </summary>
+        private static void EnsurePointerHighlights()
+        {
+            foreach (Pointer pointer in FindObjectsByType<Pointer>(FindObjectsSortMode.None))
+                if (pointer.GetComponent<PointerHighlight>() == null)
+                    pointer.gameObject.AddComponent<PointerHighlight>();
         }
 
         private void OnDestroy()
