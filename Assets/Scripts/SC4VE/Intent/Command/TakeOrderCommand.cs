@@ -10,7 +10,10 @@ namespace Sc4ve.Multimodality.Intent
         // stem « prend » (= prendre) routait vers GrabCommand — qui tentait de saisir la table.
         "prends la commande", "prend la commande", "prenez la commande",
         "prendre la commande", "va prendre la commande",
-        "take the order", "go take the order")]
+        // « chercher » plutôt que « prendre » : on va chercher une commande comme on va la
+        // prendre, et rien d'autre dans le jeu ne se « cherche ».
+        "va chercher la commande", "cherche la commande", "chercher la commande",
+        "take the order", "go take the order", "go get the order", "get the order")]
     [Serializable, CommandDescription(
         "Envoie un serveur prendre la commande d'une table (« va prendre la commande de cette " +
         "table-là »). Le serveur s'y rend ; le client ne parle qu'une fois qu'il est arrivé. " +

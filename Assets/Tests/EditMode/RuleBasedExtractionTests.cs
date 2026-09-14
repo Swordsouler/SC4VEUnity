@@ -241,6 +241,15 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void VaChercherLaCommande_IsTakeOrder()
+        {
+            // « chercher » est aussi naturel que « prendre » pour envoyer un serveur à une
+            // table, et ne servait à rien d'autre : sans ce déclencheur, la phrase tombait
+            // en « je n'ai pas compris ».
+            RecognizeSingle<TakeOrderCommand>("Va chercher la commande.");
+        }
+
+        [Test]
         public void PrendLaCommande_ThirdPerson_IsTakeOrder_NotGrab()
         {
             // Whisper transcrit l'impératif « prends » en 3e personne « prend » : sans la

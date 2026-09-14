@@ -871,10 +871,14 @@ sc4ve:ServeCommand sc4ve:trigger
 
 ###  « prend la commande » sans s : Whisper transcrit volontiers l'impératif « prends » en
 ###  3e personne — sans cette forme, le stem « prend » (= prendre) routait vers GrabCommand.
+###  « chercher » plutôt que « prendre » : on va chercher une commande comme on va la prendre,
+###  et rien d'autre dans le jeu ne se « cherche ».
 sc4ve:TakeOrderCommand sc4ve:trigger
     "prends la commande"@fr , "prend la commande"@fr , "prenez la commande"@fr ,
     "prendre la commande"@fr , "va prendre la commande"@fr ,
-    "take the order"@en , "go take the order"@en .
+    "va chercher la commande"@fr , "cherche la commande"@fr , "chercher la commande"@fr ,
+    "take the order"@en , "go take the order"@en ,
+    "go get the order"@en , "get the order"@en .
 
 ###  Aucun déclencheur mono-mot : « commande » seul entrerait en collision frontale avec
 ###  TakeOrderCommand. Toutes les formes sont multi-mots et portent leur verbe.
