@@ -869,8 +869,11 @@ sc4ve:ServeCommand sc4ve:trigger
     "va servir"@fr , "sers"@fr , "servir"@fr , "apporte le plat"@fr ,
     "go serve"@en , "serve"@en , "bring the dish"@en .
 
+###  « prend la commande » sans s : Whisper transcrit volontiers l'impératif « prends » en
+###  3e personne — sans cette forme, le stem « prend » (= prendre) routait vers GrabCommand.
 sc4ve:TakeOrderCommand sc4ve:trigger
-    "prends la commande"@fr , "prendre la commande"@fr , "va prendre la commande"@fr ,
+    "prends la commande"@fr , "prend la commande"@fr , "prenez la commande"@fr ,
+    "prendre la commande"@fr , "va prendre la commande"@fr ,
     "take the order"@en , "go take the order"@en .
 
 ###  Aucun déclencheur mono-mot : « commande » seul entrerait en collision frontale avec

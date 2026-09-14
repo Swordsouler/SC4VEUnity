@@ -5,7 +5,11 @@ using System.Collections.Generic;
 namespace Sc4ve.Multimodality.Intent
 {
     [RuleBasedTriggers(
-        "prends la commande", "prendre la commande", "va prendre la commande",
+        // « prend la commande » SANS s : Whisper transcrit volontiers l'impératif « prends »
+        // en 3e personne. Sans cette forme, aucun déclencheur multi-mots ne matchait et le
+        // stem « prend » (= prendre) routait vers GrabCommand — qui tentait de saisir la table.
+        "prends la commande", "prend la commande", "prenez la commande",
+        "prendre la commande", "va prendre la commande",
         "take the order", "go take the order")]
     [Serializable, CommandDescription(
         "Envoie un serveur prendre la commande d'une table (« va prendre la commande de cette " +

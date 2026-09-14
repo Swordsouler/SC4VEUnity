@@ -241,6 +241,15 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void PrendLaCommande_ThirdPerson_IsTakeOrder_NotGrab()
+        {
+            // Whisper transcrit l'impératif « prends » en 3e personne « prend » : sans la
+            // forme sans s, aucun déclencheur multi-mots ne matchait et le stem « prend »
+            // (= prendre) routait vers GrabCommand — qui tentait de saisir la table.
+            RecognizeSingle<TakeOrderCommand>("Prend la commande de cette table.");
+        }
+
+        [Test]
         public void English_MakeColorPattern_TriggersColorize()
         {
             // Bascule complète en anglais (locale + vocabulaire de triggers + recognizer).
