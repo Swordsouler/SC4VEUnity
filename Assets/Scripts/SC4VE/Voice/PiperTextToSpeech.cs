@@ -128,7 +128,13 @@ namespace Sc4ve.Voice
                     // entre les deux (MultimodalityController) et resterait bloquée sinon.
                     OnSpeechEnd?.Invoke();
                     // AudioClip créé à chaque énoncé → libération explicite (fuite mémoire audio sinon).
-                    Destroy(clip);
+                    //
+                    // Quitter le Play mode pendant que le système parle fait reprendre cette
+                    // attente HORS Play mode : Destroy y est refusé (« may not be called from
+                    // edit mode ») et laisse le clip derrière lui. Le clip est engendré à
+                    // l'exécution à partir du wav de Piper — aucun asset à préserver.
+                    if (Application.isPlaying) Destroy(clip);
+                    else DestroyImmediate(clip);
                 }
             }
             finally
