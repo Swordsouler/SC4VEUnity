@@ -1,96 +1,80 @@
 using Sven.Content;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Pointer = Sven.Context.Pointer;
 
 namespace Sc4ve.Multimodality.Intent
 {
     /// <summary>
-    /// Contoure en blanc l'objet que ce pointeur vise, pour que le joueur voie ce qu'il
-    /// désigne AVANT de parler — « sélectionne ça » n'a de sens que si l'on sait ce qu'est
-    /// « ça ». La couleur prime sur le cyan de la sélection (cf. SelectionManager).
+    /// Contoure en blanc ce que ce pointeur vise, pour que le joueur voie ce qu'il désigne
+    /// AVANT de parler — « sélectionne ça » n'a de sens que si l'on sait ce qu'est « ça ».
+    /// Le blanc prime sur le cyan de la sélection (cf. SelectionManager).
     ///
-    /// Pourquoi un lancer de rayon à nous plutôt que la liste du Pointer de SVEN : celui-ci
-    /// échantillonne à intervalle (CheckInteractor) et en CÔNE, parce qu'il alimente le graphe
-    /// — un objet frôlé compte comme pointé, ce qui est le bon choix pour la résolution
-    /// multimodale mais donne un retour visuel qui saute d'un objet à l'autre. Ici on veut
-    /// exactement ce que le rayon touche, à chaque image. Les deux coexistent sans se gêner :
-    /// ce composant ne fait que peindre, il n'écrit rien dans le graphe.
+    /// Ce composant ne lance AUCUN rayon : il lit la liste que le Pointer de SVEN tient déjà
+    /// à jour. C'est la seule façon d'afficher exactement ce que la résolution multimodale va
+    /// considérer — même cône (PointerConeAngle), même portée, même critère de sémantisation.
+    /// Un rayon à nous, si fin soit-il, aurait montré autre chose que ce que la commande
+    /// vocale allait retenir, et le retour visuel aurait menti.
     ///
-    /// À poser sur le même objet que le Pointer (DemoSceneBuilder s'en charge) : c'est de ce
-    /// transform que partent l'origine et la direction du rayon.
+    /// PLUSIEURS objets à la fois, donc : le rayon est transperçant, il touche tout ce qui se
+    /// trouve sur sa trajectoire et la sélection les considère tous. Le contour le montre.
+    ///
+    /// Conséquence à connaître : la liste se rafraîchit à la cadence de sémantisation
+    /// (SvenSettings.SemanticizeFrequency), pas à chaque image. Le contour suit donc le
+    /// pointeur par paliers — c'est le prix de l'exactitude.
     /// </summary>
     [DisallowMultipleComponent]
     public class PointerHighlight : MonoBehaviour
     {
-        [SerializeField, Tooltip("Portée du rayon si aucun Pointer SVEN n'est présent pour la fournir.")]
-        private float _fallbackDistance = 4f;
-
         private Pointer _pointer;
 
         /// <summary>
-        /// Le dernier objet signalé PAR CE POINTEUR. Sans cette mémoire, la main qui ne vise
-        /// rien effacerait à chaque image ce que l'autre main est en train de viser.
+        /// Ce que ce pointeur a signalé en dernier. Sert à ne réveiller SelectionManager que
+        /// lorsque la liste change vraiment : sans cette comparaison, on repeindrait tout à
+        /// chaque image pour un résultat identique.
         /// </summary>
-        private SemantizationCore _reported;
+        private readonly HashSet<SemantizationCore> _reported = new();
 
         private void Awake() => _pointer = GetComponent<Pointer>();
 
-        // Trace unique : sans elle, « il n'y a pas de contour » ne distingue pas un composant
-        // absent de la scène d'un rayon qui ne touche rien.
-        private void Start() =>
-            Debug.Log($"[PointerHighlight] Actif sur « {name} » " +
-                      $"(portée {(_pointer != null ? _pointer.PointerDistance : _fallbackDistance)} m).");
+        private void Start()
+        {
+            if (_pointer == null)
+            {
+                Debug.LogWarning($"[PointerHighlight] « {name} » n'a pas de Pointer SVEN : " +
+                                 "rien à contourer. Le composant se pose sur le pointeur lui-même.");
+                enabled = false;
+                return;
+            }
+
+            // Trace unique : sans elle, « il n'y a pas de contour » ne distingue pas un
+            // composant absent d'un rayon qui ne touche rien.
+            Debug.Log($"[PointerHighlight] Actif sur « {name} » — portée {_pointer.PointerDistance} m, " +
+                      $"cône {_pointer.PointerConeAngle}°.");
+        }
 
         private void Update()
         {
-            SemantizationCore target = Aimed();
-            if (ReferenceEquals(target, _reported)) return;
+            if (_pointer == null) return;
 
-            if (target != null) SelectionManager.SetHovered(target);
-            else SelectionManager.ClearHovered(_reported);
+            // On ne se contoure pas soi-même : le contrôleur porte un SemantizationCore, il le
+            // faut — c'est lui l'émetteur des CollisionEvent de pointage.
+            IEnumerable<SemantizationCore> aimed = _pointer.currentInteractedObjects
+                .Where(o => o != null && !o.transform.IsChildOf(transform.root));
 
-            _reported = target;
+            if (_reported.SetEquals(aimed)) return;
+
+            _reported.Clear();
+            _reported.UnionWith(aimed);
+            SelectionManager.SetHovered(this, _reported);
         }
 
         /// <summary>Le pointage s'éteint avec le pointeur : une main rangée ne vise plus rien.</summary>
         private void OnDisable()
         {
-            SelectionManager.ClearHovered(_reported);
-            _reported = null;
-        }
-
-        /// <summary>
-        /// L'objet sémantisé le plus proche sur le rayon, ou null.
-        ///
-        /// RaycastAll et non Raycast : le premier collider touché n'est pas forcément
-        /// sémantisé — le rayon traverse volontiers un collier de table ou un mur avant
-        /// d'atteindre ce qui nous intéresse, et un simple Raycast s'arrêterait dessus.
-        /// </summary>
-        private SemantizationCore Aimed()
-        {
-            float distance = _pointer != null ? _pointer.PointerDistance : _fallbackDistance;
-            RaycastHit[] hits = Physics.RaycastAll(transform.position, transform.forward, distance);
-
-            SemantizationCore nearest = null;
-            float nearestDistance = float.MaxValue;
-
-            foreach (RaycastHit hit in hits)
-            {
-                if (hit.distance >= nearestDistance) continue;
-
-                // On ne se contoure pas soi-même. Le contrôleur porte un SemantizationCore (il
-                // le faut : c'est lui l'émetteur des CollisionEvent de pointage), et son propre
-                // collider est le premier que le rayon rencontre — la main restait donc éclairée
-                // en permanence et aucune cible ne passait jamais devant elle.
-                if (hit.transform.IsChildOf(transform.root)) continue;
-
-                if (!hit.collider.TryGetComponent(out SemantizationCore core)) continue;
-
-                nearest = core;
-                nearestDistance = hit.distance;
-            }
-
-            return nearest;
+            _reported.Clear();
+            SelectionManager.ClearHovered(this);
         }
     }
 }

@@ -27,8 +27,15 @@ namespace Sc4ve.Multimodality.Intent
         // Indexé par UUID pour dédupliquer (même logique que Command.LastObjects).
         private static readonly Dictionary<string, SemantizationCore> _selected = new();
 
-        /// <summary>L'objet actuellement visé par un pointeur, ou null. Voir PointerHighlight.</summary>
-        private static SemantizationCore _hovered;
+        /// <summary>
+        /// Ce que chaque pointeur vise, par pointeur. Le rayon est TRANSPERÇANT — il touche
+        /// tout ce qui se trouve sur sa trajectoire — donc une main vise plusieurs objets à la
+        /// fois ; et il y a deux mains, dont aucune ne doit effacer ce que l'autre désigne.
+        /// </summary>
+        private static readonly Dictionary<object, List<SemantizationCore>> _hoveredBySource = new();
+
+        /// <summary>L'union de ce que visent tous les pointeurs, indexée comme la sélection.</summary>
+        private static readonly Dictionary<string, SemantizationCore> _hovered = new();
 
         public static IReadOnlyList<SemantizationCore> Selected =>
             _selected.Values.Where(o => o != null).ToList();
@@ -61,29 +68,68 @@ namespace Sc4ve.Multimodality.Intent
         }
 
         /// <summary>
-        /// Déclare l'objet visé par le pointeur. Son contour passe au blanc, par-dessus le
+        /// Déclare ce qu'un pointeur vise. Ces objets se contourent en blanc, par-dessus le
         /// cyan de la sélection : le joueur doit voir ce qu'il désigne AVANT de parler, y
         /// compris quand il vise quelque chose qui est déjà sélectionné.
         /// </summary>
-        public static void SetHovered(SemantizationCore obj)
+        /// <param name="source">Le pointeur émetteur — voir <see cref="_hoveredBySource"/>.</param>
+        public static void SetHovered(object source, IEnumerable<SemantizationCore> objects)
         {
-            if (ReferenceEquals(obj, _hovered)) return;
+            if (source == null) return;
 
-            SemantizationCore previous = _hovered;
-            _hovered = obj;
+            _hoveredBySource[source] = (objects ?? Enumerable.Empty<SemantizationCore>())
+                .Where(o => o != null)
+                .ToList();
 
-            // L'objet quitté retrouve son état de sélection, le nouveau passe au blanc.
-            Paint(previous);
-            Paint(_hovered);
+            RebuildHovered();
         }
 
         /// <summary>
-        /// Éteint le pointage SI c'est bien cet objet qui était visé. Une main qui perd sa
-        /// cible ne doit pas effacer ce que l'AUTRE main est en train de viser.
+        /// Ce pointeur ne vise plus rien. Une main qui perd sa cible ne doit pas effacer ce
+        /// que l'AUTRE main est en train de viser, d'où l'oubli par source.
         /// </summary>
-        public static void ClearHovered(SemantizationCore obj)
+        public static void ClearHovered(object source)
         {
-            if (obj != null && ReferenceEquals(obj, _hovered)) SetHovered(null);
+            if (source == null || !_hoveredBySource.Remove(source)) return;
+            RebuildHovered();
+        }
+
+        /// <summary>
+        /// Recalcule l'union des pointages et ne repeint que les objets qui changent d'état.
+        /// </summary>
+        private static void RebuildHovered()
+        {
+            var next = new Dictionary<string, SemantizationCore>();
+            foreach (List<SemantizationCore> aimed in _hoveredBySource.Values)
+                foreach (SemantizationCore obj in aimed)
+                {
+                    string uuid = UuidOf(obj);
+                    if (uuid != null) next[uuid] = obj;
+                }
+
+            var changed = new List<SemantizationCore>();
+            foreach (KeyValuePair<string, SemantizationCore> kv in _hovered)
+                if (!next.ContainsKey(kv.Key)) changed.Add(kv.Value);
+            foreach (KeyValuePair<string, SemantizationCore> kv in next)
+                if (!_hovered.ContainsKey(kv.Key)) changed.Add(kv.Value);
+
+            // L'état AVANT de peindre : Paint lit _hovered pour décider de la couleur.
+            _hovered.Clear();
+            foreach (KeyValuePair<string, SemantizationCore> kv in next)
+                _hovered[kv.Key] = kv.Value;
+
+            foreach (SemantizationCore obj in changed) Paint(obj);
+        }
+
+        /// <summary>
+        /// L'UUID d'un objet, ou null s'il a été détruit. Le pointage passe ici plusieurs fois
+        /// par seconde sur des objets que le joueur manipule : un ingrédient détruit entre deux
+        /// rafraîchissements ne doit pas faire tomber tout le retour visuel.
+        /// </summary>
+        private static string UuidOf(SemantizationCore obj)
+        {
+            try { return obj == null ? null : obj.GetUUID(); }
+            catch (UnityEngine.MissingReferenceException) { return null; }
         }
 
         /// <summary>
@@ -104,8 +150,11 @@ namespace Sc4ve.Multimodality.Intent
                     if (filter.sharedMesh != null && !filter.sharedMesh.isReadable)
                         return;
 
-                bool hovered = ReferenceEquals(obj, _hovered);
-                bool on = hovered || _selected.ContainsKey(obj.GetUUID());
+                string uuid = UuidOf(obj);
+                if (uuid == null) return;
+
+                bool hovered = _hovered.ContainsKey(uuid);
+                bool on = hovered || _selected.ContainsKey(uuid);
 
                 if (!obj.TryGetComponent(out Outline outline))
                 {
