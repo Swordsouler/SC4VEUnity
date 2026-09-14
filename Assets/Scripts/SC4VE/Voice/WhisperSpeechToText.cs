@@ -173,6 +173,13 @@ namespace Sc4ve.Voice
         {
             if (_isTranscribing || _audioBuffer.Count == 0)
             {
+                // Un appui push-to-talk sans le moindre échantillon capté n'est JAMAIS
+                // normal : micro mort (VoiceProcessor se répare et le dit), ou écoute encore
+                // suspendue (fin de parole Piper perdue). Sorti en silence, ce cas se
+                // présentait comme « la touche ne fait plus rien », indiagnosticable.
+                if (!_isTranscribing && _pushToTalk)
+                    Debug.LogWarning("[Whisper] Touche relâchée sans aucun audio capté — " +
+                                     $"micro interrompu ou écoute suspendue (suspendu : {_suspended}).");
                 _audioBuffer.Clear();
                 _isBuffering = false;
                 return;

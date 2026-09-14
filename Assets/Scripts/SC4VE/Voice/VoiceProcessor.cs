@@ -305,6 +305,32 @@ namespace Sc4ve.Voice
 
                 if (samplesAvailable < FrameLength)
                 {
+                    // AUTO-RÉPARATION : un changement de périphérique audio (casque Link qui
+                    // s'active, reset du pilote XR — « XR: Error setting active audio output
+                    // driver ») tue la capture Microphone EN SILENCE : GetPosition se fige,
+                    // plus aucune trame ne part, sans erreur ni exception — le push-to-talk
+                    // semble simplement mort. On détecte l'arrêt matériel et on relance la
+                    // capture sur place.
+                    if (!Microphone.IsRecording(CurrentDeviceName))
+                    {
+                        Debug.LogWarning("[VoiceProcessor] Capture micro interrompue " +
+                                         "(changement de périphérique audio ?) — redémarrage.");
+                        Microphone.End(CurrentDeviceName);
+                        if (_audioClip != null) Destroy(_audioClip);
+                        _audioClip = Microphone.Start(CurrentDeviceName, true, 1, SampleRate);
+                        startReadPos = 0;
+
+                        if (_audioClip == null || !Microphone.IsRecording(CurrentDeviceName))
+                        {
+                            // Périphérique encore indisponible (ou disparu) : rafraîchir la
+                            // liste et retenter dans une seconde, plutôt que de marteler le
+                            // pilote à chaque image. Temps RÉEL : le ralenti d'écoute (§2)
+                            // ne doit pas espacer les tentatives.
+                            UpdateDevices();
+                            yield return new WaitForSecondsRealtime(1f);
+                        }
+                        continue;
+                    }
                     yield return null;
                     continue;
                 }
