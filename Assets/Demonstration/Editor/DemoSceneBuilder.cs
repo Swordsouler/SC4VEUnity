@@ -1116,6 +1116,11 @@ namespace Sc4ve.Demonstration.EditorTools
                     Debug.Log($"[DemoSceneBuilder] Pointer ajouté sur « {controllers[i]} » (index {i}).");
                 }
 
+                // Le contour blanc de l'objet visé : le joueur doit voir ce qu'il désigne avant
+                // de parler. Purement visuel, il n'écrit rien dans le graphe.
+                if (hand.GetComponent<Sc4ve.Multimodality.Intent.PointerHighlight>() == null)
+                    hand.gameObject.AddComponent<Sc4ve.Multimodality.Intent.PointerHighlight>();
+
                 // Le Transform ET le composant Pointer, sinon `pointerHitPosition` n'atteint
                 // jamais le graphe et PointParameter.QueryPoint ne trouve aucun point :
                 // « mets ça ici 👆 » resterait sans effet.
@@ -1441,9 +1446,51 @@ namespace Sc4ve.Demonstration.EditorTools
             // Cuire pour un autre gabarit laisserait croire à des passages qu'ils ne peuvent
             // pas emprunter.
             surface.agentTypeID = 0;
+
+            MarkFurnitureNotWalkable(root);
             surface.BuildNavMesh();
 
             Debug.Log("[DemoSceneBuilder] NavMesh cuit sur la géométrie générée.");
+        }
+
+        /// <summary>
+        /// Interdit de marcher SUR les meubles.
+        ///
+        /// La cuisson ne voit que de la géométrie : le plateau d'une table est une surface
+        /// plane et dégagée, donc marchable, et rien ne lui dit qu'on n'y monte pas. Un serveur
+        /// envoyé vers une table pouvait donc s'y retrouver DEBOUT SUR LE PLATEAU, au milieu
+        /// des assiettes. Dans ce décor, un déplacement est toujours horizontal : il n'existe
+        /// ni escalier, ni estrade, ni étage.
+        ///
+        /// « Non marchable » n'est PAS « ignoré » : le collider continue de creuser le NavMesh,
+        /// donc la table reste un obstacle que le serveur contourne — c'est exactement la
+        /// différence avec un filtrage par layer, qui la lui ferait traverser.
+        ///
+        /// Le sol se reconnaît à sa hauteur : tout ce dont le sommet reste sous une marche est
+        /// laissé marchable. Marquer aussi les murs et les ingrédients est sans effet — on ne
+        /// marche déjà sur aucun des deux — et évite d'avoir à énumérer les meubles, liste qui
+        /// se serait désynchronisée au premier ajout de mobilier.
+        /// </summary>
+        private static void MarkFurnitureNotWalkable(Transform root)
+        {
+            const float stepHeight = 0.35f;
+            const int notWalkableArea = 1; // aire intégrée « Not Walkable »
+
+            int marked = 0;
+            foreach (Collider collider in root.GetComponentsInChildren<Collider>())
+            {
+                if (collider.bounds.max.y <= stepHeight) continue;
+
+                if (!collider.TryGetComponent(out NavMeshModifier modifier))
+                    modifier = collider.gameObject.AddComponent<NavMeshModifier>();
+
+                modifier.overrideArea = true;
+                modifier.area = notWalkableArea;
+                marked++;
+            }
+
+            Debug.Log($"[DemoSceneBuilder] {marked} collider(s) au-dessus du sol marqués non " +
+                      "marchables : les serveurs contournent les meubles au lieu d'y monter.");
         }
 
         /// <summary>

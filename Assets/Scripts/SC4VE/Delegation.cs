@@ -480,10 +480,25 @@ namespace Sc4ve.Multimodality
         private Vector3 NearestOnNavMesh(Vector3 target)
         {
             var onFloor = new Vector3(target.x, transform.position.y, target.z);
-            return NavMesh.SamplePosition(onFloor, out NavMeshHit hit, 3f, NavMesh.AllAreas)
-                ? hit.position
-                : onFloor;
+            if (!NavMesh.SamplePosition(onFloor, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+                return onFloor;
+
+            // La projection peut accrocher un ÎLOT EN HAUTEUR : la cuisson rend marchable le
+            // dessus des meubles, faute de pouvoir deviner qu'on n'y monte pas. Viser une table
+            // y envoyait le serveur DEBOUT SUR LE PLATEAU, au milieu des assiettes.
+            //
+            // Un serveur ne change jamais d'étage dans ce décor : au-delà d'une marche d'écart,
+            // le point projeté est refusé et on garde le sol. C'est une ceinture — les îlots
+            // eux-mêmes sont éliminés à la cuisson (DemoSceneBuilder.BakeNavMesh, minRegionArea)
+            // — mais elle garde l'invariant vrai si la scène change.
+            if (Mathf.Abs(hit.position.y - transform.position.y) > MaxStepHeight)
+                return onFloor;
+
+            return hit.position;
         }
+
+        /// <summary>Écart vertical au-delà duquel un point projeté n'est plus « le sol à côté ».</summary>
+        private const float MaxStepHeight = 0.35f;
 
         /// <summary>Où poser un plat sur un support (table, passe) : au-dessus, côté serveur.</summary>
         private Vector3 DropPointOn(Transform surface)
