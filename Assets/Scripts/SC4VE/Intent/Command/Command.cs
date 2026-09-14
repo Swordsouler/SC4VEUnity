@@ -144,5 +144,48 @@ namespace Sc4ve.Multimodality.Intent
             if (tts != null) tts.Speak(text);
             else Debug.LogWarning("[TTS] Aucun PiperTextToSpeech dans la scène — texte non énoncé.");
         }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Question posée depuis Execute (rôle manquant)
+        // ─────────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// La commande qui attend une réponse, ou null. Relevée par le contrôleur après
+        /// l'exécution, qui la met en attente pour l'énoncé suivant.
+        ///
+        /// À distinguer du manque de PARAMÈTRE (ClarificationVocabulary, restrictions OWL) : ici
+        /// la commande est structurellement complète — TakeOrderCommand a bien son unique
+        /// SelectionParameter — mais les RÔLES lus dans les objets désignés ne le sont pas. Une
+        /// cardinalité OWL ne peut pas voir cette différence ; seul Execute le peut, puisque les
+        /// rôles se lisent dans les objets et non dans la phrase (cf. DelegationRoles).
+        ///
+        /// Sans ce relais, « Quel serveur ? » était une question sans oreille : rien n'était mis
+        /// en attente, et la réponse « ce serveur-là 👆 » retombait sur « je n'ai pas compris ».
+        /// </summary>
+        public static Command AwaitingAnswer { get; private set; }
+
+        /// <summary>Oublie la commande en attente. Appelé avant chaque exécution.</summary>
+        public static void ForgetAwaitingAnswer() => AwaitingAnswer = null;
+
+        /// <summary>
+        /// Vrai si la question de cette commande appelle une CIBLE en réponse (« Quel serveur ? »
+        /// → « ce serveur-là 👆 ») plutôt qu'un paramètre (une couleur, une destination).
+        /// </summary>
+        [JsonIgnore] public virtual bool ExpectsTargetAnswer => false;
+
+        /// <summary>
+        /// Pose une question et se met en attente : l'énoncé suivant complétera CETTE commande au
+        /// lieu d'être interprété seul.
+        ///
+        /// L'appelant doit renvoyer les cibles déjà trouvées depuis son Execute : le contrôleur
+        /// en fait la sélection courante, ce qui les montre au joueur ET donne à la réponse de
+        /// quoi s'unir (SelectionParameter.UnionWithSelection). Sans cela, la réponse
+        /// REMPLACERAIT le rôle déjà acquis et le dialogue tournerait en rond.
+        /// </summary>
+        protected void Ask(string question)
+        {
+            Speak(question);
+            AwaitingAnswer = this;
+        }
     }
 }

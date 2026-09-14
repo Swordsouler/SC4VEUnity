@@ -26,6 +26,9 @@ namespace Sc4ve.Multimodality.Intent
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
             => new() { ctx.BuildSelectionParameter(fallbackToSelection: true) };
 
+        /// <summary>La réponse attendue désigne une cible (« cette table-là 👆 »), pas un paramètre.</summary>
+        public override bool ExpectsTargetAnswer => true;
+
         public override List<SemantizationCore> Execute()
         {
             List<SemantizationCore> targets = DelegationRoles.AllTargets(this);
@@ -34,16 +37,18 @@ namespace Sc4ve.Multimodality.Intent
 
             bool french = UserData.Locale == "fr";
 
+            // Rôle manquant : même schéma que TakeOrderCommand — on demande, et on renvoie la
+            // cible déjà trouvée pour que la réponse s'y unisse au lieu de la remplacer.
             if (agent == null)
             {
-                Speak(french ? "Quel serveur ?" : "Which waiter?");
-                return new();
+                Ask(french ? "Quel serveur ?" : "Which waiter?");
+                return targets;
             }
 
             if (table == null)
             {
-                Speak(french ? "Quelle table ?" : "Which table?");
-                return new();
+                Ask(french ? "Quelle table ?" : "Which table?");
+                return targets;
             }
 
             // Serve parle lui-même en cas de refus (occupé) ou d'échec (aucun plat prêt) :

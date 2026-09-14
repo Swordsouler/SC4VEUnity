@@ -790,6 +790,7 @@ namespace Sc4ve.Multimodality
             }
 
             _pendingCommand = null; // commande complète → plus rien en attente
+            Command.ForgetAwaitingAnswer();
 
             int undoBefore = CommandHistory.UndoCount;
 
@@ -806,7 +807,16 @@ namespace Sc4ve.Multimodality
                 }
             }
             Command.LastObjects = lastObjects;
-            MultimodalityMetrics.Complete(commands.FirstOrDefault(), "executed", lastObjects.Count);
+
+            // Une commande peut avoir posé une question DEPUIS son Execute : elle est
+            // structurellement complète, mais un rôle lui manque (« Quel serveur ? »). On la met
+            // en attente pour que l'énoncé suivant la complète, et on ne la compte pas comme
+            // exécutée — elle ne l'est pas. Les objets qu'elle a renvoyés restent sélectionnés
+            // plus bas : c'est ce à quoi la réponse viendra s'unir.
+            _pendingCommand = Command.AwaitingAnswer;
+            MultimodalityMetrics.Complete(commands.FirstOrDefault(),
+                                          _pendingCommand != null ? "clarification" : "executed",
+                                          lastObjects.Count);
 
             // La sélection (et son contour) suit toujours les objets de la dernière commande.
             List<SemantizationCore> selection = Command.LastObjects;

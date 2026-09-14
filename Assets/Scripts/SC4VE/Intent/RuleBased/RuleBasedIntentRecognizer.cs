@@ -127,6 +127,25 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         /// </summary>
         public string Recognize(Sentence sentence)
         {
+            Command recognized = Build(sentence, null);
+            if (recognized == null) return null;
+
+            string produced = JsonConvert.SerializeObject(new List<Command> { recognized }, Formatting.Indented);
+            Debug.Log($"[RuleBased] JSON produit :\n{produced}");
+            return produced;
+        }
+
+        /// <summary>
+        /// Le corps de la reconnaissance, qui rend la commande elle-même.
+        /// </summary>
+        /// <param name="forcedCommandType">
+        /// Type imposé quand la phrase est une RÉPONSE à une question (« ce serveur-là 👆 » après
+        /// « Quel serveur ? ») : dépourvue de verbe, aucun déclencheur ne peut la classer, alors
+        /// que tout le reste — annotations, pointage, limite — s'en extrait normalement.
+        /// Null en usage courant : le type se détecte.
+        /// </param>
+        private Command Build(Sentence sentence, string forcedCommandType)
+        {
             if (sentence == null || string.IsNullOrWhiteSpace(sentence.Text))
                 return null;
 
@@ -153,7 +172,9 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // L'ajout à la sélection se détecte d'abord, sur le texte COMPLET : le mot
             // « sélection » vient d'être retiré du texte de détection, or c'est lui qui
             // distingue « ajoute les bananes à la sélection » d'un rangement (PutIn).
-            string commandType = DetectAddToSelection(text) ?? DetectCommandType(commandText);
+            string commandType = forcedCommandType
+                                 ?? DetectAddToSelection(text)
+                                 ?? DetectCommandType(commandText);
             if (commandType == null)
             {
                 Debug.LogWarning($"[RuleBased] Aucune commande reconnue pour : \"{sentence.Text}\"");
@@ -276,9 +297,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             if (cmd.Parameters == null)
                 return null;
 
-            string json = JsonConvert.SerializeObject(new List<Command> { cmd }, Formatting.Indented);
-            Debug.Log($"[RuleBased] JSON produit :\n{json}");
-            return json;
+            return cmd;
         }
 
         /// <summary>
@@ -316,6 +335,29 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 ps.Add(new PointParameter { Type = "PointParameter", Value = _pointerName,
                                             Timestamp = end.AddMilliseconds(_movePointDelayMs) });
                 filled = true;
+            }
+
+            // Réponse de type CIBLE (« ce serveur-là 👆 » après « Quel serveur ? »). Ce n'est pas
+            // un paramètre qui manque à la commande en attente — elle a bien sa sélection — mais
+            // un RÔLE : elle n'y trouve pas de serveur. La phrase-réponse n'ayant pas de verbe,
+            // on relance la reconnaissance complète en lui imposant le type de la commande en
+            // attente, puis on demande l'union avec la sélection courante : la cible déjà trouvée
+            // y a été laissée par Execute, et la réponse doit s'y AJOUTER, pas la remplacer.
+            if (!filled && pending.ExpectsTargetAnswer)
+            {
+                Command answer = Build(sentence, pending.Type);
+                List<SelectionParameter> selections =
+                    answer?.Parameters?.OfType<SelectionParameter>().ToList() ?? new List<SelectionParameter>();
+
+                if (selections.Count > 0)
+                {
+                    foreach (SelectionParameter selection in selections)
+                        selection.UnionWithSelection = true;
+
+                    string answered = JsonConvert.SerializeObject(new List<Command> { answer }, Formatting.Indented);
+                    Debug.Log($"[RuleBased] {pending.Type} complétée par une cible :\n{answered}");
+                    return answered;
+                }
             }
 
             if (!filled) return null;

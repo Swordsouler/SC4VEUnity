@@ -70,6 +70,19 @@ namespace Sc4ve.Multimodality.Intent
             set => _fallbackToSelection = value;
         }
 
+        // Union INCONDITIONNELLE avec la sélection courante, contrairement à FallbackToSelection
+        // qui n'intervient que si la résolution est vide. Posé sur la phrase-réponse à une
+        // question de rôle (« Quel serveur ? » → « ce serveur-là 👆 ») : la cible déjà trouvée
+        // est restée sélectionnée, et la réponse doit s'y AJOUTER. Un repli ne suffirait pas —
+        // la réponse résout bien quelque chose, justement.
+        [SerializeField] private bool _unionWithSelection;
+        [JsonProperty("unionWithSelection")]
+        public bool UnionWithSelection
+        {
+            get => _unionWithSelection;
+            set => _unionWithSelection = value;
+        }
+
         // Référence au singulier (« la pomme », sans « les »/« des »/nombre). Si plusieurs objets
         // correspondent ET qu'aucun pointage n'a désigné lequel, ResolveCommands demande « laquelle ? »
         // (désambiguïsation résolue au pointeur). Voir RuleBasedContext.BuildSelectionParameter.
@@ -240,7 +253,7 @@ WHERE
             //   - coréférence explicite (« les », « la sélection »…) → HasCoreferenceCondition ; OU
             //   - repli des commandes de transformation (« triple ça ») quand le pointage/la cible
             //     n'a RIEN trouvé (FallbackToSelection && 0 objet). Le pointage garde la priorité.
-            if (HasCoreferenceCondition || (FallbackToSelection && objectsUri.Count == 0))
+            if (HasCoreferenceCondition || UnionWithSelection || (FallbackToSelection && objectsUri.Count == 0))
             {
                 IEnumerable<string> coreferenced = SelectionManager.HasSelection
                     ? SelectionManager.SelectedIds

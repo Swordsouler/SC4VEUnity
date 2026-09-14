@@ -241,6 +241,40 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void ReponseDeCible_CompleteUneCommandeDeDelegation()
+        {
+            // « Quel serveur ? » est posée depuis TakeOrderCommand.Execute, quand les rôles lus
+            // dans les objets sont incomplets. La réponse « ce serveur-là 👆 » n'a pas de verbe :
+            // aucun déclencheur ne peut la classer, et elle retombait sur « je n'ai pas compris »
+            // — la question n'avait pas d'oreille.
+            RuleBasedIntentRecognizer recognizer =
+                MakeRecognizer(Language.French, new List<string> { "Serveur", "Table" });
+            var pending = new TakeOrderCommand { Type = "TakeOrderCommand" };
+
+            string json = recognizer.CompletePending(new Sentence("ce serveur là"), pending);
+
+            Assert.IsNotNull(json, "Une réponse de cible doit compléter la commande en attente.");
+            List<Command> commands = JsonConvert.DeserializeObject<List<Command>>(json);
+            Assert.AreEqual(1, commands.Count);
+            Assert.IsInstanceOf<TakeOrderCommand>(commands[0]);
+            Assert.IsTrue(Selection(commands[0]).UnionWithSelection,
+                "La réponse doit s'UNIR à la sélection, où Execute a laissé la cible déjà " +
+                "trouvée : sans l'union elle la remplacerait, et le dialogue tournerait en rond.");
+        }
+
+        [Test]
+        public void ReponseDeCible_NAffectePasLesAutresCommandes()
+        {
+            // Le complément par cible ne vaut que pour les commandes qui posent une question de
+            // rôle. Une commande ordinaire en attente ne doit pas avaler la phrase suivante.
+            RuleBasedIntentRecognizer recognizer =
+                MakeRecognizer(Language.French, new List<string> { "Serveur", "Table" });
+            var pending = new SelectCommand { Type = "SelectCommand" };
+
+            Assert.IsNull(recognizer.CompletePending(new Sentence("ce serveur là"), pending));
+        }
+
+        [Test]
         public void VaChercherLaCommande_IsTakeOrder()
         {
             // « chercher » est aussi naturel que « prendre » pour envoyer un serveur à une
