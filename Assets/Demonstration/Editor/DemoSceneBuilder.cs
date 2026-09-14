@@ -698,13 +698,18 @@ namespace Sc4ve.Demonstration.EditorTools
             var stations = new GameObject("Stations").transform;
             stations.SetParent(parent);
 
+            // Sur la PASSE (z = 1,85), pas sur le plan de travail du fond : le joueur se tient
+            // devant la passe (PlayerSpawn) et travaille au CONTACT sur ces surfaces — poser,
+            // découper, cuire. Restées à z = 0,70, elles étaient à plus d'un mètre, derrière
+            // l'étagère. Le plan de travail et l'étagère restent au fond : les ingrédients se
+            // saisissent au RAYON, la distance ne les gêne pas.
             GameObject board = Prop(stations, "Planche à découper", "sven:CuttingBoard",
-                new Vector3(-0.85f, CounterY, 0.70f), height: 0.05f);
+                new Vector3(-0.75f, CounterY, 1.85f), height: 0.05f);
             RestOnSurface(board, CounterY);
             board.AddComponent<TransformationStation>();
 
             GameObject stove = Prop(stations, "Plaque de cuisson", "sven:Stove",
-                new Vector3(-0.35f, CounterY, 0.70f), height: 0.09f);
+                new Vector3(-0.25f, CounterY, 1.85f), height: 0.09f);
             RestOnSurface(stove, CounterY);
             stove.AddComponent<TransformationStation>();
 
@@ -718,9 +723,12 @@ namespace Sc4ve.Demonstration.EditorTools
             var plates = new GameObject("Assiettes").transform;
             plates.SetParent(parent);
 
+            // Sur la moitié est de la PASSE, à portée de main du joueur — et c'est près de la
+            // passe que FindReadyDish cherche les plats prêts : assembler ici, c'est déjà
+            // servir au bon endroit.
             for (int i = 0; i < 6; i++)
             {
-                var position = new Vector3(0.25f + (i % 3) * 0.26f, CounterY, 0.60f + (i / 3) * 0.26f);
+                var position = new Vector3(0.25f + (i % 3) * 0.26f, CounterY, 1.74f + (i / 3) * 0.22f);
                 RestOnSurface(Prop(plates, $"Assiette {i + 1}", "sven:Plate", position,
                     height: 0.05f, grabbable: true), CounterY);
             }
