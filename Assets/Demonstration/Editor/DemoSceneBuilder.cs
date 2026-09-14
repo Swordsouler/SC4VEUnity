@@ -773,7 +773,12 @@ namespace Sc4ve.Demonstration.EditorTools
                 GameObject table = Prop(room, $"Table {(char)('A' + i)}", "sven:Table",
                     tables[i], height: 0.75f);
                 RestOnSurface(table, 0f);
-                table.isStatic = true;
+                // PAS statique : le static batching fond les meshes statiques en un
+                // « Combined Mesh » illisible, et SelectionManager saute alors le contour
+                // QuickOutline — « sélectionne cette table » ne surlignait rien. Or pointer
+                // une table est LE geste central de la délégation ; son retour visuel prime
+                // sur l'économie de batching de quatre guéridons. Le NavMesh n'y perd rien :
+                // NavMeshSurface cuit sur la géométrie, pas sur le drapeau statique.
 
                 MakeCustomer(room, table, couples[i].family, couples[i].constraint, i);
             }
