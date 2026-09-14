@@ -154,11 +154,24 @@ WHERE {{
             // gelait le temps de la copie, à chaque paramètre de chaque commande.
             Graph sceneGraphCopy = await Task.Run(GraphManager.InstanceCopy);
 
-            // apply ontology inference (for annotation)
-            // ApplyOntologyAsync est appelée DEPUIS LE THREAD PRINCIPAL à dessein : au premier
-            // appel elle lit Application.streamingAssetsPath, interdit ailleurs. Elle bascule
-            // elle-même l'inférence sur un thread de fond.
-            await GraphManager.ApplyOntologyAsync(sceneGraphCopy);
+            // PAS d'inférence RDFS ici, et c'est mesuré, pas supposé.
+            //
+            // Un GraphManager.ApplyOntologyAsync coûtait à lui seul environ une seconde par
+            // paramètre — reconstruction du raisonneur puis matérialisation de la clôture des
+            // sous-classes sur les ~20 000 triplets de la copie. Rejoué sur un vidage réel de
+            // partie (18 267 triplets), il ne change AUCUN résultat : ni le pointage, ni les
+            // douze libellés d'annotation testés, hiérarchies comprises — « Viande » trouve les
+            // mêmes quatre objets annotés Beef/Chicken avec et sans.
+            //
+            // La raison tient à la forme même du filtre : il compare le libellé de la classe
+            // ANNOTÉE (?annotation sven:value ?componentType . ?componentType rdfs:label …), et
+            // l'inférence RDFS ne donne pas à sven:Beef le libellé de sven:Meat. Ce qui rend
+            // « les viandes » sélectionnables, ce sont les parents MATÉRIALISÉS sur l'objet —
+            // écrits par l'inspecteur SVEN à l'édition et par TransformationStation.Annotate à
+            // l'exécution, précisément parce que ce filtre ne sait pas inférer.
+            //
+            // Si un jour un filtre a réellement besoin d'inférence, la remettre ici ; mais alors
+            // sur un graphe préparé une fois par commande, pas une fois par paramètre.
 
             // execute this query :
             /*string queryTest = $@"

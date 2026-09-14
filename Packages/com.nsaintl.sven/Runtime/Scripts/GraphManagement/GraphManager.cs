@@ -1038,31 +1038,26 @@ WHERE {{
                     }
                     else
                     {
-                        // Interroger le graphe vivant DIRECTEMENT, sous le verrou — et non une copie.
+                        // La COPIE est délibérée, et le verrou ne couvre QU'ELLE.
                         //
-                        // L'ancienne version copiait l'INTÉGRALITÉ du graphe (g.Assert(_instance.Triples))
-                        // sous _graphLock, à CHAQUE requête. Cette copie ré-indexe chaque triplet :
-                        // O(taille du graphe) sous verrou, pendant que le thread principal — la
-                        // sémantisation, qui prend ce même verrou à chaque écriture — attendait.
-                        // Résultat : le jeu se figeait le temps de la copie, plusieurs fois par
-                        // commande vocale (une requête par paramètre, plus les vocabulaires), et de
-                        // plus en plus longtemps à mesure que le graphe grossissait (~24 000 triplets
-                        // après une minute de partie). Chaque copie produisait en outre des dizaines
-                        // de Mo de déchets pour le GC.
+                        // Interroger _instance directement éviterait de dupliquer le graphe, mais
+                        // tiendrait _graphLock pendant toute l'évaluation SPARQL — de l'ordre de la
+                        // seconde chez dotNetRDF sur un graphe de partie. Or le thread principal
+                        // prend ce même verrou à chaque écriture de la sémantisation : il attendrait
+                        // donc une seconde, et le rendu se figerait. Copier coûte quelques dizaines
+                        // de millisecondes de verrou, puis l'évaluation se fait sur un graphe privé,
+                        // hors verrou, sans jamais bloquer personne.
                         //
-                        // Évaluer la requête sur le graphe déjà indexé est bien plus court que le
-                        // copier : les requêtes du jeu sont toutes bornées (LIMIT), et l'évaluation
-                        // n'alloue presque rien. Le verrou reste tenu pendant l'évaluation — c'est
-                        // voulu : dotNetRDF ne garantit pas la lecture d'un graphe en cours
-                        // d'écriture, et ce temps d'évaluation devient le nouveau plafond d'attente
-                        // du thread principal, très inférieur au coût de la copie qu'il remplace.
-                        //
-                        // Le SparqlResultSet est matérialisé pendant l'évaluation (lignes concrètes,
-                        // nœuds immuables) : il reste valable après la sortie du verrou.
+                        // Autrement dit : on échange de la mémoire contre du temps de verrou. C'est
+                        // le bon sens de l'échange tant que le thread principal écrit en continu.
+                        Graph g = new();
                         lock (_graphLock)
                         {
-                            return _instance.ExecuteQuery(query) as SparqlResultSet;
+                            g.NamespaceMap.Import(_instance.NamespaceMap);
+                            g.BaseUri = _instance.BaseUri;
+                            g.Assert(_instance.Triples);
                         }
+                        return g.ExecuteQuery(query) as SparqlResultSet;
                     }
                 });
                 return result;
