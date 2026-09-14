@@ -84,6 +84,7 @@ namespace Sc4ve.Multimodality
 
         // ── Vocabulaire, lu une fois dans l'ontologie ─────────────────────────
         private string _familyLabel;
+        private string _dishLabel;
         private string _constraintLabel;
         private HashSet<string> _excluded = new();
         private List<string> _acceptable = new();
@@ -254,11 +255,28 @@ namespace Sc4ve.Multimodality
                                    "plat acceptable — le joueur tournera en rond sans " +
                                    "explication. Changer le couple dans DemoSceneBuilder.");
 
+                // Le client NOMME UN PLAT, pas une famille : « Je voudrais : Soupe » ne dit
+                // pas ce qu'il faut préparer, et le joueur doit deviner ce que la contrainte
+                // laisse. Le plat est choisi parmi ceux que la famille et la contrainte
+                // laissent — donc toujours CALCULÉ, jamais écrit dans la scène (§6.5).
+                //
+                // Trié pour être stable : sans ordre imposé, deux parties consécutives
+                // feraient dire deux plats différents au même client, ce qui rendrait toute
+                // répétition de démonstration impossible à préparer.
+                //
+                // NOMMER N'EST PAS EXIGER : _acceptable reste entier, le client accepte
+                // toujours n'importe quel plat conforme de sa famille. C'est ce qui fait tenir
+                // le §6.5 (plusieurs plats satisfont une même commande) tout en donnant au
+                // joueur un but concret à préparer.
+                string wanted = _acceptable.OrderBy(uri => uri, StringComparer.Ordinal).FirstOrDefault();
+                _dishLabel = wanted != null ? await OntologyLabels.GetAsync(wanted, locale) : _familyLabel;
+
                 _spokenOrder = BuildSpokenOrder();
                 _ready = _familyLabel != null && children.Count > 0 &&
                          (constraint == null || _excluded.Any(c => c != "sven:Refused"));
 
                 Debug.Log($"[Client] {name} : commande {_family} (« {_familyLabel} »), " +
+                          $"demande « {_dishLabel} », " +
                           $"contrainte {(constraint?.Uri ?? "aucune")}, " +
                           $"exclut [{string.Join(", ", _excluded)}], " +
                           $"acceptables [{string.Join(", ", _acceptable)}].");
@@ -352,7 +370,8 @@ namespace Sc4ve.Multimodality
 
         private string BuildSpokenOrder()
         {
-            string order = French ? $"Je voudrais : {_familyLabel}." : $"I would like: {_familyLabel}.";
+            string dish = string.IsNullOrEmpty(_dishLabel) ? _familyLabel : _dishLabel;
+            string order = French ? $"Je voudrais : {dish}." : $"I would like: {dish}.";
             if (!string.IsNullOrEmpty(_constraintLabel))
                 order += French ? $" Attention : {_constraintLabel}." : $" Careful: {_constraintLabel}.";
             return order;

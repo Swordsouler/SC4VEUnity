@@ -220,7 +220,7 @@ namespace Sc4ve.Multimodality
         /// </summary>
         private static void EnsurePointerHighlights()
         {
-            foreach (Pointer pointer in FindObjectsByType<Pointer>(FindObjectsSortMode.None))
+            foreach (Pointer pointer in FindObjectsByType<Pointer>(FindObjectsInactive.Include))
                 if (pointer.GetComponent<PointerHighlight>() == null)
                     pointer.gameObject.AddComponent<PointerHighlight>();
         }
