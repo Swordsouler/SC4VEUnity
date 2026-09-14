@@ -797,6 +797,41 @@ namespace Sc4ve.Demonstration.EditorTools
             GameObject right = Prop(room, "Serveur 2", "sven:Waiter", new Vector3(2.8f, 0f, 2.1f), 1.75f);
             right.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
             MakeWaiter(right);
+
+            // UN SEUL cuisinier, et c'est la simplification qui compte : « prépare une soupe de
+            // carottes » n'a personne à désigner. Le pointage reste là où il porte du sens —
+            // deux serveurs indiscernables, quatre tables — et disparaît là où il n'était que
+            // du protocole.
+            //
+            // À gauche de la passe (x = -1,5, hors du plan de travail qui s'arrête à ±1,3) : il
+            // ne se met ni entre le joueur et les postes, ni sur le chemin des serveurs qui
+            // viennent chercher les plats au centre de la passe. Tourné vers le joueur, qui
+            // apparaît à (0 ; 2,35).
+            GameObject cook = Prop(room, "Cuisinier", "sven:Cook", new Vector3(-1.5f, 0f, 1.45f), 1.75f);
+            cook.transform.rotation = Quaternion.Euler(0f, 60f, 0f);
+            MakeCook(cook);
+        }
+
+        /// <summary>
+        /// Rend un cuisinier commandable.
+        ///
+        /// Pas de NavMeshAgent, contrairement au serveur : il ne se déplace pas — les postes et
+        /// la passe sont à portée de main — et un agent de plus n'apporterait qu'un mode de
+        /// panne supplémentaire, sur une scène qui vient d'en coûter un (les serveurs montaient
+        /// sur les tables).
+        ///
+        /// Le type est qualifié EN ENTIER, et ce n'est pas cosmétique : ce fichier vit dans
+        /// Sc4ve.Demonstration.EditorTools, où le nom simple « Cook » désigne la classe
+        /// d'ANNOTATION Sc4ve.Demonstration.Cook — C# examine les espaces de noms englobants
+        /// avant les using. AddComponent&lt;Cook&gt;() poserait donc un second marqueur sémantique
+        /// au lieu de la machine à états, sans la moindre erreur de compilation, et le
+        /// cuisinier ne cuisinerait jamais. C'est exactement le piège dans lequel MakeWaiter
+        /// est déjà tombé.
+        /// </summary>
+        private static void MakeCook(GameObject cook)
+        {
+            RestOnSurface(cook, 0f);
+            cook.AddComponent<Sc4ve.Multimodality.Cook>();
         }
 
         /// <summary>

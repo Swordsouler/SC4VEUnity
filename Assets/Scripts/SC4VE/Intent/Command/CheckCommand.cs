@@ -48,6 +48,17 @@ namespace Sc4ve.Multimodality.Intent
             SemantizationCore container = targets.FirstOrDefault(
                 o => o != null && o.GetComponent<ContainerContent>() != null);
 
+            // Rien de désigné qui contienne quelque chose : la question porte sur le plat du
+            // CUISINIER. C'est devenu le cas ordinaire depuis qu'il prépare à la place du
+            // joueur — celui-ci n'a pas choisi l'assiette et n'a aucune raison de savoir
+            // laquelle des six a été prise, donc exiger qu'il la désigne serait lui demander
+            // une information qu'on ne lui a jamais donnée.
+            if (container == null)
+            {
+                ContainerContent dish = Cook.Find()?.Dish;
+                if (dish != null) container = dish.GetComponent<SemantizationCore>();
+            }
+
             if (container == null)
             {
                 Speak(UserData.Locale == "fr" ? "Quel plat ?" : "Which dish?");

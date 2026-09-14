@@ -153,22 +153,9 @@ namespace Sc4ve.Multimodality.Intent
                 Transform t = obj.transform;
                 Transform previousParent = t.parent;
                 Vector3 previousPosition = t.position;
+                ContainerContent previousContainer = ContainerContent.Of(obj);
 
-                Vector3 target = DropPosition(container, obj);
-
-                // Un objet n'est que dans un seul contenant à la fois : sans ce retrait, une
-                // pomme passée de la planche à l'assiette figurerait dans les deux, et la
-                // planche continuerait de la « couper » indéfiniment.
-                ContainerContent previousContainer = ContainerOf(obj);
-
-                void Put()
-                {
-                    previousContainer?.Remove(obj);
-                    t.SetParent(container.transform);
-                    t.position = target;
-                    Rest(obj);
-                    container.Add(obj);
-                }
+                void Put() => container.Place(obj);
 
                 void Undo()
                 {
@@ -182,36 +169,6 @@ namespace Sc4ve.Multimodality.Intent
                 Debug.Log($"[PutIn] {obj.GetUUID()} placé dans {container.name}.");
                 return (Undo, Put);
             });
-        }
-
-        /// <summary>
-        /// Empile les objets au-dessus du contenant plutôt que de les superposer au même point :
-        /// un plat à moitié fait doit rester lisible, c'est un état de jeu à part entière.
-        /// </summary>
-        private static Vector3 DropPosition(ContainerContent container, SemantizationCore obj)
-        {
-            Bounds bounds = container.GetComponent<Renderer>() != null
-                ? container.GetComponent<Renderer>().bounds
-                : new Bounds(container.transform.position, Vector3.zero);
-
-            float height = bounds.extents.y + 0.03f + container.Content.Count * 0.04f;
-            return new Vector3(container.transform.position.x,
-                               bounds.center.y + height,
-                               container.transform.position.z);
-        }
-
-        /// <summary>Le contenant qui détient actuellement cet objet, s'il y en a un.</summary>
-        private static ContainerContent ContainerOf(SemantizationCore obj)
-            => UnityEngine.Object
-                .FindObjectsByType<ContainerContent>(FindObjectsInactive.Exclude)
-                .FirstOrDefault(c => c.Contains(obj));
-
-        /// <summary>Coupe l'élan de l'objet, sinon il roule hors du contenant juste après y avoir été posé.</summary>
-        private static void Rest(SemantizationCore obj)
-        {
-            if (!obj.TryGetComponent(out Rigidbody body)) return;
-            body.linearVelocity = Vector3.zero;
-            body.angularVelocity = Vector3.zero;
         }
     }
 }

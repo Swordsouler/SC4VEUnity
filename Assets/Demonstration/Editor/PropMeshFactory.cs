@@ -26,6 +26,9 @@ namespace Sc4ve.Demonstration.EditorTools
             "CuttingBoard" => CuttingBoard(),
             "Table" => Table(),
             "Waiter" => Person("Waiter", new Color(0.30f, 0.42f, 0.68f), apron: true),
+            // Blanc cassé contre le bleu des serveurs : le joueur doit distinguer d'un coup
+            // d'œil qui prépare de qui sert, puisque l'ordre qu'il donne en dépend.
+            "Cook" => Person("Cook", new Color(0.93f, 0.92f, 0.88f), apron: true),
             "Customer" => SeatedPerson("Customer", new Color(0.72f, 0.45f, 0.35f)),
             "Knife" => Knife(),
             _ => new List<Part>(),

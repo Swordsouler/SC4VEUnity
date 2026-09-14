@@ -400,6 +400,23 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void Cuisinier_EstUnObjet_PasUnVerbeDeCuisine()
+        {
+            // Le cuisinier est devenu un objet de la scène, et son nom partage le radical de
+            // « cuisiner », déclencheur de PrepareCommand : « selectionn » l'emporte parce que
+            // la boucle de détection essaie les déclencheurs du plus long au plus court. Sans
+            // cela, désigner le cuisinier demanderait « quelle recette ? ».
+            _recognizer = MakeRecognizer(
+                Language.French,
+                annotationTypes: new List<string> { "Cuisinier", "Serveur" },
+                recipes: Recipes());
+
+            SelectCommand cmd = RecognizeSingle<SelectCommand>("sélectionne le cuisinier");
+            Assert.IsTrue(AllConditions(cmd).Any(c => c.Value == "Cuisinier"),
+                "« cuisinier » doit produire l'annotation Cuisinier.");
+        }
+
+        [Test]
         public void OeLigature_InRecipeLabel_MatchesAsciiSpelling()
         {
             // Le libellé ontologique porte la ligature « bœuf », Whisper écrit « boeuf » :

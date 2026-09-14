@@ -935,6 +935,40 @@ sven:Waiter rdf:type owl:Class ;
                        "Serveuse"@fr .
 
 
+###  https://sven.lisn.upsaclay.fr/ontology#CookComponent
+sven:CookComponent rdf:type owl:Class ;
+                   rdfs:subClassOf sven:PersonComponent, sven:AnnotationComponent ;
+                   rdfs:comment "A cook component."@en ,
+                                "Un composant de cuisinier."@fr ;
+                   rdfs:label "Cook"@en ,
+                              "Cuisinier"@fr ,
+                              "Cuisinière"@fr .
+
+###  https://sven.lisn.upsaclay.fr/ontology#Cook
+#    Le cuisinier est le seul agent qui FABRIQUE. Il est déclaré exactement comme
+#    sven:Waiter — même patron, même parent — parce que ce qui distingue les deux
+#    n'est pas leur nature mais l'ordre qu'on leur donne : le joueur désigne une
+#    personne et énonce une tâche, et c'est la personne désignée qui décide si la
+#    tâche la concerne (§2 du README).
+sven:Cook rdf:type owl:Class ;
+          rdfs:subClassOf sven:Person ;
+          owl:equivalentClass [
+              rdf:type owl:Class ;
+              owl:intersectionOf (
+                  sven:Node
+                  [ rdf:type owl:Restriction ;
+                    owl:onProperty sven:component ;
+                    owl:someValuesFrom sven:CookComponent
+                  ]
+              )
+          ] ;
+          rdfs:comment "An autonomous agent that prepares dishes at the stations."@en ,
+                       "Un agent autonome qui prépare les plats aux stations."@fr ;
+          rdfs:label "Cook"@en ,
+                     "Cuisinier"@fr ,
+                     "Cuisinière"@fr .
+
+
 ###  https://sven.lisn.upsaclay.fr/ontology#CustomerComponent
 sven:CustomerComponent rdf:type owl:Class ;
                        rdfs:subClassOf sven:PersonComponent, sven:AnnotationComponent ;

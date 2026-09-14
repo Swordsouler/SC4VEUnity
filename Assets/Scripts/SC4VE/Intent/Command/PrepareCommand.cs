@@ -13,11 +13,12 @@ namespace Sc4ve.Multimodality.Intent
         // les traite par une pré-vérification qui exige la présence d'un nom de recette.
         "prépare", "préparer", "prepare", "cuisine", "cuisiner", "cook")]
     [Serializable, CommandDescription(
-        "Annonce la recette que le joueur veut préparer, et rappelle à voix haute ce qu'elle " +
-        "exige. Ne fabrique rien : c'est le joueur qui assemble les ingrédients. " +
+        "Ordonne au cuisinier de préparer une recette, et rappelle à voix haute ce qu'elle " +
+        "exige. Le cuisinier assemble lui-même le plat aux postes ; le joueur n'a rien à porter. " +
         "Générer pour « prépare une salade de fruits », « fais une soupe de carottes ». " +
         "Paramètre: RecipeParameter (la recette). Si la phrase ne nomme qu'une famille de plats " +
-        "(« prépare une soupe »), la commande demande laquelle.")]
+        "(« prépare une soupe »), la commande demande laquelle. Aucune cible à désigner : il " +
+        "n'y a qu'un cuisinier.")]
     public class PrepareCommand : Command
     {
         private RecipeParameter RecipeParameter => GetParameter<RecipeParameter>();
@@ -54,11 +55,32 @@ namespace Sc4ve.Multimodality.Intent
                 return new();
             }
 
-            _ = Announce(recipe);
-            return new();
+            Cook cook = Cook.Find();
+            if (cook == null)
+            {
+                Debug.LogWarning("[Prepare] Aucun cuisinier dans la scène : le poser avec " +
+                                 "« SC4VE > Démonstration > 1 ».");
+                Speak(UserData.Locale == "fr" ? "Il n'y a personne en cuisine."
+                                              : "There is no one in the kitchen.");
+                return new();
+            }
+
+            _ = Dispatch(cook, recipe);
+
+            // Le cuisinier reste sélectionné : le joueur voit à QUI il vient de parler, et un
+            // « stop » ou un « qu'est-ce que tu fais ? » portera sur lui sans le désigner.
+            return new List<SemantizationCore> { cook.GetComponent<SemantizationCore>() };
         }
 
-        private static async Task Announce(string recipe)
+        /// <summary>
+        /// Passe l'ordre au cuisinier, puis annonce la recette.
+        ///
+        /// Dans cet ordre, et pas l'inverse : un refus (« je finis ce plat ») doit tomber tout
+        /// de suite, alors que l'énoncé des ingrédients est long — il se prononce pendant que
+        /// le cuisinier travaille, ce qui couvre exactement le temps de la préparation au lieu
+        /// de s'y ajouter.
+        /// </summary>
+        private static async Task Dispatch(Cook cook, string recipe)
         {
             try
             {
@@ -88,6 +110,11 @@ namespace Sc4ve.Multimodality.Intent
                     Speak(french ? $"Laquelle : {list} ?" : $"Which one: {list}?");
                     return;
                 }
+
+                // Occupé : le cuisinier vient de le dire lui-même, et rien n'est en cours —
+                // écraser CurrentRecipe ferait porter « est-ce que c'est prêt ? » sur un plat
+                // que personne n'a commencé.
+                if (!cook.Prepare(recipe)) return;
 
                 CurrentRecipe = recipe;
 
