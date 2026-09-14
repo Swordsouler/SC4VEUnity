@@ -548,7 +548,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 if (!ContainsPhrase(FrenchStemmer.NormalizeAccents(text), label)) continue;
 
                 remainingText = Regex.Replace(
-                    text, $@"\b{Regex.Escape(recipe.Label)}\b", " ", RegexOptions.IgnoreCase);
+                    text, $@"\b{LigatureTolerantPattern(recipe.Label)}\b", " ", RegexOptions.IgnoreCase);
 
                 Debug.Log($"[RuleBased] Recette reconnue : {recipe.Label} → {recipe.Uri}" +
                           (recipe.IsConcrete ? "" : " (famille — sous-spécifiée)"));
@@ -782,11 +782,22 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>
+        /// Motif regex de la phrase où chaque LIGATURE accepte aussi sa graphie à deux
+        /// lettres (« bœuf » ↔ « boeuf ») : les libellés de l'ontologie portent la ligature,
+        /// le STT l'écrit en toutes lettres, et la consommation doit opérer sur le texte
+        /// D'ORIGINE (les mots restants gardent leur graphie pour les horodatages).
+        /// </summary>
+        private static string LigatureTolerantPattern(string phrase)
+            => Regex.Escape(phrase)
+                .Replace("œ", "(?:œ|oe)").Replace("Œ", "(?:Œ|OE)")
+                .Replace("æ", "(?:æ|ae)").Replace("Æ", "(?:Æ|AE)");
+
+        /// <summary>
         /// Retire du texte la PREMIÈRE occurrence de la phrase. Une seule, pour que « la pomme
         /// et la pomme de terre » garde sa pomme après que la patate a consommé la sienne.
         /// </summary>
         private static string ConsumeFirst(string text, string phrase)
-            => new Regex($@"\b{Regex.Escape(phrase)}\b", RegexOptions.IgnoreCase)
+            => new Regex($@"\b{LigatureTolerantPattern(phrase)}\b", RegexOptions.IgnoreCase)
                 .Replace(text, " ", 1);
 
         /// <summary>
@@ -795,9 +806,13 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         /// L'INTÉRIEUR de « deselectionne tout » (Whisper écrit volontiers sans accents) :
         /// « désélectionne tout » sélectionnait les 46 objets de la scène au lieu de vider
         /// la sélection. Même règle que ContainsCommandTrigger côté contrôleur.
+        /// Les deux côtés sont normalisés (accents ET ligatures) : « Bœuf » du vocabulaire
+        /// doit reconnaître le « boeuf » que Whisper écrit.
         /// </summary>
         private bool ContainsPhrase(string text, string phrase)
-            => Regex.IsMatch(text, $@"\b{Regex.Escape(phrase)}\b", RegexOptions.IgnoreCase);
+            => Regex.IsMatch(FrenchStemmer.NormalizeAccents(text),
+                $@"\b{Regex.Escape(FrenchStemmer.NormalizeAccents(phrase))}\b",
+                RegexOptions.IgnoreCase);
 
         /// <summary>
         /// Détermine si une couleur est la couleur CIBLE (à appliquer) plutôt qu'un filtre SOURCE

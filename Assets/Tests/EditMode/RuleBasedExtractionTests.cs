@@ -347,6 +347,37 @@ namespace Sc4ve.Tests.EditMode
                 "« soupe de carottes » doit l'emporter sur la famille « soupe ».");
         }
 
+        [Test]
+        public void OeLigature_InRecipeLabel_MatchesAsciiSpelling()
+        {
+            // Le libellé ontologique porte la ligature « bœuf », Whisper écrit « boeuf » :
+            // sans le pli œ→oe de NormalizeAccents, seule la famille « Sandwich » matchait
+            // et la clarification « Laquelle : … ? » tournait en boucle.
+            _recognizer = MakeRecognizer(Language.French, recipes: new List<RecipeVocabulary.Recipe>
+            {
+                new RecipeVocabulary.Recipe("sven:Sandwich",     "Sandwich",         isConcrete: false),
+                new RecipeVocabulary.Recipe("sven:BeefSandwich", "Sandwich au bœuf", isConcrete: true),
+            });
+
+            PrepareCommand cmd = RecognizeSingle<PrepareCommand>("prépare un sandwich au boeuf");
+            Assert.AreEqual("sven:BeefSandwich",
+                cmd.Parameters.OfType<RecipeParameter>().First().Value);
+        }
+
+        [Test]
+        public void OeLigature_InAnnotationLabel_MatchesAsciiSpelling()
+        {
+            // L'annotation « Bœuf » porte aussi la ligature ; la valeur du filtre reste la
+            // forme CANONIQUE (« Bœuf »), celle que le graphe connaît.
+            _recognizer = MakeRecognizer(
+                Language.French,
+                annotationTypes: new List<string> { "Bœuf", "Assiette" });
+
+            PutInCommand cmd = RecognizeSingle<PutInCommand>("mets le boeuf dans l'assiette");
+            Assert.IsTrue(AllConditions(cmd).Any(c => c.Value == "Bœuf"),
+                "« boeuf » (graphie STT) doit produire l'annotation canonique « Bœuf ».");
+        }
+
         // ─────────────────────────────────────────────────────────────────────
         // Ajout à la sélection
         // ─────────────────────────────────────────────────────────────────────

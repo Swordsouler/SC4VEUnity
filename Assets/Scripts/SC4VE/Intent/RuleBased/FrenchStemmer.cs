@@ -49,7 +49,21 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
 
             var sb = new StringBuilder(s.Length);
             foreach (char c in s)
+            {
+                // Les LIGATURES se plient en DEUX lettres — hors de portée du switch
+                // caractère-à-caractère. Sans ce pli, « Sandwich au bœuf » (libellé de
+                // l'ontologie, ligature œ) ne matchait jamais « sandwich au boeuf »
+                // (graphie de Whisper) : seule la famille « Sandwich » était reconnue et
+                // la clarification « Laquelle : … ? » tournait en boucle.
+                switch (c)
+                {
+                    case 'œ': sb.Append("oe"); continue;
+                    case 'Œ': sb.Append("OE"); continue;
+                    case 'æ': sb.Append("ae"); continue;
+                    case 'Æ': sb.Append("AE"); continue;
+                }
                 sb.Append(NormalizeChar(c));
+            }
             return sb.ToString();
         }
 
