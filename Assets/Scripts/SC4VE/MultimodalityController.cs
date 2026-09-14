@@ -176,6 +176,35 @@ namespace Sc4ve.Multimodality
             }
         }
 
+        /// <summary>
+        /// Préchauffe les vocabulaires dès que le graphe est prêt, pendant que le joueur n'a
+        /// encore rien demandé. Chargés paresseusement à la PREMIÈRE phrase, ils lui
+        /// ajoutaient leur dizaine de requêtes SPARQL : « Sélectionne ce serveur » mesurait
+        /// 3,4 s dont l'essentiel était cette initialisation, pas la commande.
+        ///
+        /// Même schéma d'attente que TransformationStation.Start, et pour la même raison :
+        /// interroger le graphe avant la fin du chargement des ontologies ne renvoie rien.
+        /// Si le graphe n'est jamais prêt, on sort sans bruit — le chemin paresseux de
+        /// OnTranscriptionResult reste le filet de sécurité.
+        /// </summary>
+        private async void Start()
+        {
+            for (int attempt = 0; attempt < 15 && !GraphManager.IsGraphInitialized; attempt++)
+                await Task.Delay(1000);
+            if (!GraphManager.IsGraphInitialized) return;
+
+            try
+            {
+                await InitializeVocabulariesAsync();
+                if (_recognizerMode == RecognizerMode.RuleBased)
+                    EnsureRuleBasedRecognizer();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[Multimodality] Préchauffage des vocabulaires impossible : {e}");
+            }
+        }
+
         private void OnDestroy()
         {
             // Désabonnements symétriques d'Awake : sans eux, STT/TTS continueraient d'invoquer
