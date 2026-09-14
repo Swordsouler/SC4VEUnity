@@ -107,9 +107,12 @@ WHERE {{
         {
             IUriNode parameterNode = await base.Semanticize(graph);
 
-            Graph sceneGraphCopy = GraphManager.InstanceCopy();
+            // Copie et requête sur un thread de fond, comme dans SelectionParameter : sur le
+            // thread principal (où reprennent les continuations async d'Unity), elles gelaient
+            // le rendu à chaque « ici »/« là » d'un déplacement.
+            Graph sceneGraphCopy = await Task.Run(GraphManager.InstanceCopy);
 
-            Point ??= await QueryPoint(sceneGraphCopy);
+            Point ??= await Task.Run(() => QueryPoint(sceneGraphCopy));
             if (Point != null)
             {
                 IUriNode x = graph.CreateUriNode("sven:x");

@@ -155,6 +155,21 @@ namespace Sven.GraphManagement
             SetBaseUri(SvenSettings.BaseUri);
             SetNamespace("", SvenSettings.BaseUri);
             SetAuthenticationHeaderValue(SvenSettings.Username, SvenSettings.Password);
+
+            // Construire le raisonneur MAINTENANT, depuis le thread principal, pendant que
+            // personne ne parle. Deux raisons :
+            //   - SvenSettings.GetOntologiesAsync lit Application.streamingAssetsPath sur le
+            //     thread appelant, ce que Unity n'autorise QUE sur le thread principal ; une
+            //     construction déclenchée paresseusement depuis un thread de fond lèverait ;
+            //   - sans ce préchauffage, la toute première commande du joueur paie le parsing
+            //     de toutes les ontologies.
+            // Non attendu : Reload n'a pas à bloquer dessus, ApplyOntologyAsync attend la même
+            // tâche de toute façon.
+            lock (_ontologyReasonerLock)
+            {
+                _ontologyReasonerTask ??= BuildOntologyReasonerAsync();
+            }
+
             IsGraphInitialized = true;
         }
 
@@ -178,18 +193,64 @@ namespace Sven.GraphManagement
             }
         }
 
+        /// <summary>
+        /// Le raisonneur construit à partir des ontologies, construit UNE SEULE FOIS.
+        ///
+        /// Les ontologies sont des fichiers statiques, chargés au démarrage et jamais modifiés
+        /// en cours de partie : leur raisonneur est donc une constante de la session.
+        /// </summary>
+        private static Task<StaticRdfsReasoner> _ontologyReasonerTask;
+        private static readonly object _ontologyReasonerLock = new();
+
+        /// <summary>
+        /// Applique l'inférence RDFS des ontologies à un graphe.
+        ///
+        /// Deux corrections de performance ici, toutes deux visibles depuis le jeu, car cette
+        /// méthode est appelée À CHAQUE COMMANDE (une fois par SelectionParameter) :
+        ///
+        ///  1. Le raisonneur est MIS EN CACHE. L'ancienne version reparsait TOUS les fichiers
+        ///     TTL depuis le disque, puis reconstruisait le raisonneur, à chaque appel — pour
+        ///     un résultat identique à chaque fois, les ontologies ne changeant jamais.
+        ///
+        ///  2. reasoner.Apply s'exécute sur un THREAD DE FOND. L'appelant est une continuation
+        ///     async : dans Unity, elle reprend sur le THREAD PRINCIPAL (UnitySynchronizationContext).
+        ///     L'inférence — qui matérialise la clôture des sous-classes sur toute la copie du
+        ///     graphe de scène, soit ~20 000 triplets en cours de partie — gelait donc le rendu
+        ///     pendant plus d'une seconde à chaque commande vocale.
+        ///
+        /// Le raisonneur mis en cache est partagé entre appels concurrents : Apply ne fait que
+        /// LIRE ses tables (construites dans Initialise) et n'écrit que dans le graphe cible.
+        /// </summary>
         public static async Task ApplyOntologyAsync(Graph graph)
         {
-            Graph ontologyGraph = new();
-            Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
-            TurtleParser turtleParser = new();
-            foreach (KeyValuePair<string, string> ontology in ontologies)
+            if (graph == null) return;
+
+            Task<StaticRdfsReasoner> reasonerTask;
+            lock (_ontologyReasonerLock)
             {
-                turtleParser.Load(ontologyGraph, ontology.Value);
+                _ontologyReasonerTask ??= BuildOntologyReasonerAsync();
+                reasonerTask = _ontologyReasonerTask;
             }
-            StaticRdfsReasoner reasoner = new();
-            reasoner.Initialise(ontologyGraph);
-            reasoner.Apply(graph);
+
+            StaticRdfsReasoner reasoner = await reasonerTask;
+            await Task.Run(() => reasoner.Apply(graph));
+        }
+
+        private static async Task<StaticRdfsReasoner> BuildOntologyReasonerAsync()
+        {
+            Dictionary<string, string> ontologies = await SvenSettings.GetOntologiesAsync();
+            return await Task.Run(() =>
+            {
+                Graph ontologyGraph = new();
+                TurtleParser turtleParser = new();
+                foreach (KeyValuePair<string, string> ontology in ontologies)
+                {
+                    turtleParser.Load(ontologyGraph, ontology.Value);
+                }
+                StaticRdfsReasoner reasoner = new();
+                reasoner.Initialise(ontologyGraph);
+                return reasoner;
+            });
         }
 
         public static async Task LoadOntologyAsync(string ontologyName, string ontologyFileName)

@@ -148,9 +148,16 @@ WHERE {{
         {
             IUriNode parameterNode = await base.Semanticize(graph);
 
-            Graph sceneGraphCopy = GraphManager.InstanceCopy();
+            // Task.Run : la copie du graphe de scène duplique et réindexe TOUS ses triplets
+            // (~20 000 en cours de partie). Appelée directement, elle s'exécutait sur le thread
+            // appelant — une continuation async, donc le THREAD PRINCIPAL d'Unity : le rendu
+            // gelait le temps de la copie, à chaque paramètre de chaque commande.
+            Graph sceneGraphCopy = await Task.Run(GraphManager.InstanceCopy);
 
             // apply ontology inference (for annotation)
+            // ApplyOntologyAsync est appelée DEPUIS LE THREAD PRINCIPAL à dessein : au premier
+            // appel elle lit Application.streamingAssetsPath, interdit ailleurs. Elle bascule
+            // elle-même l'inférence sur un thread de fond.
             await GraphManager.ApplyOntologyAsync(sceneGraphCopy);
 
             // execute this query :
@@ -198,7 +205,12 @@ WHERE
             }*/
 
             /******************************************/
-            List<string> objectsUri = await QueryObjects(sceneGraphCopy);
+            // Task.Run, même raison que la copie ci-dessus : l'évaluation SPARQL de dotNetRDF
+            // est la partie la plus longue d'une commande (~1 s), et elle tournait sur le
+            // thread principal. Le graphe interrogé est une copie privée : aucun autre thread
+            // ne le touche. La suite de la méthode reprend sur le thread principal, comme il se
+            // doit — Objects résout des GameObjects.
+            List<string> objectsUri = await Task.Run(() => QueryObjects(sceneGraphCopy));
             // Le pointage / la cible explicite sont résolus EN PREMIER (QueryObjects ci-dessus).
             // On ne complète avec la sélection courante (sinon les derniers objets manipulés) que :
             //   - coréférence explicite (« les », « la sélection »…) → HasCoreferenceCondition ; OU
