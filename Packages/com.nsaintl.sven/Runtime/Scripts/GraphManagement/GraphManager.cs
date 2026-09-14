@@ -565,18 +565,31 @@ WHERE {
 
         public static void Assert(IEnumerable<Triple> triples)
         {
-            foreach (Triple t in triples)
+            // Un SEUL verrou pour tout le lot, au lieu d'un par triplet : la sémantisation
+            // écrit par paquets (un objet = plusieurs propriétés par tick), et chaque prise
+            // de _graphLock est un point de contention avec les requêtes en cours.
+            bool kickFlush;
+            lock (_graphLock)
             {
-                try
+                foreach (Triple t in triples)
                 {
-                    Assert(t);
+                    try
+                    {
+                        if (t == null) throw new ArgumentNullException(nameof(t));
+                        if (t.Subject is not IUriNode) throw new ArgumentException("The subject of the triple must be an IUriNode.", nameof(t));
+                        _instance.Assert(t);
+                    }
+                    catch (Exception e)
+                    {
+                        if (SvenSettings.Debug)
+                            Debug.LogError($"Failed to assert triple {t}: {e}");
+                    }
                 }
-                catch (Exception e)
-                {
-                    if (SvenSettings.Debug)
-                        Debug.LogError($"Failed to assert triple {t}: {e}");
-                }
+                kickFlush = ShouldKickFlushLocked();
             }
+
+            if (kickFlush)
+                CopyAndFlushAsync().FireAndForget();
         }
 
         public static IUriNode Assert(Triple t)
@@ -584,30 +597,54 @@ WHERE {
             if (t == null) throw new ArgumentNullException(nameof(t));
 
             IUriNode subject = t.Subject as IUriNode ?? throw new ArgumentException("The subject of the triple must be an IUriNode.", nameof(t));
-            List<Triple> triplesToFlush = null;
-            Uri baseUriToFlush = null;
-            NamespaceMapper nsMapToFlush = null;
+            bool kickFlush;
 
             lock (_graphLock)
             {
                 _instance.Assert(t);
-                if (_instance.Triples.Count >= SvenSettings.BufferSize && !_isFlushing && DateTime.UtcNow >= _nextFlushRetryUtc)
+                kickFlush = ShouldKickFlushLocked();
+            }
+
+            if (kickFlush)
+                CopyAndFlushAsync().FireAndForget();
+            return subject;
+        }
+
+        /// <summary>
+        /// À appeler SOUS _graphLock : décide si un vidage du tampon doit partir, et réserve
+        /// le créneau (_isFlushing) le cas échéant.
+        /// </summary>
+        private static bool ShouldKickFlushLocked()
+        {
+            if (_instance.Triples.Count < SvenSettings.BufferSize || _isFlushing || DateTime.UtcNow < _nextFlushRetryUtc)
+                return false;
+            _isFlushing = true;
+            return true;
+        }
+
+        /// <summary>
+        /// Copie le graphe puis l'envoie à l'endpoint — la copie se fait sur un THREAD DE
+        /// FOND. Elle se faisait auparavant dans Assert, sous verrou, sur le thread de
+        /// l'appelant : c'est-à-dire le thread principal, qui gelait le temps de copier tout
+        /// le graphe à chaque tentative de flush — tentative récurrente (backoff 2→30 s)
+        /// quand l'endpoint est injoignable, le cas nominal de la démo sans GraphDB.
+        /// </summary>
+        private static async Task CopyAndFlushAsync()
+        {
+            List<Triple> triplesToFlush = null;
+            Uri baseUriToFlush = null;
+            NamespaceMapper nsMapToFlush = null;
+            await Task.Run(() =>
+            {
+                lock (_graphLock)
                 {
-                    _isFlushing = true;
-                    // Copier TOUTES les données nécessaires à l'intérieur d'un seul verrou court.
                     triplesToFlush = new List<Triple>(_instance.Triples);
                     baseUriToFlush = _instance.BaseUri;
                     nsMapToFlush = new NamespaceMapper();
                     nsMapToFlush.Import(_instance.NamespaceMap);
                 }
-            }
-
-            if (triplesToFlush != null)
-            {
-                // Lancer la tâche de fond avec sa propre copie de TOUTES les données.
-                FlushBufferToEndpointAsync(triplesToFlush, baseUriToFlush, nsMapToFlush).FireAndForget();
-            }
-            return subject;
+            });
+            await FlushBufferToEndpointAsync(triplesToFlush, baseUriToFlush, nsMapToFlush);
         }
 
         public static async Task ForceFlushToEndpointAsync()
@@ -940,14 +977,31 @@ WHERE {{
                     }
                     else
                     {
-                        Graph g = new();
+                        // Interroger le graphe vivant DIRECTEMENT, sous le verrou — et non une copie.
+                        //
+                        // L'ancienne version copiait l'INTÉGRALITÉ du graphe (g.Assert(_instance.Triples))
+                        // sous _graphLock, à CHAQUE requête. Cette copie ré-indexe chaque triplet :
+                        // O(taille du graphe) sous verrou, pendant que le thread principal — la
+                        // sémantisation, qui prend ce même verrou à chaque écriture — attendait.
+                        // Résultat : le jeu se figeait le temps de la copie, plusieurs fois par
+                        // commande vocale (une requête par paramètre, plus les vocabulaires), et de
+                        // plus en plus longtemps à mesure que le graphe grossissait (~24 000 triplets
+                        // après une minute de partie). Chaque copie produisait en outre des dizaines
+                        // de Mo de déchets pour le GC.
+                        //
+                        // Évaluer la requête sur le graphe déjà indexé est bien plus court que le
+                        // copier : les requêtes du jeu sont toutes bornées (LIMIT), et l'évaluation
+                        // n'alloue presque rien. Le verrou reste tenu pendant l'évaluation — c'est
+                        // voulu : dotNetRDF ne garantit pas la lecture d'un graphe en cours
+                        // d'écriture, et ce temps d'évaluation devient le nouveau plafond d'attente
+                        // du thread principal, très inférieur au coût de la copie qu'il remplace.
+                        //
+                        // Le SparqlResultSet est matérialisé pendant l'évaluation (lignes concrètes,
+                        // nœuds immuables) : il reste valable après la sortie du verrou.
                         lock (_graphLock)
                         {
-                            g.NamespaceMap.Import(_instance.NamespaceMap);
-                            g.BaseUri = _instance.BaseUri;
-                            g.Assert(_instance.Triples);
+                            return _instance.ExecuteQuery(query) as SparqlResultSet;
                         }
-                        return g.ExecuteQuery(query) as SparqlResultSet;
                     }
                 });
                 return result;
