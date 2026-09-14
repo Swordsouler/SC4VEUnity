@@ -371,10 +371,11 @@ namespace Sc4ve.Multimodality
         private string BuildSpokenOrder()
         {
             string dish = string.IsNullOrEmpty(_dishLabel) ? _familyLabel : _dishLabel;
-            string order = French ? $"Je voudrais : {dish}." : $"I would like: {dish}.";
-            if (!string.IsNullOrEmpty(_constraintLabel))
-                order += French ? $" Attention : {_constraintLabel}." : $" Careful: {_constraintLabel}.";
-            return order;
+
+            // La contrainte n'est PAS annoncée : depuis que le client nomme un plat précis, elle
+            // est déjà satisfaite par ce plat, et l'énoncer revenait à donner la réponse deux
+            // fois. Elle reste dite au refus, seul moment où elle apprend quelque chose.
+            return French ? $"Je voudrais : {dish}." : $"I would like: {dish}.";
         }
 
         // ── Le verdict ────────────────────────────────────────────────────────
