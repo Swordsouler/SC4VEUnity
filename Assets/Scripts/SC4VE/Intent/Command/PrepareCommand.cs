@@ -95,7 +95,13 @@ namespace Sc4ve.Multimodality.Intent
                     await RecipeConformity.Requirements(recipe);
 
                 string label = match.Label ?? recipe;
-                string ingredients = string.Join(", ", requirements.Select(r => r.ToString()));
+
+                // Libellés localisés, pas les noms locaux des URI : « il faut Potato
+                // Sliced+Cooked » sortait tel quel au milieu de la phrase française.
+                var described = new List<string>();
+                foreach (RecipeConformity.Requirement requirement in requirements)
+                    described.Add(await RecipeConformity.Describe(requirement));
+                string ingredients = string.Join(", ", described);
 
                 Debug.Log($"[Prepare] Recette en cours : {label} — {ingredients}");
                 Speak(french

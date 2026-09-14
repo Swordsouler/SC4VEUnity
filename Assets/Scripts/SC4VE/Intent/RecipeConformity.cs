@@ -85,7 +85,7 @@ namespace Sc4ve.Multimodality.Intent
             }
 
             Dictionary<string, HashSet<string>> content = await QueryContent(container);
-            Match(content, requirements, report);
+            await Match(content, requirements, report);
             return report;
         }
 
@@ -113,7 +113,7 @@ namespace Sc4ve.Multimodality.Intent
                 if (requirements.Count == 0) continue;
 
                 var report = new Report { Recipe = recipe };
-                Match(content, requirements, report);
+                await Match(content, requirements, report);
                 if (report.IsConformant) return report;
 
                 if (best == null ||
@@ -130,22 +130,22 @@ namespace Sc4ve.Multimodality.Intent
         /// qui est le cas des neuf recettes (§6.4). Si cela changeait, il faudrait un
         /// couplage maximal plutôt qu'un parcours simple.
         /// </summary>
-        private static void Match(Dictionary<string, HashSet<string>> content,
-                                  List<Requirement> requirements, Report report)
+        private static async Task Match(Dictionary<string, HashSet<string>> content,
+                                        List<Requirement> requirements, Report report)
         {
             var unused = new HashSet<string>(content.Keys);
 
             foreach (Requirement requirement in requirements)
             {
                 string match = unused.FirstOrDefault(item => Satisfies(content[item], requirement));
-                if (match == null) report.Missing.Add(requirement.ToString());
+                if (match == null) report.Missing.Add(await Describe(requirement));
                 else unused.Remove(match);
             }
 
             // La clôture : un objet qui ne sert aucune exigence est en trop. C'est ce qui
             // distingue une salade de fruits d'une assiette contenant en plus un steak.
             foreach (string item in unused)
-                report.Extra.Add(DescribeItem(content[item]));
+                report.Extra.Add(await DescribeItem(content[item]));
         }
 
         private static bool Satisfies(HashSet<string> classes, Requirement requirement)
@@ -280,17 +280,59 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>";
         }
 
         /// <summary>
+        /// Version ÉNONÇABLE d'une exigence : les libellés de l'ontologie dans la locale, au
+        /// lieu des noms locaux anglais des URI. « Potato Sliced+Cooked » sortait tel quel au
+        /// milieu d'une phrase française — c'est ce que Piper lit, donc ce que le joueur entend.
+        /// </summary>
+        public static async Task<string> Describe(Requirement requirement)
+        {
+            bool french = UserData.Locale != "en";
+
+            // Boucles séquentielles, pas de WhenAll : le cache d'OntologyLabels est un
+            // Dictionary sans verrou.
+            var states = new List<string>();
+            foreach (string state in requirement.States)
+                states.Add((await Label(state)).ToLowerInvariant());
+
+            var forbidden = new List<string>();
+            foreach (string state in requirement.ForbiddenStates)
+                forbidden.Add((await Label(state)).ToLowerInvariant());
+
+            return await Label(requirement.Ingredient)
+                   + (states.Count > 0 ? " " + string.Join(french ? " et " : " and ", states) : "")
+                   + (forbidden.Count > 0
+                       ? (french ? " (sans " : " (without ") + string.Join(", ", forbidden) + ")"
+                       : "");
+        }
+
+        /// <summary>
+        /// Libellé localisé d'une classe, URI pleine ou déjà préfixée. Hors espace sven, le
+        /// nom local suffit — on ne construit pas de requête avec une URI arbitraire.
+        /// </summary>
+        private static async Task<string> Label(string uri)
+        {
+            if (string.IsNullOrEmpty(uri)) return uri;
+
+            const string svenNamespace = "https://sven.lisn.upsaclay.fr/ontology#";
+            string prefixed = uri.StartsWith(svenNamespace) ? "sven:" + uri[svenNamespace.Length..]
+                            : uri.StartsWith("sven:") ? uri
+                            : null;
+
+            return prefixed == null ? Local(uri) : await OntologyLabels.GetAsync(prefixed, UserData.Locale);
+        }
+
+        /// <summary>
         /// Décrit un objet par sa classe la plus spécifique — celle qu'aucune autre annotation
         /// ne subsume. Les parents sont matérialisés sur l'objet, donc « pomme » et « fruit »
         /// et « nourriture » y figurent tous : dire « fruit en trop » serait moins utile.
         /// </summary>
-        private static string DescribeItem(HashSet<string> classes)
+        private static async Task<string> DescribeItem(HashSet<string> classes)
         {
             // « Refused » y figure : sans lui, « en trop : Refused » sortirait au lieu de
             // « en trop : Banana », au hasard de l'ordre du HashSet.
             string[] generic = { "Food", "Fruit", "Vegetable", "Meat", "Fish", "Dairy", "Bakery", "FoodState", "Refused" };
-            string specific = classes.Select(Local).FirstOrDefault(c => !generic.Contains(c));
-            return specific ?? string.Join("/", classes.Select(Local));
+            string specific = classes.FirstOrDefault(c => !generic.Contains(Local(c)));
+            return specific != null ? await Label(specific) : string.Join("/", classes.Select(Local));
         }
     }
 }
