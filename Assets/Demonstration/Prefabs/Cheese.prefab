@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &2149707763036204072
+--- !u!1 &3065769432537009992
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,16 +8,16 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1332067769499910118}
-  - component: {fileID: 2230877030247503948}
-  - component: {fileID: 3229661078929728272}
-  - component: {fileID: 8724109700983856538}
-  - component: {fileID: 4628920567334624207}
-  - component: {fileID: 8511792094435996891}
-  - component: {fileID: 6274887949385202902}
-  - component: {fileID: 1532282822262361668}
-  - component: {fileID: 3751403594299043498}
-  - component: {fileID: 8971487392827081274}
+  - component: {fileID: 2773635383148814903}
+  - component: {fileID: 8186818604885891473}
+  - component: {fileID: 651279981821189949}
+  - component: {fileID: 5125356841104453952}
+  - component: {fileID: 186066036020581066}
+  - component: {fileID: 3297202665424587923}
+  - component: {fileID: 8355804827345176398}
+  - component: {fileID: 1097318705559834348}
+  - component: {fileID: 6890686194333897496}
+  - component: {fileID: 810448368375106458}
   m_Layer: 0
   m_Name: Cheese
   m_TagString: Untagged
@@ -25,13 +25,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1332067769499910118
+--- !u!4 &2773635383148814903
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2149707763036204072}
+  m_GameObject: {fileID: 3065769432537009992}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -40,21 +40,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &2230877030247503948
+--- !u!33 &8186818604885891473
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2149707763036204072}
+  m_GameObject: {fileID: 3065769432537009992}
   m_Mesh: {fileID: 4300000, guid: d3ecc04b7b25f5440ba8d02c0ca9cf99, type: 2}
---- !u!23 &3229661078929728272
+--- !u!23 &651279981821189949
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2149707763036204072}
+  m_GameObject: {fileID: 3065769432537009992}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -97,13 +97,13 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &8724109700983856538
+--- !u!64 &5125356841104453952
 MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2149707763036204072}
+  m_GameObject: {fileID: 3065769432537009992}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -119,36 +119,36 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: d3ecc04b7b25f5440ba8d02c0ca9cf99, type: 2}
---- !u!114 &4628920567334624207
+--- !u!114 &186066036020581066
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2149707763036204072}
+  m_GameObject: {fileID: 3065769432537009992}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7e518ae278ae889448712861370435c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: com.nsaintl.sven::Sven.Content.SemantizationCore
   componentsToSemanticize:
-  - <Component>k__BackingField: {fileID: 1332067769499910118}
+  - <Component>k__BackingField: {fileID: 2773635383148814903}
     <ProcessingMode>k__BackingField: 0
-  - <Component>k__BackingField: {fileID: 2230877030247503948}
+  - <Component>k__BackingField: {fileID: 8186818604885891473}
     <ProcessingMode>k__BackingField: 1
-  - <Component>k__BackingField: {fileID: 3229661078929728272}
+  - <Component>k__BackingField: {fileID: 651279981821189949}
     <ProcessingMode>k__BackingField: 0
-  - <Component>k__BackingField: {fileID: 8511792094435996891}
+  - <Component>k__BackingField: {fileID: 3297202665424587923}
     <ProcessingMode>k__BackingField: 0
-  - <Component>k__BackingField: {fileID: 6274887949385202902}
+  - <Component>k__BackingField: {fileID: 8355804827345176398}
     <ProcessingMode>k__BackingField: 1
---- !u!114 &8511792094435996891
+--- !u!114 &3297202665424587923
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2149707763036204072}
+  m_GameObject: {fileID: 3065769432537009992}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a9a82d68b20156845a78acda341113cb, type: 3}
@@ -158,25 +158,25 @@ MonoBehaviour:
   - sven:Cheese
   - sven:Dairy
   - sven:Food
---- !u!114 &6274887949385202902
+--- !u!114 &8355804827345176398
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2149707763036204072}
+  m_GameObject: {fileID: 3065769432537009992}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 16281d948b8e76a4e89f12a305e849ed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Sc4ve.Demonstration.Cheese
---- !u!54 &1532282822262361668
+--- !u!54 &1097318705559834348
 Rigidbody:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2149707763036204072}
+  m_GameObject: {fileID: 3065769432537009992}
   serializedVersion: 5
   m_Mass: 1
   m_LinearDamping: 0
@@ -197,13 +197,13 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &3751403594299043498
+--- !u!114 &6890686194333897496
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2149707763036204072}
+  m_GameObject: {fileID: 3065769432537009992}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0ad34abafad169848a38072baa96cdb2, type: 3}
@@ -327,13 +327,13 @@ MonoBehaviour:
   m_LimitAngularVelocity: 0
   m_MaxLinearVelocityDelta: 10
   m_MaxAngularVelocityDelta: 20
---- !u!114 &8971487392827081274
+--- !u!114 &810448368375106458
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2149707763036204072}
+  m_GameObject: {fileID: 3065769432537009992}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ff60e5c089f0f22408c339e80c8d0aaf, type: 3}
