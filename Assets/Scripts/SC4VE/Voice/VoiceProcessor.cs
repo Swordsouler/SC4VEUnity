@@ -141,6 +141,15 @@ namespace Sc4ve.Voice
             }
         }
 
+        /// <summary>
+        /// Délai au-delà duquel une position de lecture immobile signe une capture morte.
+        /// Une capture vivante fait avancer GetPosition à chaque image ; deux secondes
+        /// d'immobilité ne s'expliquent par rien d'autre qu'un pilote réinitialisé.
+        /// Assez court pour récupérer avant que le joueur n'abandonne, assez long pour ne pas
+        /// confondre avec une image longue.
+        /// </summary>
+        private const float MicrophoneStallSeconds = 2f;
+
         private Coroutine _recordCoroutine;
 
         /// <summary>
@@ -291,12 +300,24 @@ namespace Sc4ve.Voice
             float[] sampleBuffer = new float[FrameLength];
             int startReadPos = 0;
 
+            // Dernière position lue et l'instant où elle a bougé : une capture vivante fait
+            // avancer GetPosition en continu. Voir MicrophoneStallSeconds.
+            int lastPosition = -1;
+            float lastProgressAt = Time.realtimeSinceStartup;
+
             OnRecordingStart?.Invoke();
             //Debug.Log("Recording started");
 
             while (IsRecording)
             {
-                int curClipPos = Microphone.GetPosition(CurrentDeviceName);
+                int rawClipPos = Microphone.GetPosition(CurrentDeviceName);
+                if (rawClipPos != lastPosition)
+                {
+                    lastPosition = rawClipPos;
+                    lastProgressAt = Time.realtimeSinceStartup;
+                }
+
+                int curClipPos = rawClipPos;
                 if (curClipPos < startReadPos)
                     curClipPos += _audioClip.samples;
 
@@ -311,14 +332,24 @@ namespace Sc4ve.Voice
                     // plus aucune trame ne part, sans erreur ni exception — le push-to-talk
                     // semble simplement mort. On détecte l'arrêt matériel et on relance la
                     // capture sur place.
-                    if (!Microphone.IsRecording(CurrentDeviceName))
+                    // DEUX morts possibles, et la seconde échappait à la détection : le pilote
+                    // peut se réinitialiser SANS qu'IsRecording passe à faux. GetPosition reste
+                    // alors figée sur la même valeur, aucune trame ne part plus, la boucle
+                    // tourne indéfiniment sur le yield ci-dessous — et côté joueur le
+                    // push-to-talk « n'écoute plus », sans le moindre message.
+                    bool stopped = !Microphone.IsRecording(CurrentDeviceName);
+                    bool stalled = Time.realtimeSinceStartup - lastProgressAt > MicrophoneStallSeconds;
+
+                    if (stopped || stalled)
                     {
-                        Debug.LogWarning("[VoiceProcessor] Capture micro interrompue " +
+                        Debug.LogWarning($"[VoiceProcessor] Capture micro {(stopped ? "interrompue" : "figée")} " +
                                          "(changement de périphérique audio ?) — redémarrage.");
                         Microphone.End(CurrentDeviceName);
                         if (_audioClip != null) Destroy(_audioClip);
                         _audioClip = Microphone.Start(CurrentDeviceName, true, 1, SampleRate);
                         startReadPos = 0;
+                        lastPosition = -1;
+                        lastProgressAt = Time.realtimeSinceStartup;
 
                         if (_audioClip == null || !Microphone.IsRecording(CurrentDeviceName))
                         {

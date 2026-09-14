@@ -772,6 +772,12 @@ namespace Sc4ve.Multimodality
                          command.Parameters?.OfType<SelectionParameter>() ?? Enumerable.Empty<SelectionParameter>())
                 {
                     if (sel == null || !sel.SingularIntent || sel.FallbackToSelection) continue;
+                    // Une réponse à une question de rôle n'est pas une référence ambiguë : ses
+                    // objets sont l'UNION de ce qu'elle désigne et du rôle déjà acquis. Les
+                    // compter comme des candidats interchangeables faisait demander de choisir
+                    // entre le serveur et la table — deux rôles distincts, pas deux cibles
+                    // possibles pour un même « le ».
+                    if (sel.UnionWithSelection) continue;
                     List<SemantizationCore> objs = sel.Objects;
                     if (objs == null || objs.Count <= 1) continue;
                     bool pointingOrCoref = sel.Filters != null && sel.Filters.Any(f =>
