@@ -774,8 +774,16 @@ namespace Sc4ve.Demonstration.EditorTools
             // la clarification ne se déclenche jamais (§3 du README). Sur les FLANCS, pas au
             // centre : à (±0,7, 2,6) ils se tenaient en plein milieu de l'axe joueur→tables —
             // le croquis les veut de part et d'autre du joueur, la salle dégagée devant lui.
-            MakeWaiter(Prop(room, "Serveur 1", "sven:Waiter", new Vector3(-2.8f, 0f, 2.1f), 1.75f));
-            MakeWaiter(Prop(room, "Serveur 2", "sven:Waiter", new Vector3(2.8f, 0f, 2.1f), 1.75f));
+            // Tournés VERS le joueur (l'avant du modèle debout est +z, cf. PropMeshFactory) :
+            // Delegation capture cette orientation comme _homeRotation et la restaure au
+            // retour de chaque course.
+            GameObject left = Prop(room, "Serveur 1", "sven:Waiter", new Vector3(-2.8f, 0f, 2.1f), 1.75f);
+            left.transform.rotation = Quaternion.Euler(0f, 90f, 0f);
+            MakeWaiter(left);
+
+            GameObject right = Prop(room, "Serveur 2", "sven:Waiter", new Vector3(2.8f, 0f, 2.1f), 1.75f);
+            right.transform.rotation = Quaternion.Euler(0f, -90f, 0f);
+            MakeWaiter(right);
         }
 
         /// <summary>
@@ -1137,12 +1145,15 @@ namespace Sc4ve.Demonstration.EditorTools
         {
             var board = new GameObject("Tableau des commandes");
             board.transform.SetParent(root);
-            board.transform.position = new Vector3(0f, 1.75f, 1.95f);
-            // 180° : un TextMesh se lit depuis le -z de son transform, et le joueur se tient
-            // maintenant DEVANT la passe (PlayerSpawn, z ≈ 2,35), côté salle — il se retourne
-            // vers la cuisine pour lire le tableau. L'identité valait pour l'ancien joueur
-            // posé derrière les comptoirs, à z plus petit que le tableau.
-            board.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            // Au-dessus des comptoirs, à ~1 m du joueur : posé à (1,75, 1,95), il se
+            // retrouvait à 40 cm du visage quand le joueur (PlayerSpawn, z ≈ 2,35) se
+            // retournait — il remplissait tout le champ. Monté à 2,05 et reculé à 1,40,
+            // comme un écran de commandes au-dessus de la passe.
+            board.transform.position = new Vector3(0f, 2.05f, 1.40f);
+            // 180° : un TextMesh se lit depuis le -z de son transform, et le joueur est côté
+            // salle — il se retourne vers la cuisine pour le lire. Les -15° l'inclinent vers
+            // ses yeux (le tableau est au-dessus de la tête).
+            board.transform.rotation = Quaternion.Euler(-15f, 180f, 0f);
 
             GameObject back = GameObject.CreatePrimitive(PrimitiveType.Cube);
             back.name = "Fond";

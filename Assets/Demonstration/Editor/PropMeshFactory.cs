@@ -188,20 +188,23 @@ namespace Sc4ve.Demonstration.EditorTools
             // indiscernables (§3 du README), donc aucun trait individuel.
             var pupil = new Color(0.15f, 0.13f, 0.12f);
 
+            // L'avant du personnage DEBOUT est +z — transform.forward. C'est la convention de
+            // TOUT le code : le NavMeshAgent de Delegation aligne +z sur la direction de
+            // marche, et sa « Main » est à z +0,32. Avec le visage à -z, le serveur marchait
+            // à reculons et portait l'assiette dans le dos. (Le modèle ASSIS garde son devant
+            // à -z : posé en rotation identité face à la cuisine, sans agent ni main.)
             for (int i = 0; i < 2; i++)
                 parts.Add(new Part(i == 0 ? "EyeLeft" : "EyeRight",
                     Save("PropEye", i == 0 ? IngredientMeshFactory.Blob(1, Vector3.one * 0.05f,
                         taper: 1f, noise: 0f, frequency: 1f, seed: 0) : null),
-                    pupil, new Vector3(-0.055f + i * 0.11f, 0.545f, -0.105f)));
+                    pupil, new Vector3(-0.055f + i * 0.11f, 0.545f, 0.105f)));
 
             parts.Add(new Part("Mouth", Save("PropMouth", Box(new Vector3(0.09f, 0.022f, 0.03f))),
-                new Color(0.45f, 0.24f, 0.22f), new Vector3(0f, 0.455f, -0.105f)));
+                new Color(0.45f, 0.24f, 0.22f), new Vector3(0f, 0.455f, 0.105f)));
 
             if (apron)
-                // z NÉGATIF : le visage est à z négatif (les yeux à -0,105), donc le devant
-                // aussi. À +0,15, le tablier était noué dans le dos.
                 parts.Add(new Part("Apron", Save("PropApron", Box(new Vector3(0.34f, 0.46f, 0.04f))),
-                    new Color(0.93f, 0.93f, 0.90f), new Vector3(0f, -0.16f, -0.15f)));
+                    new Color(0.93f, 0.93f, 0.90f), new Vector3(0f, -0.16f, 0.15f)));
 
             return parts;
         }
