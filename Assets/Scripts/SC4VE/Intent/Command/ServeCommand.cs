@@ -31,24 +31,23 @@ namespace Sc4ve.Multimodality.Intent
 
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> targets = DelegationRoles.AllTargets(this);
-            Delegation agent = DelegationRoles.Agent(targets);
-            SemantizationCore table = DelegationRoles.Table(targets);
+            (Delegation agent, SemantizationCore table, List<SemantizationCore> known) =
+                DelegationRoles.Resolve(this);
 
             bool french = UserData.Locale == "fr";
 
-            // Rôle manquant : même schéma que TakeOrderCommand — on demande, et on renvoie la
-            // cible déjà trouvée pour que la réponse s'y unisse au lieu de la remplacer.
+            // Rôle manquant : même schéma que TakeOrderCommand — on demande, et on renvoie ce
+            // qui est déjà connu pour que la réponse s'y unisse au lieu de le remplacer.
             if (agent == null)
             {
                 Ask(french ? "Quel serveur ?" : "Which waiter?");
-                return targets;
+                return known;
             }
 
             if (table == null)
             {
                 Ask(french ? "Quelle table ?" : "Which table?");
-                return targets;
+                return known;
             }
 
             // Serve parle lui-même en cas de refus (occupé) ou d'échec (aucun plat prêt) :

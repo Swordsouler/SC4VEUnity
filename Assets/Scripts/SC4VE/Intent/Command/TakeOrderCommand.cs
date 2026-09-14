@@ -33,25 +33,24 @@ namespace Sc4ve.Multimodality.Intent
 
         public override List<SemantizationCore> Execute()
         {
-            List<SemantizationCore> targets = DelegationRoles.AllTargets(this);
-            Delegation agent = DelegationRoles.Agent(targets);
-            SemantizationCore table = DelegationRoles.Table(targets);
+            (Delegation agent, SemantizationCore table, List<SemantizationCore> known) =
+                DelegationRoles.Resolve(this);
 
             bool french = UserData.Locale == "fr";
 
-            // Rôle manquant : on demande, et on RENVOIE la cible déjà trouvée. Le contrôleur en
+            // Rôle manquant : on demande, et on RENVOIE ce qui est déjà connu. Le contrôleur en
             // fait la sélection courante, sur laquelle la réponse viendra s'unir — sans quoi
             // « ce serveur-là 👆 » remplacerait la table et on repartirait pour « Quelle table ? ».
             if (agent == null)
             {
                 Ask(french ? "Quel serveur ?" : "Which waiter?");
-                return targets;
+                return known;
             }
 
             if (table == null)
             {
                 Ask(french ? "Quelle table ?" : "Which table?");
-                return targets;
+                return known;
             }
 
             if (!agent.TakeOrder(table)) return new();

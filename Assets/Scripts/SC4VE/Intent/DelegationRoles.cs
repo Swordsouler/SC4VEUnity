@@ -85,5 +85,45 @@ namespace Sc4ve.Multimodality.Intent
                 .Distinct()
                 .ToList()
                ?? new List<SemantizationCore>();
+
+        /// <summary>
+        /// Les deux rôles de la commande, chacun complété par la SÉLECTION COURANTE s'il manque
+        /// — et la liste de ce qui est connu, à garder sélectionné si l'on doit poser une
+        /// question.
+        ///
+        /// Nommer une cible dans la phrase ne remplace plus ce qui était déjà désigné. « Va
+        /// chercher la commande de cette table 👆 », alors qu'un serveur venait d'être
+        /// sélectionné, ne résolvait que la table : le SelectionParameter porte un filtre
+        /// explicite, donc aucun repli, et le serveur — pourtant en surbrillance sous les yeux
+        /// du joueur — était ignoré. Le système demandait « Quel serveur ? » quand la réponse
+        /// était déjà à l'écran.
+        ///
+        /// Le complément se fait RÔLE PAR RÔLE et jamais par remplacement : ce que la phrase
+        /// désigne prime toujours, la sélection ne comble que ce qui manque. C'est plus fin que
+        /// FallbackToSelection, qui est tout ou rien et ne joue que sur une résolution vide.
+        /// </summary>
+        public static (Delegation agent, SemantizationCore table, List<SemantizationCore> known)
+            Resolve(Command command)
+        {
+            List<SemantizationCore> targets = AllTargets(command);
+            Delegation agent = Agent(targets);
+            SemantizationCore table = Table(targets);
+
+            if (agent == null || table == null)
+            {
+                IReadOnlyList<SemantizationCore> selected = SelectionManager.Selected;
+                agent ??= Agent(selected);
+                table ??= Table(selected);
+            }
+
+            // Ce qui est connu reste sélectionné : sans cela, une question sur le rôle manquant
+            // ferait perdre le rôle déjà acquis, et le dialogue tournerait en rond.
+            var known = new List<SemantizationCore>(targets);
+            SemantizationCore agentCore = agent != null ? agent.GetComponent<SemantizationCore>() : null;
+            if (agentCore != null && !known.Contains(agentCore)) known.Add(agentCore);
+            if (table != null && !known.Contains(table)) known.Add(table);
+
+            return (agent, table, known);
+        }
     }
 }
