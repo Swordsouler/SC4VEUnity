@@ -1128,6 +1128,11 @@ namespace Sc4ve.Demonstration.EditorTools
                 Register(core, hand, SemanticProcessingMode.Dynamic);
                 Register(core, pointer, SemanticProcessingMode.Dynamic);
             }
+
+            // Ici, et non dans la construction de la salle : la tablette vit sur le rig, qui
+            // est hors de la racine générée. C'est le seul point par lequel passent les DEUX
+            // chemins — rig neuf et rig déjà présent.
+            EnsureHandTablet(rig);
         }
 
         /// <summary>
@@ -1161,23 +1166,50 @@ namespace Sc4ve.Demonstration.EditorTools
         /// </summary>
         private static void BuildOrderBoard(Transform root)
         {
-            var board = new GameObject("Tableau des commandes");
-            board.transform.SetParent(root);
             // Au-dessus des comptoirs, à ~1 m du joueur : posé à (1,75, 1,95), il se
             // retrouvait à 40 cm du visage quand le joueur (PlayerSpawn, z ≈ 2,35) se
             // retournait — il remplissait tout le champ. Monté à 2,05 et reculé à 1,40,
             // comme un écran de commandes au-dessus de la passe.
+            GameObject board = BuildBoardPanel(root, "Tableau des commandes", BoardWidth);
             board.transform.position = new Vector3(0f, 2.05f, 1.40f);
             // 180° : un TextMesh se lit depuis le -z de son transform, et le joueur est côté
             // salle — il se retourne vers la cuisine pour le lire. Les -15° l'inclinent vers
             // ses yeux (le tableau est au-dessus de la tête).
             board.transform.rotation = Quaternion.Euler(-15f, 180f, 0f);
+        }
+
+        /// <summary>Largeur du panneau de la passe, dont toutes les autres proportions dérivent.</summary>
+        private const float BoardWidth = 1.15f;
+
+        /// <summary>
+        /// Largeur de la tablette de poignet. Le seul nombre à retoucher si elle est trop
+        /// grande ou illisible : fond, marges et taille de caractère en découlent.
+        /// </summary>
+        private const float TabletWidth = 0.22f;
+
+        /// <summary>
+        /// Fond sombre + TextMesh piloté par <see cref="OrderBoard"/>.
+        ///
+        /// UNE seule fabrique pour les deux exemplaires — celui de la passe et la tablette de
+        /// la main gauche — parce qu'ils doivent montrer la même chose : deux constructions
+        /// séparées divergeraient dès la première retouche, alors que le tableau est décrit
+        /// comme une projection unique de l'état des clients.
+        ///
+        /// Tout est proportionnel à <paramref name="width"/>. La tablette n'est donc pas un
+        /// second design mais le même panneau réduit, et elle tient le même nombre de lignes.
+        /// </summary>
+        private static GameObject BuildBoardPanel(Transform parent, string name, float width)
+        {
+            float k = width / BoardWidth;
+
+            var board = new GameObject(name);
+            board.transform.SetParent(parent, worldPositionStays: false);
 
             GameObject back = GameObject.CreatePrimitive(PrimitiveType.Cube);
             back.name = "Fond";
             back.transform.SetParent(board.transform, worldPositionStays: false);
-            back.transform.localPosition = new Vector3(0f, 0f, 0.015f);
-            back.transform.localScale = new Vector3(1.15f, 0.62f, 0.02f);
+            back.transform.localPosition = new Vector3(0f, 0f, 0.015f * k);
+            back.transform.localScale = new Vector3(width, 0.62f * k, 0.02f * k);
             back.GetComponent<Renderer>().sharedMaterial =
                 GetMaterial("TableauFond", new Color(0.16f, 0.20f, 0.17f));
             UnityEngine.Object.DestroyImmediate(back.GetComponent<Collider>());
@@ -1185,13 +1217,13 @@ namespace Sc4ve.Demonstration.EditorTools
             Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             var textHolder = new GameObject("Texte");
             textHolder.transform.SetParent(board.transform, worldPositionStays: false);
-            textHolder.transform.localPosition = new Vector3(0f, 0.26f, 0f);
+            textHolder.transform.localPosition = new Vector3(0f, 0.26f * k, 0f);
 
             var mesh = textHolder.AddComponent<TextMesh>();
             mesh.text = "COMMANDES";
             mesh.font = font;
             mesh.fontSize = 64;
-            mesh.characterSize = 0.011f;
+            mesh.characterSize = 0.011f * k;
             mesh.anchor = TextAnchor.UpperCenter;
             mesh.alignment = TextAlignment.Center;
             mesh.color = new Color(0.92f, 0.90f, 0.82f);
@@ -1200,6 +1232,46 @@ namespace Sc4ve.Demonstration.EditorTools
             // Le composant vit dans Assembly-CSharp (Demonstration/Scripts) : il ne fait que
             // relire les CustomerOrder de la scène — aucune commande ne le référence.
             textHolder.AddComponent<Sc4ve.Demonstration.OrderBoard>();
+            return board;
+        }
+
+        /// <summary>
+        /// La tablette de la main gauche : le tableau de la passe, au poignet.
+        ///
+        /// Le panneau de la passe oblige à se retourner vers la cuisine, donc à quitter la
+        /// salle des yeux au moment précis où l'on regarde un client. Au poignet, l'état des
+        /// commandes se consulte d'un coup d'œil sans lâcher la scène.
+        ///
+        /// Sur la main GAUCHE parce que le pointage se fait à droite : une tablette dans le
+        /// champ du rayon gênerait la désignation. Elle n'a ni collider ni SemantizationCore,
+        /// donc elle n'intercepte pas le rayon et n'entre pas dans le graphe — et
+        /// PointerHighlight ignore de toute façon ce qui appartient au rig.
+        ///
+        /// Posée SUR LE RIG, qui survit aux reconstructions : d'où le test d'existence, sans
+        /// lequel chaque relance de l'outil en empilerait une de plus.
+        /// </summary>
+        private static void EnsureHandTablet(GameObject rig)
+        {
+            Transform hand = FindDeep(rig.transform, "Left Controller");
+            if (hand == null)
+            {
+                Debug.LogWarning("[DemoSceneBuilder] « Left Controller » introuvable : " +
+                                 "pas de tablette des commandes au poignet.");
+                return;
+            }
+
+            const string tabletName = "Tablette des commandes";
+            if (hand.Find(tabletName) != null) return;
+
+            GameObject tablet = BuildBoardPanel(hand, tabletName, TabletWidth);
+
+            // Au-dessus et devant la main, incliné vers le visage. Un TextMesh se lit à
+            // l'opposé de son +z : à 55°, ce +z part vers le bas et l'avant, donc l'écran
+            // regarde les yeux du joueur, qui sont au-dessus et en arrière de sa main.
+            tablet.transform.localPosition = new Vector3(0f, 0.06f, 0.04f);
+            tablet.transform.localRotation = Quaternion.Euler(55f, 0f, 0f);
+
+            Debug.Log("[DemoSceneBuilder] Tablette des commandes posée sur la main gauche.");
         }
 
         /// <summary>Scène de référence du pipeline vocal — celle du banc d'essai de la thèse.</summary>

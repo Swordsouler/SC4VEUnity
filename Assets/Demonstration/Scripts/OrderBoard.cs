@@ -65,9 +65,13 @@ namespace Sc4ve.Demonstration
             {
                 string line = customer.State switch
                 {
-                    // Avant la prise de commande, RIEN : afficher la famille révélerait la
-                    // commande avant que le client l'ait énoncée (critère 1).
-                    CustomerOrder.Stage.Seated => null,
+                    // Avant la prise de commande, l'ATTENTE et rien d'autre : dire qu'un
+                    // client attend n'apprend rien de ce qu'il veut, alors qu'afficher sa
+                    // famille de plats révélerait la commande avant qu'il l'ait énoncée
+                    // (critère 1). La ligne existe quand même, sinon le tableau serait vide
+                    // au démarrage — et une table sans ligne se lit « personne » plutôt que
+                    // « personne n'est encore allé la voir ».
+                    CustomerOrder.Stage.Seated => french ? "— en attente —" : "— waiting —",
                     CustomerOrder.Stage.Gone when !customer.HasOrdered
                         => french ? "— parti sans commander —" : "— left without ordering —",
                     _ => Row(customer, french),
