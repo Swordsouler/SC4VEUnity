@@ -206,6 +206,11 @@ namespace Sc4ve.Multimodality
             // non « je ne trouve pas de plat » — le second serait vrai mais hors sujet.
             if (!Accept(French ? "sert une table" : "serving a table")) return false;
 
+            // Sans plat dicté par l'ordre, celui que LE CLIENT DE CETTE TABLE attend : le
+            // graphe sait déjà qui veut quoi — « donne leurs assiettes aux clients » n'a
+            // pas à apparier plats et prénoms dans la phrase.
+            recipe ??= CustomerOrder.At(table)?.WantedRecipe;
+
             ContainerContent dish = FindReadyDish(recipe);
             if (dish == null)
             {

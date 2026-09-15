@@ -112,6 +112,14 @@ namespace Sc4ve.Multimodality
         /// que le vocabulaire n'est pas lu.</summary>
         public string DishLabel => _dishLabel;
 
+        /// <summary>
+        /// Le plat PRÉCIS que le client a demandé (URI préfixée, « sven:CaesarSalad »), ou
+        /// null tant que le vocabulaire n'est pas lu. C'est _acceptable[0] : le plat énoncé
+        /// est remis en tête de liste à la lecture du vocabulaire, précisément pour être
+        /// vérifié — et maintenant servi — en premier.
+        /// </summary>
+        public string WantedRecipe => _acceptable.Count > 0 ? _acceptable[0] : null;
+
         /// <summary>1 → 0. Figée dès que l'état vaut Served ou Gone.</summary>
         public float PatienceRatio => _patience > 0f ? Mathf.Clamp01(_remaining / _patience) : 0f;
 

@@ -865,9 +865,15 @@ sc4ve:GoToCommand sc4ve:trigger
     "va là"@fr , "va là-bas"@fr , "va ici"@fr , "rejoins"@fr , "rejoindre"@fr ,
     "go there"@en , "go here"@en , "go to"@en .
 
+###  « donne » et « apporte » : les formulations naturelles du service, entendues en démo
+###  (« Donne la salade César à Florence ») — sans elles, la phrase partait dans le repli
+###  plat-nommé et REFAISAIT les plats. L'ontologie PRIME sur l'attribut C#
+###  [RuleBasedTriggers] (CommandVocabulary.BuildTriggerMappings) : les deux listes doivent
+###  rester alignées. « amène » reste à MoveCommand (« amène ça ici »).
 sc4ve:ServeCommand sc4ve:trigger
-    "va servir"@fr , "sers"@fr , "servir"@fr , "apporte le plat"@fr ,
-    "go serve"@en , "serve"@en , "bring the dish"@en .
+    "va servir"@fr , "sers"@fr , "servir"@fr , "donne"@fr , "donner"@fr , "donnez"@fr ,
+    "apporte"@fr , "apporter"@fr , "porte à"@fr ,
+    "go serve"@en , "serve"@en , "give"@en , "bring"@en .
 
 ###  « prend la commande » sans s : Whisper transcrit volontiers l'impératif « prends » en
 ###  3e personne — sans cette forme, le stem « prend » (= prendre) routait vers GrabCommand.

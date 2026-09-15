@@ -65,14 +65,20 @@ namespace Sc4ve.Multimodality.Intent
                 return known;
             }
 
+            // La recette EXPLICITE ne vaut que pour une cible unique : « donne la salade
+            // César à Florence, la salade de fruits à Patricia… » nomme plusieurs plats, et
+            // le premier extrait s'appliquerait à tous. À plusieurs tables, recette nulle :
+            // chaque service choisit le plat que SON client attend (Delegation.Serve).
+            List<SemantizationCore> tables = DelegationRoles.Tables(this);
+            string recipe = tables.Count > 1 ? null : GetParameter<RecipeParameter>()?.Value;
+
             // Serve parle lui-même en cas de refus (occupé) ou d'échec (aucun plat prêt) :
             // un échec est une information, pas un bug (§8 du README).
-            string recipe = GetParameter<RecipeParameter>()?.Value;
             if (!agent.Serve(table, recipe)) return new();
 
             // Liste de directives (« sers Jean et Florence ») : les tables au-delà de la
             // première s'enfilent — le serveur unique les sert en séquence (Delegation).
-            foreach (SemantizationCore extra in DelegationRoles.Tables(this))
+            foreach (SemantizationCore extra in tables)
                 if (extra != table)
                     agent.Enqueue(() => agent.Serve(extra, recipe));
 
