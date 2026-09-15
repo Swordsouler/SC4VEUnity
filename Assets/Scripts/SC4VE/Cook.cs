@@ -180,6 +180,10 @@ namespace Sc4ve.Multimodality
                 yield return new WaitForSeconds(_actionDuration);
             }
 
+            // L'habillage : la soupière remplace visuellement le tas d'ingrédients. Purement
+            // cosmétique — le verdict du client lit le graphe, pas l'image (cf. DishDressing).
+            DishDressing.Dress(plate, recipe);
+
             Say(French ? "C'est prêt." : "It is ready.");
             Finish();
         }

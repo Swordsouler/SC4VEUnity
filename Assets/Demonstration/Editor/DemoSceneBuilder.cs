@@ -88,6 +88,7 @@ namespace Sc4ve.Demonstration.EditorTools
             BuildKitchen(root);
             BuildDiningRoom(root);
             BuildOrderBoard(root);
+            BuildDishTemplates(root);
             bool rigCreated = EnsureXRRig();
             // Hors du bloc ci-dessus : la caméra parasite doit aussi disparaître des scènes
             // où le rig existait déjà avant cette version de l'outil.
@@ -1388,6 +1389,48 @@ namespace Sc4ve.Demonstration.EditorTools
             tablet.transform.localRotation = Quaternion.Euler(55f, 0f, 0f);
 
             Debug.Log("[DemoSceneBuilder] Tablette des commandes posée sur la main gauche.");
+        }
+
+        /// <summary>
+        /// Les habillages de plats, en GABARITS inactifs : un par recette concrète, nommé par
+        /// l'URI préfixée — la langue que parle le cuisinier, la correspondance au runtime est
+        /// un simple Find par nom.
+        ///
+        /// Fabriqués À LA CONSTRUCTION parce que DishMeshFactory est un outil d'éditeur : le
+        /// runtime (DishDressing) ne peut qu'instancier de l'existant. Le porte-gabarits reste
+        /// ACTIF — GameObject.Find ne trouve pas les objets inactifs — mais chaque gabarit est
+        /// inactif, sans collider ni annotation : ce sont des images, pas des objets du monde
+        /// (même règle que BuildDish, qui les fabrique) — rien ne doit pouvoir les pointer,
+        /// les sélectionner ni les compter.
+        /// </summary>
+        private static void BuildDishTemplates(Transform root)
+        {
+            var holder = new GameObject("Habillages de plats").transform;
+            holder.SetParent(root);
+            // Sous le sol, par prudence : les gabarits sont inactifs donc invisibles, mais un
+            // gabarit réactivé par mégarde dans l'éditeur ne doit pas apparaître dans la salle.
+            holder.position = new Vector3(0f, -10f, 0f);
+
+            string[] recipes =
+            {
+                "FruitSalad", "CaesarSalad", "SteakFrites", "FishSoup", "PumpkinSoup",
+                "CarrotSoup", "SalmonSandwich", "CruditesSandwich", "BeefSandwich",
+            };
+
+            int built = 0;
+            foreach (string recipe in recipes)
+            {
+                GameObject dish = BuildDish(recipe);
+                if (dish == null) continue;
+
+                dish.name = "sven:" + recipe;
+                dish.transform.SetParent(holder, worldPositionStays: false);
+                dish.SetActive(false);
+                built++;
+            }
+
+            Debug.Log($"[DemoSceneBuilder] {built} habillage(s) de plat en gabarit sous " +
+                      "« Habillages de plats ».");
         }
 
         /// <summary>Scène de référence du pipeline vocal — celle du banc d'essai de la thèse.</summary>
