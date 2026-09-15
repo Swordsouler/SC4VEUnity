@@ -153,9 +153,22 @@ namespace Sc4ve.Multimodality.Intent
                && requirement.States.All(classes.Contains)
                && !requirement.ForbiddenStates.Any(classes.Contains);
 
-        /// <summary>Les exigences de la recette, lues dans l'ontologie.</summary>
+        // Les exigences d'une recette sont ONTOLOGIQUES : écrites au chargement, immuables
+        // en partie. Les relire par une requête sur le graphe entier — copie sous verrou
+        // comprise — se payait à CHAQUE vérification, sur le chemin critique du verdict du
+        // client. La mémoïsation n'introduit pas de seconde source de vérité (l'ontologie ne
+        // change pas en session, et le domain reload vide ce dictionnaire à chaque
+        // lancement) ; les continuations Unity reviennent toujours sur le thread principal,
+        // pas de verrou nécessaire.
+        private static readonly Dictionary<string, List<Requirement>> RequirementsCache = new();
+
+        /// <summary>Les exigences de la recette, lues dans l'ontologie — mémoïsées.</summary>
         public static async Task<List<Requirement>> Requirements(string recipe)
         {
+            // Copie à chaque retour : la liste cachée ne doit pouvoir être mutée par personne.
+            if (RequirementsCache.TryGetValue(recipe, out List<Requirement> cached))
+                return new List<Requirement>(cached);
+
             string query = $@"{Prefixes}
 SELECT ?requirement ?ingredient ?state ?forbidden
 WHERE {{
@@ -186,7 +199,9 @@ WHERE {{
                 if (forbidden != null) requirement.ForbiddenStates.Add(forbidden);
             }
 
-            return byNode.Values.Where(r => r.Ingredient != null).ToList();
+            List<Requirement> requirements = byNode.Values.Where(r => r.Ingredient != null).ToList();
+            RequirementsCache[recipe] = requirements;
+            return new List<Requirement>(requirements);
         }
 
         /// <summary>

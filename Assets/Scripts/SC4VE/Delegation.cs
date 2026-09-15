@@ -149,9 +149,10 @@ namespace Sc4ve.Multimodality
             _agent.speed = _speed / scale;
             // À 8 m/s, l'accélération par défaut d'un NavMeshAgent (8 m/s²) met une seconde
             // entière à atteindre le pas et déborde chaque arrêt : elle est attachée à la
-            // vitesse, et le pivot suit le rythme (720°/s).
-            _agent.acceleration = Mathf.Max(8f, _speed * 4f) / scale;
-            _agent.angularSpeed = 720f;
+            // vitesse — ×8, car à ×4 le serveur « glissait » encore dans les virages, vu en
+            // démo — et le pivot suit le rythme (1440°/s).
+            _agent.acceleration = Mathf.Max(8f, _speed * 8f) / scale;
+            _agent.angularSpeed = 1440f;
             _agent.stoppingDistance = _arrivalRadius * 0.5f / scale;
             // Le serveur contourne les obstacles au lieu de les pousser : sans gabarit, il
             // traverse une table en la faisant glisser.
@@ -267,15 +268,23 @@ namespace Sc4ve.Multimodality
 
             Take(dish);
 
+            // Le verdict du client (§1.2 du plan) démarre ICI, AVANT la marche : le contenu
+            // du plat porté ne change plus, et les requêtes du jugement sont le poste le
+            // plus long du service — les faire courir pendant le trajet les retire du temps
+            // perçu à la table, où la réponse est souvent déjà arrivée. Prix assumé : si la
+            // marche échouait ENSUITE (jamais observé — NavMesh cuit, délai de garde large),
+            // un verdict déjà rendu resterait acquis. La salle étant fixe, aucun client
+            // n'apparaît pendant le trajet. Sans client à cette table, on sert comme au
+            // lot 3 : le plat est déposé, personne ne le conteste.
+            CustomerOrder customer = CustomerOrder.At(table);
+            Task<CustomerOrder.Verdict> judging = customer != null ? customer.Judge(_carried) : null;
+
             yield return Walk(table.transform.position);
             if (_walkFailed) { Abandon(); yield break; }
 
             SetActivity(Activity.Acting, _taskLabel);
             yield return Wait(_actionDuration);
 
-            // Le client juge (§1.2 du plan). Sans client à cette table, on sert comme au
-            // lot 3 : le plat est déposé, personne ne le conteste.
-            CustomerOrder customer = CustomerOrder.At(table);
             if (customer == null)
             {
                 Drop(DropPointOn(table.transform));
@@ -283,7 +292,6 @@ namespace Sc4ve.Multimodality
             }
             else
             {
-                Task<CustomerOrder.Verdict> judging = customer.Judge(_carried);
                 yield return AwaitTask(judging);
 
                 if (_awaitFailed)
