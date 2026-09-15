@@ -612,5 +612,28 @@ namespace Sc4ve.Tests.EditMode
             Assert.IsTrue(conditions[1].IsAnnotation);
             Assert.AreEqual("Client", conditions[1].Value);
         }
+
+        [Test]
+        public void CEstPlusPlatNomme_EstUnOrdreDeService()
+        {
+            // Whisper entend « Sers » /sɛʁ/ et écrit son homophone « C'est » : le verbe de
+            // service disparaît de la transcription, jamais de l'intention (mesuré en démo :
+            // « Sers la salade César à Florence » → « C'est à la salade César à Florence »,
+            // que le repli plat-nommé transformait en SECONDE préparation). La cible reste
+            // résolue par le prénom.
+            _recognizer = MakeRecognizer(Language.French,
+                recipes: new List<RecipeVocabulary.Recipe>
+                {
+                    new RecipeVocabulary.Recipe("sven:CaesarSalad", "Salade César", isConcrete: true),
+                },
+                objectNames: new List<string> { "Florence" });
+
+            ServeCommand command =
+                RecognizeSingle<ServeCommand>("C'est à la salade César à Florence.");
+            List<Condition> conditions = AllConditions(command);
+            Assert.AreEqual(1, conditions.Count);
+            Assert.IsTrue(conditions[0].IsName);
+            Assert.AreEqual("Florence", conditions[0].Value);
+        }
     }
 }

@@ -590,7 +590,20 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // commande pas.
             bool question = text.Contains("?") || Regex.IsMatch(normalizedText, @"\best[ -]ce\b");
             if (!question && FindRecipe(text, out _) != null)
+            {
+                // « C'est la salade César » : Whisper entend « Sers » /sɛʁ/ et écrit son
+                // homophone « C'est » — le verbe de service disparaît de la transcription,
+                // jamais de l'intention (mesuré en démo : « Sers la salade César à
+                // Florence » → « C'est à la salade César à Florence », et le repli d'alors
+                // faisait REFAIRE le plat au lieu de le servir). Un plat nommé introduit par
+                // « c'est » est donc un ordre de SERVICE ; les vraies questions (« est-ce
+                // que c'est prêt ? ») sont déjà écartées ci-dessus, et « c'est prêt » sans
+                // plat nommé n'atteint jamais ce repli.
+                if (Regex.IsMatch(normalizedText, @"\bc\s?['’]?\s?est\b", RegexOptions.IgnoreCase))
+                    return "ServeCommand";
+
                 return "PrepareCommand";
+            }
 
             return null;
         }
