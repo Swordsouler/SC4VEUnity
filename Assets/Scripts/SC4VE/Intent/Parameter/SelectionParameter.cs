@@ -369,6 +369,7 @@ WHERE
             set => _type = value;
         }
         [JsonIgnore] public bool IsAnnotation => Type.ToLower() == "annotation";
+        [JsonIgnore] public bool IsName => Type.ToLower() == "name";
         [JsonIgnore] public bool IsColor => Type.ToLower() == "color";
         [JsonIgnore] public bool IsEvent => Type.ToLower() == "event";
         [JsonIgnore] public bool IsCoreference => Type.ToLower() == "coreference";
@@ -418,6 +419,24 @@ WHERE
             ?annotation sven:value ?componentType ;
                         sven:hasTemporalExtent ?interval{index} .
             ?componentType rdfs:label ""{EscapeSparqlLiteral(Value)}""@{locale}
+        }} LIMIT 10000
+    }}";
+            }
+            else if (IsName)
+            {
+                // Le prénom d'un objet de la scène. Branche AJOUTÉE : la requête de sélection
+                // et les filtres existants sont inchangés. SemantizationCore écrit le nom du
+                // GameObject en rdfs:label — littéral NU, sans balise de langue — et pose
+                // l'extension temporelle sur le nœud objet lui-même : l'ancrage temporel est
+                // donc le même que celui des autres conditions. Un littéral nu ne matche pas
+                // les libellés @fr/@en des classes de l'ontologie — aucune collision possible.
+                return @$"{{
+        SELECT DISTINCT ?object
+        WHERE
+        {{
+            {intervalQuery}
+            ?object rdfs:label ""{EscapeSparqlLiteral(Value)}"" ;
+                    sven:hasTemporalExtent ?interval{index} .
         }} LIMIT 10000
     }}";
             }

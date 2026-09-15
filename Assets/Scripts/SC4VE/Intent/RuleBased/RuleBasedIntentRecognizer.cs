@@ -26,6 +26,8 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         private readonly List<string> _annotationTypes;
         private readonly List<string> _availableColors;
         private readonly List<string> _pointerDeictics;
+        // Prénoms des objets nommables de la scène (les clients) — voir FindNames.
+        private readonly List<string> _objectNames;
         private readonly string _pointerName;
         private readonly string _cameraName;
 
@@ -96,7 +98,8 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             string pointerName,
             string cameraName,
             int movePointDelayMs = 300,
-            List<RecipeVocabulary.Recipe> recipes = null)
+            List<RecipeVocabulary.Recipe> recipes = null,
+            List<string> objectNames = null)
         {
             // Du libellé le plus long au plus court, comme les recettes et les déclencheurs :
             // « Pomme de terre » doit être essayé avant « Pomme », sans quoi « mets la pomme de
@@ -112,6 +115,11 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             _movePointDelayMs = movePointDelayMs;
             _recipes = (recipes ?? new List<RecipeVocabulary.Recipe>())
                 .OrderByDescending(r => r.Label.Length)
+                .ToList();
+            // Comme le reste du vocabulaire : du plus long au plus court, pour qu'un prénom
+            // qui en contient un autre (« Jeanne » / « Jean ») soit essayé en entier d'abord.
+            _objectNames = (objectNames ?? new List<string>())
+                .OrderByDescending(n => n.Length)
                 .ToList();
         }
 
@@ -193,6 +201,11 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // occurrence demeure un ingrédient.
             string recipe = FindRecipe(text, out string remainingText);
 
+            // Les PRÉNOMS ensuite, consommés eux aussi : un prénom nomme UN objet du graphe —
+            // la cible la plus spécifique qui soit — et rien de ce qu'il recouvre ne doit
+            // produire d'autre filtre.
+            List<RuleBasedAnnotation> names = FindNames(remainingText, words, out remainingText);
+
             List<RuleBasedAnnotation> annotations = FindAnnotations(remainingText, words);
             List<RuleBasedColor>      colors      = FindColors(remainingText, words);
             // Ablation (benchmark) : pointage désactivé → pas de déictiques (« ça » ne produit
@@ -207,7 +220,8 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // Une référence explicite à la sélection (« …sélectionnés », « la sélection »)
             // force la coréférence vers la sélection courante.
             bool hasCoreference = referencesSelection
-                || (annotations.Count == 0 && deictics.Count == 0 && HasCoreference(text));
+                || (names.Count == 0 && annotations.Count == 0 && deictics.Count == 0 &&
+                    HasCoreference(text));
 
             // Pour un AJOUT à la sélection, « la sélection » est la destination, pas la cible.
             // La coréférence forcée ci-dessus ferait ignorer les annotations
@@ -259,7 +273,8 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 limit = 1;
 
             Debug.Log(
-                $"[RuleBased] Annotations : [{string.Join(", ", annotations.Select(a => a.Value))}] | " +
+                $"[RuleBased] Noms : [{string.Join(", ", names.Select(n => n.Value))}] | " +
+                $"Annotations : [{string.Join(", ", annotations.Select(a => a.Value))}] | " +
                 $"Couleurs : [{string.Join(", ", colors.Select(c => $"{c.Value}(cible={c.IsTarget})"))}] | " +
                 $"Déictiques : [{string.Join(", ", deictics.Select(d => d.Value))}] | " +
                 $"Coréf : {hasCoreference} | Limite : {limit}");
@@ -271,6 +286,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 Words            = words,
                 PointerName      = _pointerName,
                 MovePointDelayMs = _movePointDelayMs,
+                Names            = names,
                 Annotations      = annotations,
                 Colors           = colors,
                 Deictics         = deictics,
@@ -651,6 +667,39 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             return result;
         }
 
+        /// <summary>
+        /// Les objets de la scène NOMMÉS dans la phrase (« Sers Florianne ») — les prénoms
+        /// des clients, injectés par le contrôleur depuis les objets sémantisés. La valeur
+        /// retenue est le nom CANONIQUE (celui du GameObject, donc du rdfs:label écrit par
+        /// SVEN) : c'est ce littéral que le filtre « Name » de la sélection compare.
+        ///
+        /// Chaque prénom reconnu est RETIRÉ du texte de travail, comme les recettes et les
+        /// annotations. La correspondance tolère les consonnes simples ou doublées
+        /// (« Floriane » ↔ « Florianne ») : Whisper orthographie les prénoms à l'oreille,
+        /// et un prénom n'a pas de graphie ontologique à laquelle se fier.
+        /// </summary>
+        private List<RuleBasedAnnotation> FindNames(string text, List<Word> words, out string remaining)
+        {
+            var result = new List<RuleBasedAnnotation>();
+            remaining = text;
+
+            foreach (string objectName in _objectNames)
+            {
+                var pattern = new Regex($@"\b{DoubledLetterTolerantPattern(objectName)}\b",
+                    RegexOptions.IgnoreCase);
+                Match match = pattern.Match(FrenchStemmer.NormalizeAccents(remaining));
+                if (!match.Success) continue;
+
+                result.Add(new RuleBasedAnnotation
+                {
+                    Value     = objectName,
+                    Timestamp = GetWordTimestamp(words, match.Value, useStartedAt: false)
+                });
+                remaining = pattern.Replace(remaining, " ", 1);
+            }
+            return result;
+        }
+
         private List<RuleBasedColor> FindColors(string text, List<Word> words)
         {
             var result = new List<RuleBasedColor>();
@@ -864,6 +913,25 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries)
                 .Select(word => LigatureTolerantPattern(word.TrimEnd('s', 'S')) + "s?");
             return string.Join(@"\s+", words);
+        }
+
+        /// <summary>
+        /// Motif d'un prénom où chaque lettre accepte d'être simple ou doublée
+        /// (« Florianne » ↔ « Floriane ») : les doublons du prénom sont d'abord fusionnés,
+        /// puis chaque lettre émet « x{1,2} ». Réservé aux prénoms — le vocabulaire
+        /// ontologique a une graphie de référence, cette tolérance y sur-couvrirait.
+        /// </summary>
+        private static string DoubledLetterTolerantPattern(string name)
+        {
+            var pattern = new System.Text.StringBuilder();
+            char previous = '\0';
+            foreach (char letter in name)
+            {
+                if (char.ToLowerInvariant(letter) == previous) continue;
+                previous = char.ToLowerInvariant(letter);
+                pattern.Append(Regex.Escape(letter.ToString())).Append("{1,2}");
+            }
+            return pattern.ToString();
         }
 
         /// <summary>

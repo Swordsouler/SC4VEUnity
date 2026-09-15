@@ -20,6 +20,9 @@ namespace Sc4ve.Multimodality.Intent
         public IReadOnlyList<RuleBasedAnnotation> Annotations  { get; init; }
         public IReadOnlyList<RuleBasedColor>      Colors       { get; init; }
         public IReadOnlyList<RuleBasedAnnotation> Deictics     { get; init; }
+        // Objets nommés par leur prénom (« Sers Florianne ») : Value = nom canonique du
+        // GameObject, celui que SVEN a écrit en rdfs:label dans le graphe.
+        public IReadOnlyList<RuleBasedAnnotation> Names        { get; init; }
         public bool HasCoreference { get; init; }
         public int  Limit          { get; init; }
         // Facteur d'échelle explicite (« double » → 2, « triple » → 3) ; 0 = non spécifié.
@@ -108,12 +111,25 @@ namespace Sc4ve.Multimodality.Intent
             }
             else
             {
-                // Ordre des conditions : annotations → couleurs source → pointage (Event en
+                // Ordre des conditions : noms → annotations → couleurs source → pointage (Event en
                 // DERNIER) — même convention que les exemples du prompt LLM et le jeu de test
                 // annoté. Sémantiquement neutre en SPARQL (conjonction), mais la position des
                 // éléments compte pour la comparaison structurelle du benchmark.
                 bool needsOp = false;
                 bool firstAnnotation = true;
+
+                // Le prénom d'abord : il nomme UN objet (par rdfs:label), les types viennent
+                // ensuite — « le client Florianne » doit intersecter (AND), jamais unionner.
+                foreach (RuleBasedAnnotation n in (Names ?? Enumerable.Empty<RuleBasedAnnotation>()).OrderBy(x => x.Timestamp))
+                {
+                    if (needsOp) filters.Add(new FilterElement { IsOperator = true, Operator = "AND" });
+                    filters.Add(new FilterElement
+                    {
+                        IsOperator = false,
+                        Condition  = new Condition { Type = "Name", Value = n.Value, Timestamp = n.Timestamp }
+                    });
+                    needsOp = true;
+                }
 
                 // Tri par horodatage = ordre de PRONONCIATION : sans lui, l'ordre suivrait celui
                 // du vocabulaire ontologique (arbitraire), et « les pommes ou les bananes »
@@ -163,7 +179,7 @@ namespace Sc4ve.Multimodality.Intent
             // PAR TYPE (annotation/couleur) n'est donnée. Un déictique (« ça ») ou l'absence de
             // cible peuvent retomber sur la sélection quand le pointage résout à vide ; « les
             // pommes » non (cible explicite → NoMatch si aucune pomme). Résolu dans Semanticize.
-            bool explicitTypeTarget = (Annotations?.Count > 0) || (SourceColors?.Count > 0);
+            bool explicitTypeTarget = (Names?.Count > 0) || (Annotations?.Count > 0) || (SourceColors?.Count > 0);
 
             return new SelectionParameter
             {

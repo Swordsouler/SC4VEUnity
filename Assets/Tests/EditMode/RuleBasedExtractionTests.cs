@@ -40,7 +40,8 @@ namespace Sc4ve.Tests.EditMode
         private static RuleBasedIntentRecognizer MakeRecognizer(
             Language language,
             List<string> annotationTypes = null,
-            List<RecipeVocabulary.Recipe> recipes = null)
+            List<RecipeVocabulary.Recipe> recipes = null,
+            List<string> objectNames = null)
         {
             bool fr = language == Language.French;
             return new RuleBasedIntentRecognizer(
@@ -52,7 +53,8 @@ namespace Sc4ve.Tests.EditMode
                     : new List<string> { "this", "that", "these", "those" },
                 pointerName: fr ? "Pointeur" : "Pointer",
                 cameraName: fr ? "Caméra" : "Camera",
-                recipes: recipes);
+                recipes: recipes,
+                objectNames: objectNames);
         }
 
         /// <summary>Toutes les conditions de tous les SelectionParameter de la commande.</summary>
@@ -557,6 +559,56 @@ namespace Sc4ve.Tests.EditMode
             // « rajoute … dans » est un rangement : la pré-vérification putVerbs doit gagner
             // sur le déclencheur « rajoute » d'AddToSelectionCommand.
             RecognizeSingle<PutInCommand>("rajoute une banane dans le bol");
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Prénoms (« Sers Florianne ») : la cible se résout par le graphe (rdfs:label).
+        // ─────────────────────────────────────────────────────────────────────
+
+        private RuleBasedIntentRecognizer MakeNamedRecognizer(List<string> annotationTypes = null)
+            => MakeRecognizer(Language.French, annotationTypes,
+                objectNames: new List<string> { "Florianne", "Logan", "Patricia", "Jean" });
+
+        [Test]
+        public void Name_ProducesNameFilter()
+        {
+            _recognizer = MakeNamedRecognizer();
+            ServeCommand command = RecognizeSingle<ServeCommand>("Sers Florianne");
+            List<Condition> conditions = AllConditions(command);
+            Assert.AreEqual(1, conditions.Count);
+            Assert.IsTrue(conditions[0].IsName, "Le filtre doit être de type Name.");
+            Assert.AreEqual("Florianne", conditions[0].Value);
+        }
+
+        [Test]
+        public void Name_ToleratesWhisperSingleConsonantSpelling()
+        {
+            // Whisper orthographie les prénoms à l'oreille : « Floriane » doit retrouver
+            // « Florianne » — et la valeur émise est le nom CANONIQUE (celui du rdfs:label
+            // du graphe), pas la graphie entendue.
+            _recognizer = MakeNamedRecognizer();
+            TakeOrderCommand command =
+                RecognizeSingle<TakeOrderCommand>("Prends la commande de Floriane");
+            List<Condition> conditions = AllConditions(command);
+            Assert.AreEqual(1, conditions.Count);
+            Assert.IsTrue(conditions[0].IsName);
+            Assert.AreEqual("Florianne", conditions[0].Value);
+        }
+
+        [Test]
+        public void NameAndAnnotation_IntersectWithNameFirst()
+        {
+            // « le client Jean » : prénom ET type — intersection (AND), le prénom en tête.
+            // Le « le » ne doit pas déclencher la coréférence : un prénom est une cible
+            // explicite, comme une annotation.
+            _recognizer = MakeNamedRecognizer(new List<string> { "Client" });
+            ServeCommand command = RecognizeSingle<ServeCommand>("Sers le client Jean");
+            List<Condition> conditions = AllConditions(command);
+            Assert.AreEqual(2, conditions.Count);
+            Assert.IsTrue(conditions[0].IsName);
+            Assert.AreEqual("Jean", conditions[0].Value);
+            Assert.IsTrue(conditions[1].IsAnnotation);
+            Assert.AreEqual("Client", conditions[1].Value);
         }
     }
 }

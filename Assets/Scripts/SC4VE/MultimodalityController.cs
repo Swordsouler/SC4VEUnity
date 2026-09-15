@@ -525,6 +525,15 @@ namespace Sc4ve.Multimodality
                 .Select(d => d.Trim('\''))
                 .ToList();
 
+            // Les prénoms viennent de la SCÈNE sémantisée : le nom d'un GameObject porteur
+            // d'un CustomerOrder est exactement le littéral que SemantizationCore a écrit en
+            // rdfs:label — celui que le filtre « Name » de la sélection compare tel quel.
+            // Relevés une fois, à la construction : les clients de la démo existent dès le
+            // chargement de la scène.
+            List<string> objectNames = FindObjectsByType<CustomerOrder>()
+                .Select(c => c.name)
+                .ToList();
+
             _ruleBasedRecognizer = new RuleBasedIntentRecognizer(
                 annotationTypes,
                 availableColors,
@@ -532,20 +541,22 @@ namespace Sc4ve.Multimodality
                 _pointerNamesString,
                 _cameraNamesString,
                 _movePointDelayMs,
-                _recipes);
+                _recipes,
+                objectNames);
 
             Debug.Log($"[RuleBased] Reconnaisseur initialisé — {annotationTypes.Count} annotations, " +
-                      $"{availableColors.Count} couleurs, {pointerDeictics.Count} déictiques.");
+                      $"{availableColors.Count} couleurs, {pointerDeictics.Count} déictiques, " +
+                      $"{objectNames.Count} prénoms.");
 
             // Injecter le vocabulaire du domaine dans Vosk pour améliorer la précision STT.
             if (_speechToText != null)
-                _speechToText.SetGrammar(BuildVoskGrammar(annotationTypes, availableColors, pointerDeictics, _recipes));
+                _speechToText.SetGrammar(BuildVoskGrammar(annotationTypes, availableColors, pointerDeictics, _recipes, objectNames));
         }
 
         /// <summary>
         /// Construit la liste de mots à fournir à Vosk comme vocabulaire de reconnaissance.
         /// Inclut : verbes d'action, annotations, couleurs, déictiques, noms de recettes,
-        /// mots fonctionnels français.
+        /// prénoms des clients, mots fonctionnels français.
         /// Tous les mots sont en minuscules (exigence Vosk).
         ///
         /// Une grammaire Vosk est CLOSE : un mot absent d'ici ne peut pas être transcrit, il
@@ -558,7 +569,8 @@ namespace Sc4ve.Multimodality
             List<string> annotationTypes,
             List<string> availableColors,
             List<string> pointerDeictics,
-            List<RecipeVocabulary.Recipe> recipes)
+            List<RecipeVocabulary.Recipe> recipes,
+            List<string> objectNames)
         {
             var vocab = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -585,6 +597,12 @@ namespace Sc4ve.Multimodality
                 foreach (string word in recipe.Label.ToLowerInvariant().Split(' '))
                     vocab.Add(word);
             }
+
+            // ── Prénoms des objets nommables (les clients) ────────────────
+            // Une graphie approchante suffit : la correspondance côté reconnaisseur
+            // tolère les consonnes doublées (FindNames).
+            foreach (string n in objectNames)
+                vocab.Add(n.ToLowerInvariant());
 
             // ── Mots fonctionnels courants, par langue ────────────────────
             // FR : "mais" volontairement absent (homophone de "mets" /mɛ/) → Vosk/Whisper
