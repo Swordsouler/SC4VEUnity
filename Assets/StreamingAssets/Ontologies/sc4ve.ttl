@@ -906,5 +906,7 @@ sc4ve:StopCommand sc4ve:trigger
 ###  Pas de grounding non plus sur RepeatOrderCommand : elle EST une énonciation. Un
 ###  « 1 objet » générique par-dessus la commande réénoncée couvrirait précisément
 ###  l'information que le joueur vient de demander.
-sc4ve:PrepareCommand          sc4ve:grounding "Recette en cours"@fr , "Recipe started"@en .
+###  PrepareCommand n'a PLUS de grounding vocal : « Recette en cours » s'énonçait une fois
+###  PAR PLAT d'une liste (quatre fois de suite en démo), et chaque énoncé Piper suspend le
+###  micro. Le cuisinier affiche désormais la recette en bulle (SpeechBubble).
 sc4ve:CheckCommand            sc4ve:grounding "Vérification"@fr , "Checked"@en .

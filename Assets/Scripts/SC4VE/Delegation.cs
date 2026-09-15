@@ -268,14 +268,14 @@ namespace Sc4ve.Multimodality
 
         private IEnumerator GoToTask(Vector3 destination)
         {
-            Say(French ? "J'y vais." : "On my way.");
+            Bubble(French ? "J'y vais." : "On my way.");
             yield return Walk(destination);
             Finish();
         }
 
         private IEnumerator ServeTask(SemantizationCore table, ContainerContent dish)
         {
-            Say(French ? "Je m'en occupe." : "On it.");
+            Bubble(French ? "Je m'en occupe." : "On it.");
 
             yield return Walk(dish.transform.position);
             if (_walkFailed) { Abandon(); yield break; }
@@ -409,7 +409,7 @@ namespace Sc4ve.Multimodality
 
         private IEnumerator TakeOrderTask(SemantizationCore table)
         {
-            Say(French ? "J'y vais." : "On my way.");
+            Bubble(French ? "J'y vais." : "On my way.");
 
             yield return Walk(table.transform.position);
             if (_walkFailed) { Abandon(); yield break; }
@@ -755,6 +755,18 @@ namespace Sc4ve.Multimodality
         {
             _activity = activity;
             _taskLabel = label;
+        }
+
+        /// <summary>
+        /// Statut de ROUTINE : affiché en bulle au-dessus de la tête, jamais parlé — chaque
+        /// énoncé Piper suspend le micro (WhisperSpeechToText), et un serveur qui commentait
+        /// chaque course rendait le joueur muet. La voix (Say) reste aux questions, aux
+        /// échecs et aux conclusions de service.
+        /// </summary>
+        private void Bubble(string text)
+        {
+            Debug.Log($"[Serveur] {name} : « {text} » (bulle)");
+            SpeechBubble.Show(this, text);
         }
 
         private void Say(string text)

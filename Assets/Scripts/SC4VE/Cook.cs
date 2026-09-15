@@ -103,7 +103,7 @@ namespace Sc4ve.Multimodality
             if (_busy)
             {
                 _orders.Enqueue(recipe);
-                Say(French ? "Je note, ce sera après." : "Noted, right after this one.");
+                Bubble(French ? "Je note, ce sera après." : "Noted, right after this one.");
                 return true;
             }
 
@@ -128,6 +128,13 @@ namespace Sc4ve.Multimodality
                 Finish();
                 yield break;
             }
+
+            // Le libellé du plat, pour l'annonce finale : « Salade César, c'est prêt » —
+            // « c'est prêt » tout court ne disait pas QUOI, alors que les plats du carnet
+            // de commandes s'enchaînent.
+            Task<string> labelLoading = OntologyLabels.GetAsync(recipe, UserData.Locale);
+            yield return Await(labelLoading);
+            string dishLabel = Result(labelLoading);
 
             Task<Dictionary<string, string>> loadingStations = StationsByState();
             yield return Await(loadingStations);
@@ -200,7 +207,9 @@ namespace Sc4ve.Multimodality
             // cosmétique — le verdict du client lit le graphe, pas l'image (cf. DishDressing).
             DishDressing.Dress(plate, recipe);
 
-            Say(French ? "C'est prêt." : "It is ready.");
+            Say(French
+                ? $"{dishLabel ?? "Le plat"}, c'est prêt."
+                : $"{dishLabel ?? "The dish"} is ready.");
             Finish();
         }
 
@@ -366,6 +375,17 @@ WHERE { ?type sven:appliesState ?state . }";
             // Finish réentrant ne rejoue rien.
             while (_orders.Count > 0)
                 if (Prepare(_orders.Dequeue())) break;
+        }
+
+        /// <summary>
+        /// Statut de ROUTINE : affiché en bulle au-dessus de la tête, jamais parlé — chaque
+        /// énoncé Piper suspend le micro (WhisperSpeechToText). La voix (Say) reste aux
+        /// échecs et au « c'est prêt » qui nomme le plat.
+        /// </summary>
+        private void Bubble(string text)
+        {
+            Debug.Log($"[Cuisinier] {name} : « {text} » (bulle)");
+            SpeechBubble.Show(this, text);
         }
 
         private void Say(string text)

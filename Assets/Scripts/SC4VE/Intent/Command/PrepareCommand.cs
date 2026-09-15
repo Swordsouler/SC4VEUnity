@@ -131,9 +131,13 @@ namespace Sc4ve.Multimodality.Intent
                 string ingredients = string.Join(", ", described);
 
                 Debug.Log($"[Prepare] Recette en cours : {label} — {ingredients}");
-                Speak(french
-                    ? $"{label} : il faut {ingredients}."
-                    : $"{label}: you need {ingredients}.");
+                // La liste des exigences ne se dit plus À VOIX HAUTE : chaque énoncé Piper
+                // suspend le micro, et réciter quatre ingrédients rendait le joueur muet
+                // plusieurs secondes. Elle s'AFFICHE au-dessus du cuisinier, un ingrédient
+                // par ligne (SpeechBubble).
+                SpeechBubble.Show(cook,
+                    (french ? $"{label} — il faut :" : $"{label} — needed:") + "\n" +
+                    string.Join("\n", described));
             }
             catch (Exception e)
             {
