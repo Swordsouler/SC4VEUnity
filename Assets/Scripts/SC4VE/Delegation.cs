@@ -50,11 +50,11 @@ namespace Sc4ve.Multimodality
         /// </summary>
         public enum Activity { Idle, Moving, Acting }
 
-        [SerializeField, Tooltip("Vitesse de marche. Un pas décidé : la lenteur d'origine " +
-                                 "(1,1 m/s) laissait le temps d'un contre-ordre mais faisait " +
-                                 "attendre tout le monde à chaque course.")]
-        [Range(0.3f, 3f)]
-        private float _speed = 2f;
+        [SerializeField, Tooltip("Vitesse de marche. Allure de démonstration (×4) : la course " +
+                                 "du serveur est le principal temps mort de la boucle de " +
+                                 "service, elle doit se lire, pas se subir.")]
+        [Range(0.3f, 10f)]
+        private float _speed = 8f;
 
         [SerializeField, Tooltip("Distance à laquelle le serveur se considère arrivé.")]
         [Range(0.2f, 2f)]
@@ -62,7 +62,7 @@ namespace Sc4ve.Multimodality
 
         [SerializeField, Tooltip("Durée d'une action sur place (poser un plat, prendre une commande).")]
         [Range(0.2f, 5f)]
-        private float _actionDuration = 0.8f;
+        private float _actionDuration = 0.2f;
 
         [SerializeField, Tooltip("Où le plat se pose quand le serveur le porte. Laissé vide, " +
                                  "un point est créé devant lui à hauteur de taille.")]
@@ -78,7 +78,10 @@ namespace Sc4ve.Multimodality
                                  "exploitable : on reste un temps LISIBLE plutôt que de partir dos " +
                                  "au client au milieu de sa phrase.")]
         [Range(1f, 12f)]
-        private float _listenDuration = 4f;
+        // 2 s et non 1 (le ×4 appliqué au reste) : la phrase de commande synthétisée dure
+        // environ deux secondes, et ce champ n'existe que pour ne pas tourner le dos au
+        // client au milieu de la sienne.
+        private float _listenDuration = 2f;
 
         [SerializeField, Tooltip("Secondes RÉELLES accordées au verdict du client (requête sur le " +
                                  "graphe). En temps réel, pas de jeu : la requête tourne hors du " +
@@ -144,6 +147,11 @@ namespace Sc4ve.Multimodality
             _agent = GetComponent<NavMeshAgent>();
             if (_agent == null) _agent = gameObject.AddComponent<NavMeshAgent>();
             _agent.speed = _speed / scale;
+            // À 8 m/s, l'accélération par défaut d'un NavMeshAgent (8 m/s²) met une seconde
+            // entière à atteindre le pas et déborde chaque arrêt : elle est attachée à la
+            // vitesse, et le pivot suit le rythme (720°/s).
+            _agent.acceleration = Mathf.Max(8f, _speed * 4f) / scale;
+            _agent.angularSpeed = 720f;
             _agent.stoppingDistance = _arrivalRadius * 0.5f / scale;
             // Le serveur contourne les obstacles au lieu de les pousser : sans gabarit, il
             // traverse une table en la faisant glisser.
