@@ -737,6 +737,22 @@ WHERE {
                     return;
                 }
 
+                // SONDE avant toute sérialisation : sur un endpoint ABSENT, la première
+                // tentative coûtait à elle seule plusieurs secondes — tout le graphe
+                // sérialisé en Turtle pour un port fermé — et tombait précisément au premier
+                // service, quand le tampon franchit BufferSize pendant que le verdict du
+                // client interroge le graphe (mesuré : ~10 s de serveur figé devant la
+                // table). Un refus TCP se constate en quelques millisecondes : le disjoncteur
+                // part AVANT d'avoir rien sérialisé. Une erreur applicative (HTTP 4xx/5xx)
+                // passe la sonde et garde le traitement du catch ci-dessous.
+                if (!await ProbeEndpointAsync(new Uri(endpointUrl)))
+                {
+                    _nextFlushRetryUtc = DateTime.MaxValue;
+                    Debug.LogWarning("SVEN : endpoint absent (connexion impossible) — " +
+                                     "sauvegarde vers l'endpoint désactivée pour la session, le graphe reste en mémoire.");
+                    return;
+                }
+
                 // Préparation et envoi du graphe à partir des données fournies
                 await AddToEndpoint(triplesToFlush, baseUri, nsMap);
                 // delete triplesttoFlush from memory
@@ -824,6 +840,30 @@ WHERE {
                         if (IsEndpointAbsent(inner)) return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// Vrai si une connexion TCP à l'endpoint aboutit en moins de deux secondes. Ne coûte
+        /// ni sérialisation ni requête : c'est le préalable du vidage, pour que l'absence de
+        /// l'endpoint se paie d'un refus de connexion et non d'un graphe entier sérialisé en
+        /// pure perte. Le vidage de fermeture (ForceFlushToEndpointBlocking) ne passe pas par
+        /// ici : à la fermeture, l'échec débouche sur la sauvegarde locale, qui vaut ce prix.
+        /// </summary>
+        private static async Task<bool> ProbeEndpointAsync(Uri endpoint)
+        {
+            try
+            {
+                using var client = new System.Net.Sockets.TcpClient();
+                Task connect = client.ConnectAsync(endpoint.Host, endpoint.Port);
+                if (await Task.WhenAny(connect, Task.Delay(2000)) != connect)
+                    return false;
+                await connect; // relève ici un éventuel refus de connexion → catch → false
+                return client.Connected;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>
