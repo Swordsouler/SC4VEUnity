@@ -562,22 +562,22 @@ namespace Sc4ve.Tests.EditMode
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // Prénoms (« Sers Florianne ») : la cible se résout par le graphe (rdfs:label).
+        // Prénoms (« Sers Florence ») : la cible se résout par le graphe (rdfs:label).
         // ─────────────────────────────────────────────────────────────────────
 
         private RuleBasedIntentRecognizer MakeNamedRecognizer(List<string> annotationTypes = null)
             => MakeRecognizer(Language.French, annotationTypes,
-                objectNames: new List<string> { "Florianne", "Logan", "Patricia", "Jean" });
+                objectNames: new List<string> { "Florence", "Logan", "Patricia", "Jean" });
 
         [Test]
         public void Name_ProducesNameFilter()
         {
             _recognizer = MakeNamedRecognizer();
-            ServeCommand command = RecognizeSingle<ServeCommand>("Sers Florianne");
+            ServeCommand command = RecognizeSingle<ServeCommand>("Sers Florence");
             List<Condition> conditions = AllConditions(command);
             Assert.AreEqual(1, conditions.Count);
             Assert.IsTrue(conditions[0].IsName, "Le filtre doit être de type Name.");
-            Assert.AreEqual("Florianne", conditions[0].Value);
+            Assert.AreEqual("Florence", conditions[0].Value);
         }
 
         [Test]
@@ -585,8 +585,10 @@ namespace Sc4ve.Tests.EditMode
         {
             // Whisper orthographie les prénoms à l'oreille : « Floriane » doit retrouver
             // « Florianne » — et la valeur émise est le nom CANONIQUE (celui du rdfs:label
-            // du graphe), pas la graphie entendue.
-            _recognizer = MakeNamedRecognizer();
+            // du graphe), pas la graphie entendue. Prénom SYNTHÉTIQUE : la distribution de
+            // la démo n'a plus de consonnes doublées, le mécanisme reste testé ici.
+            _recognizer = MakeRecognizer(Language.French,
+                objectNames: new List<string> { "Florianne" });
             TakeOrderCommand command =
                 RecognizeSingle<TakeOrderCommand>("Prends la commande de Floriane");
             List<Condition> conditions = AllConditions(command);

@@ -668,7 +668,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         }
 
         /// <summary>
-        /// Les objets de la scène NOMMÉS dans la phrase (« Sers Florianne ») — les prénoms
+        /// Les objets de la scène NOMMÉS dans la phrase (« Sers Florence ») — les prénoms
         /// des clients, injectés par le contrôleur depuis les objets sémantisés. La valeur
         /// retenue est le nom CANONIQUE (celui du GameObject, donc du rdfs:label écrit par
         /// SVEN) : c'est ce littéral que le filtre « Name » de la sélection compare.

@@ -756,7 +756,7 @@ namespace Sc4ve.Demonstration.EditorTools
             // critères 4 et 7 du lot 4 doivent être montrables à CHAQUE lancement, pas dans
             // 74 % des cas. Les quatre couples découpent quatre sous-ensembles différents et
             // non dégénérés des neuf recettes — vérifié contre les sven:requires réels :
-            //   A  Florianne  Salade    sans banane   → refuse la salade de fruits POURTANT CONFORME
+            //   A  Florence   Salade    sans banane   → refuse la salade de fruits POURTANT CONFORME
             //   B  Logan      Soupe     sans poisson  → l'inférence de branche (Salmon ⊑ Fish)
             //   C  Patricia   Salade    végétarien    → l'union de branches, un seul plat conforme
             //   D  Jean       Sandwich  sans lactose  → Cheese ⊑ Dairy
@@ -771,9 +771,9 @@ namespace Sc4ve.Demonstration.EditorTools
 
             // Des prénoms, pas des matricules : « Client A » se lit comme du débogage au
             // milieu d'une salle de restaurant. Le prénom EST le nom du GameObject — les
-            // journaux ([Client] Florianne), le tableau des commandes et l'étiquette
+            // journaux ([Client] Florence), le tableau des commandes et l'étiquette
             // au-dessus de la tête y puisent tous, sans champ supplémentaire nulle part.
-            string[] names = { "Florianne", "Logan", "Patricia", "Jean" };
+            string[] names = { "Florence", "Logan", "Patricia", "Jean" };
 
             for (int i = 0; i < tables.Length; i++)
             {

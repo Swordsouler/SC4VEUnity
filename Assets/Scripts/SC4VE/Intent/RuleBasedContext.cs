@@ -20,7 +20,7 @@ namespace Sc4ve.Multimodality.Intent
         public IReadOnlyList<RuleBasedAnnotation> Annotations  { get; init; }
         public IReadOnlyList<RuleBasedColor>      Colors       { get; init; }
         public IReadOnlyList<RuleBasedAnnotation> Deictics     { get; init; }
-        // Objets nommés par leur prénom (« Sers Florianne ») : Value = nom canonique du
+        // Objets nommés par leur prénom (« Sers Florence ») : Value = nom canonique du
         // GameObject, celui que SVEN a écrit en rdfs:label dans le graphe.
         public IReadOnlyList<RuleBasedAnnotation> Names        { get; init; }
         public bool HasCoreference { get; init; }
@@ -119,7 +119,7 @@ namespace Sc4ve.Multimodality.Intent
                 bool firstAnnotation = true;
 
                 // Le prénom d'abord : il nomme UN objet (par rdfs:label), les types viennent
-                // ensuite — « le client Florianne » doit intersecter (AND), jamais unionner.
+                // ensuite — « le client Florence » doit intersecter (AND), jamais unionner.
                 foreach (RuleBasedAnnotation n in (Names ?? Enumerable.Empty<RuleBasedAnnotation>()).OrderBy(x => x.Timestamp))
                 {
                     if (needsOp) filters.Add(new FilterElement { IsOperator = true, Operator = "AND" });
