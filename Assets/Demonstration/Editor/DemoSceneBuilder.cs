@@ -1376,17 +1376,23 @@ namespace Sc4ve.Demonstration.EditorTools
                 return;
             }
 
-            if (hand.Find(TabletName) != null) return;
+            Transform existing = hand.Find(TabletName);
+            GameObject tablet = existing != null
+                ? existing.gameObject
+                : BuildBoardPanel(hand, TabletName, TabletWidth);
 
-            GameObject tablet = BuildBoardPanel(hand, TabletName, TabletWidth);
-
-            // AU NIVEAU de la main, à peine devant, incliné vers le visage : le modèle de la
-            // manette est désactivé (StripPointing), donc la tablette EST la main gauche — la
-            // décoller vers le haut la faisait flotter au-dessus d'une main invisible. Un
-            // TextMesh se lit à l'opposé de son +z : à 55°, ce +z part vers le bas et
-            // l'avant, donc l'écran regarde les yeux, au-dessus et en arrière de la main.
-            tablet.transform.localPosition = new Vector3(0f, 0.015f, 0.05f);
+            // La pose se réapplique À CHAQUE construction, pas seulement à la création : le rig
+            // survit aux reconstructions, donc une tablette déjà en place garderait sinon le
+            // décalage de la version de l'outil qui l'a créée — c'est exactement ce qui s'est
+            // produit quand « au niveau de la main » n'a jamais atteint la scène.
+            //
+            // COLLÉE à la main, à peine devant, inclinée vers le visage : le modèle de la
+            // manette est désactivé (StripPointing), donc la tablette EST la main gauche. Un
+            // TextMesh se lit à l'opposé de son +z : à 55°, ce +z part vers le bas et l'avant,
+            // donc l'écran regarde les yeux, au-dessus et en arrière de la main.
+            tablet.transform.localPosition = new Vector3(0f, 0.01f, 0.03f);
             tablet.transform.localRotation = Quaternion.Euler(55f, 0f, 0f);
+            tablet.transform.localScale = Vector3.one;
 
             Debug.Log("[DemoSceneBuilder] Tablette des commandes posée sur la main gauche.");
         }
