@@ -119,7 +119,7 @@ namespace Sc4ve.Multimodality
         /// </summary>
         private string PickName()
         {
-            HashSet<string> present = new(FindObjectsByType<CustomerOrder>(FindObjectsSortMode.None).Select(c => c.name));
+            HashSet<string> present = new(FindObjectsByType<CustomerOrder>().Select(c => c.name));
             List<string> available = NamePool.Where(n => !present.Contains(n)).ToList();
             return available.Count > 0
                 ? available[Random.Range(0, available.Count)]

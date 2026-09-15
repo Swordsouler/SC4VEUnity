@@ -543,7 +543,7 @@ namespace Sc4ve.Multimodality
             // ou plus, sémantisé). L'union avec la scène garde les scènes sans progression
             // fonctionnelles.
             List<string> objectNames = ServiceProgression.NamePool
-                .Union(FindObjectsByType<CustomerOrder>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                .Union(FindObjectsByType<CustomerOrder>(FindObjectsInactive.Include)
                     .Select(c => c.name))
                 .ToList();
 
