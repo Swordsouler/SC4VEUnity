@@ -93,6 +93,29 @@ namespace Sc4ve.Multimodality
         private readonly Queue<string> _orders = new();
 
         /// <summary>
+        /// Demi-angle du cône de regard : généreux, parce qu'en VR « regarder quelqu'un »
+        /// est un geste social, pas une visée — exiger la précision d'un pointeur
+        /// transformerait la règle en épreuve d'adresse.
+        /// </summary>
+        private const float GazeConeDegrees = 35f;
+
+        /// <summary>
+        /// Vrai si le joueur REGARDE le cuisinier : l'angle entre l'axe de la caméra (la
+        /// tête, en VR) et la direction vers son buste tient dans le cône. Sans caméra
+        /// identifiable, vrai — la règle est un raffinement d'interaction, jamais un
+        /// verrou qui casserait la démo.
+        /// </summary>
+        public bool IsInPlayerGaze()
+        {
+            Camera head = Camera.main;
+            if (head == null) return true;
+
+            Vector3 chest = transform.position + Vector3.up * 1.4f;
+            float angle = Vector3.Angle(head.transform.forward, chest - head.transform.position);
+            return angle <= GazeConeDegrees;
+        }
+
+        /// <summary>
         /// « Prépare une soupe de carottes. » Occupé, il NOTE et enchaînera (le carnet de
         /// commandes) : un cuisinier qui refuse du travail n'existe pas.
         /// </summary>

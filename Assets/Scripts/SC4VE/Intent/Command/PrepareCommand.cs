@@ -30,6 +30,11 @@ namespace Sc4ve.Multimodality.Intent
         /// </summary>
         public static string CurrentRecipe { get; private set; }
 
+        // Un seul rappel vocal par occasion : « prépare X et Y » arrive en DEUX commandes,
+        // et chacune ferait parler le cuisinier — deux « regardez-moi » d'affilée pour un
+        // seul énoncé. En temps réel : la règle concerne le joueur, pas le ralenti.
+        private static float _lastGazeRefusalAt = -999f;
+
         /// <summary>
         /// Aucun SelectionParameter : une recette ne se pointe pas. C'est le seul énoncé du jeu
         /// qui soit intégralement linguistique, et c'est voulu (§3 du README) — il fait
@@ -62,6 +67,22 @@ namespace Sc4ve.Multimodality.Intent
                                  "« SC4VE > Démonstration > 1 ».");
                 Speak(UserData.Locale == "fr" ? "Il n'y a personne en cuisine."
                                               : "There is no one in the kitchen.");
+                return new();
+            }
+
+            // L'ADRESSAGE PAR LE REGARD : on ne passe pas commande à quelqu'un sans le
+            // regarder. Pas regardé, le cuisinier le dit — à VOIX HAUTE, c'est un refus,
+            // pas un statut — et l'ordre ne part pas. La règle ne vaut que pour la
+            // préparation : c'était le seul énoncé intégralement linguistique du jeu (voir
+            // BuildRuleBasedParameters), elle lui rend une composante non verbale — aucune
+            // modalité ne gagne toujours (§3 du README).
+            if (!cook.IsInPlayerGaze())
+            {
+                if (Time.unscaledTime - _lastGazeRefusalAt > 2f)
+                    Speak(UserData.Locale == "fr"
+                        ? "Il faut me regarder pour me demander un plat."
+                        : "You have to look at me to ask for a dish.");
+                _lastGazeRefusalAt = Time.unscaledTime;
                 return new();
             }
 
