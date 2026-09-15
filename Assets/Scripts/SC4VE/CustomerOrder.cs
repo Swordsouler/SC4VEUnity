@@ -108,6 +108,10 @@ namespace Sc4ve.Multimodality
         /// <summary>Libellé localisé de la contrainte (« sans banane »). Null s'il n'y en a pas.</summary>
         public string ConstraintLabel => _constraintLabel;
 
+        /// <summary>Le plat PRÉCIS demandé (« Salade César »), tel que la voix l'énonce. Null tant
+        /// que le vocabulaire n'est pas lu.</summary>
+        public string DishLabel => _dishLabel;
+
         /// <summary>1 → 0. Figée dès que l'état vaut Served ou Gone.</summary>
         public float PatienceRatio => _patience > 0f ? Mathf.Clamp01(_remaining / _patience) : 0f;
 

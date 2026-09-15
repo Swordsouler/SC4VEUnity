@@ -19,8 +19,9 @@ namespace Sc4ve.Demonstration
     /// jour », et la divergence sera indétectable. Aucun membre public, à dessein : le tableau
     /// n'est pilotable par personne.
     ///
-    /// Le « ? » après la famille rend la sous-spécification VISIBLE : la commande n'est jamais
-    /// résolue en une recette précise, et le tableau le prouve en continu.
+    /// Chaque ligne affiche le PLAT PRÉCIS énoncé par le client — le tableau dit la même
+    /// chose que la voix, et c'est sa seule fonction. (L'ancien « Salade ? » qui exhibait la
+    /// sous-spécification a disparu avec elle : le client nomme désormais un plat.)
     /// </summary>
     [RequireComponent(typeof(TextMesh))]
     public class OrderBoard : MonoBehaviour
@@ -84,12 +85,17 @@ namespace Sc4ve.Demonstration
 
         private static string Row(CustomerOrder customer, bool french)
         {
-            // Le vocabulaire peut n'être pas encore lu (Ready faux) : mieux vaut une ligne
-            // franche qu'une ligne vide qui passerait pour « pas de commande ».
-            string family = customer.FamilyLabel ?? (french ? "(illisible)" : "(unreadable)");
-            string constraint = string.IsNullOrEmpty(customer.ConstraintLabel)
-                ? ""
-                : $" — {customer.ConstraintLabel}";
+            // Le plat PRÉCIS, tel que la voix l'énonce : depuis que le client commande un plat
+            // nommé (« Salade César ») et non une famille, « Salade ? — sans banane » racontait
+            // une autre histoire que la parole. La contrainte n'est plus affichée non plus —
+            // le plat demandé la satisfait déjà, et elle ressurgit au refus, seul moment où
+            // elle apprend quelque chose (même règle que BuildSpokenOrder).
+            //
+            // Le vocabulaire peut n'être pas encore lu : mieux vaut une ligne franche qu'une
+            // ligne vide qui passerait pour « pas de commande ».
+            string dish = customer.DishLabel
+                          ?? customer.FamilyLabel
+                          ?? (french ? "(illisible)" : "(unreadable)");
 
             string mark = customer.State switch
             {
@@ -98,7 +104,7 @@ namespace Sc4ve.Demonstration
                 _ => "",
             };
 
-            return $"{family} ?{constraint}{mark}";
+            return $"{dish}{mark}";
         }
     }
 }
