@@ -137,8 +137,7 @@ namespace Sc4ve.Multimodality.Intent
         private static Delegation OnlyWaiter()
         {
             Delegation[] waiters = UnityEngine.Object
-                .FindObjectsByType<Delegation>(UnityEngine.FindObjectsInactive.Exclude,
-                                               UnityEngine.FindObjectsSortMode.None);
+                .FindObjectsByType<Delegation>(UnityEngine.FindObjectsInactive.Exclude);
             return waiters.Length == 1 ? waiters[0] : null;
         }
     }

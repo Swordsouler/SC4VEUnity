@@ -83,7 +83,13 @@ namespace Sc4ve.Multimodality
                                  "graphe). En temps réel, pas de jeu : la requête tourne hors du " +
                                  "ralenti, et Time.time triplerait le délai d'abandon sous ralenti.")]
         [Range(2f, 30f)]
-        private float _verdictTimeout = 8f;
+        // 20 s et non 8 : le verdict est la DERNIÈRE requête de la boucle de service, donc
+        // celle qui voit le graphe le plus gros. À 95 000 triplets (mesuré en partie), la
+        // lecture du contenu de l'assiette dépasse 8 s, et le délai de garde refusait des
+        // services parfaitement légitimes — « Je ne peux pas servir ce plat » était le
+        // chronomètre qui parlait, pas le client. Le garde-fou ne vise que la tâche
+        // réellement suspendue, il peut se permettre d'être large.
+        private float _verdictTimeout = 20f;
 
         /// <summary>
         /// Vrai si la dernière attente de tâche (AwaitTask) n'a pas abouti — même motif que
