@@ -95,11 +95,11 @@ namespace Sc4ve.Demonstration
         /// <summary>
         /// Le score VISIBLE du lot 5, dérivé de TOUS les CustomerOrder, partis compris : un
         /// client quitte la salle DÉSACTIVÉ, jamais détruit, précisément pour que son état
-        /// figé (Served/Gone, refus, patience au service) reste lisible ici — le tableau
-        /// reste une projection, le score n'a aucun état à lui. Plus de dénominateur : le
-        /// flux est sans fin, « 3 servis » se suffit. La satisfaction est la patience
-        /// RESTANTE moyenne des servis : servir vite rapporte, servir à la dernière seconde
-        /// ne rapporte presque rien.
+        /// figé (Served/Gone, refus) reste lisible ici — le tableau reste une projection,
+        /// le score n'a aucun état à lui. Plus de dénominateur : le flux est sans fin,
+        /// « 3 servis » se suffit. (La satisfaction — patience restante au moment du
+        /// service, figée sur chaque client servi — reste calculable depuis ces mêmes
+        /// états ; elle n'est volontairement PLUS AFFICHÉE, à la demande.)
         /// </summary>
         private static string ScoreLine(CustomerOrder[] everyone, bool french)
         {
@@ -107,13 +107,9 @@ namespace Sc4ve.Demonstration
             int gone     = everyone.Count(c => c.State == CustomerOrder.Stage.Gone);
             int refusals = everyone.Sum(c => c.Refusals);
 
-            string satisfaction = served > 0
-                ? $" · satisfaction {everyone.Where(c => c.State == CustomerOrder.Stage.Served).Average(c => c.PatienceRatio):P0}"
-                : "";
-
             return french
-                ? $"— servis {served} · refus {refusals} · partis {gone}{satisfaction}"
-                : $"— served {served} · refusals {refusals} · left {gone}{satisfaction}";
+                ? $"— servis {served} · refus {refusals} · partis {gone}"
+                : $"— served {served} · refusals {refusals} · left {gone}";
         }
 
         private static string Row(CustomerOrder customer, bool french)
