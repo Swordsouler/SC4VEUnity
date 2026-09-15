@@ -775,7 +775,7 @@ namespace Sc4ve.Demonstration.EditorTools
             // au-dessus de la tête y puisent tous, sans champ supplémentaire nulle part.
             string[] names = { "Florence", "Logan", "Patricia", "Jean" };
 
-            var arrivals = new List<CustomerOrder>();
+            var templates = new List<CustomerOrder>();
             for (int i = 0; i < tables.Length; i++)
             {
                 GameObject table = Prop(room, $"Table {(char)('A' + i)}", "sven:Table",
@@ -788,18 +788,19 @@ namespace Sc4ve.Demonstration.EditorTools
                 // sur l'économie de batching de quatre guéridons. Le NavMesh n'y perd rien :
                 // NavMeshSurface cuit sur la géométrie, pas sur le drapeau statique.
 
-                arrivals.Add(MakeCustomer(room, table, couples[i].family, couples[i].constraint, names[i]));
+                templates.Add(MakeCustomer(room, table, couples[i].family, couples[i].constraint, names[i]));
             }
 
-            // Lot 5 — progression 1 → 4 tables : l'ordre d'arrivée est CELUI DES COUPLES
-            // ci-dessus (A, B, C, D), donc les quatre contraintes du lot 4 entrent en scène
-            // une à une, montrables à mesure que la salle se remplit. Le premier client est
-            // actif d'emblée, les suivants dorment — jamais sémantisés avant leur arrivée.
-            // La cadence se règle sur l'objet « Progression » (Inspector) ; l'idempotence de
-            // la reconstruction est celle de la racine, détruite puis refaite.
+            // Lot 5 — le FLUX de clients : les quatre personnages ci-dessus sont des MODÈLES
+            // (un par table, jamais actifs) que ServiceProgression CLONE à chaque arrivée,
+            // sous un prénom tiré de son bassin. Le couple (famille, contrainte) reste celui
+            // de la TABLE — écrit ici, jamais tiré : les quatre contraintes du lot 4 restent
+            // montrables. Cadence (départ 45 s, plancher 6 s) et durée du repas se règlent
+            // dans l'Inspector (objet « Progression », modèles) ; l'idempotence de la
+            // reconstruction est celle de la racine, détruite puis refaite.
             var progression = new GameObject("Progression");
             progression.transform.SetParent(room, false);
-            progression.AddComponent<ServiceProgression>().Bind(arrivals);
+            progression.AddComponent<ServiceProgression>().Bind(templates);
 
             // UN SEUL serveur. Le second existait pour rendre « quel serveur ? » possible : sans
             // paire indiscernable, la clarification d'agent ne se déclenche jamais (§3 du README).

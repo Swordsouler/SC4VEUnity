@@ -534,15 +534,17 @@ namespace Sc4ve.Multimodality
                 .Select(d => d.Trim('\''))
                 .ToList();
 
-            // Les prénoms viennent de la SCÈNE sémantisée : le nom d'un GameObject porteur
-            // d'un CustomerOrder est exactement le littéral que SemantizationCore a écrit en
-            // rdfs:label — celui que le filtre « Name » de la sélection compare tel quel.
-            // Relevés une fois, à la construction, INACTIFS COMPRIS : la progression du
-            // lot 5 (ServiceProgression) fait arriver les clients en cours de partie, et
-            // leur prénom doit être compris AVANT leur arrivée. La sélection, elle, ne
-            // trouvera que les présents — un client inactif n'est pas encore sémantisé.
-            List<string> objectNames = FindObjectsByType<CustomerOrder>(FindObjectsInactive.Include, FindObjectsSortMode.None)
-                .Select(c => c.name)
+            // Le prénom d'un client est le nom de son GameObject : exactement le littéral
+            // que SemantizationCore écrit en rdfs:label, celui que le filtre « Name » de la
+            // sélection compare tel quel. Relevés une fois, au lancement, depuis le BASSIN
+            // de ServiceProgression : les clients naissent en cours de partie avec un prénom
+            // tiré au sort, et chaque prénom doit être compris AVANT que son porteur
+            // n'existe — la sélection, elle, ne trouve que les présents (un absent n'est pas,
+            // ou plus, sémantisé). L'union avec la scène garde les scènes sans progression
+            // fonctionnelles.
+            List<string> objectNames = ServiceProgression.NamePool
+                .Union(FindObjectsByType<CustomerOrder>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+                    .Select(c => c.name))
                 .ToList();
 
             _ruleBasedRecognizer = new RuleBasedIntentRecognizer(

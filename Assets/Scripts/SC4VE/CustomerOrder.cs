@@ -75,7 +75,15 @@ namespace Sc4ve.Multimodality
         // SemanticAnnotator sérialisé, survivait. Aucune erreur à la construction : tout
         // paraissait câblé.
         [SerializeField] private SemantizationCore _table;
+        [SerializeField, Tooltip("Secondes de JEU passées à manger une fois servi, avant de " +
+                                 "laisser la table — le ralenti étire le repas comme le reste.")]
+        [Range(2f, 60f)]
+        private float _eatingDuration = 10f;
+
         [SerializeField] private Transform _gaugeFill;
+
+        /// <summary>Time.time du service — le repas (_eatingDuration) se chronomètre dessus.</summary>
+        private float _servedAt;
         [SerializeField] private string _family = "";
         [SerializeField] private string _constraint = "";
 
@@ -329,7 +337,18 @@ namespace Sc4ve.Multimodality
         /// </summary>
         private void Update()
         {
-            if (_stage == Stage.Served || _stage == Stage.Gone) return;
+            if (_stage == Stage.Gone) return;
+
+            // Servi : il mange, puis LAISSE LA TABLE — c'est ce départ qui fait du service
+            // un FLUX (ServiceProgression guette les tables libres). En silence, comme tout
+            // départ : il a déjà eu son « bon appétit ».
+            if (_stage == Stage.Served)
+            {
+                if (Time.time - _servedAt >= _eatingDuration)
+                    Depart(French ? "repart satisfait — la table est libre"
+                                  : "leaves satisfied — the table is free");
+                return;
+            }
 
             _remaining -= Time.deltaTime;
             UpdateGauge();
@@ -341,7 +360,20 @@ namespace Sc4ve.Multimodality
             // vide et la ligne du tableau disent tout ce qu'il y a à dire.
             _stage = Stage.Gone;
             if (_gaugeFill != null) _gaugeFill.gameObject.SetActive(false);
-            Debug.Log($"[Client] {name} : parti sans avoir été servi.");
+            Depart(French ? "parti sans avoir été servi" : "left unserved");
+        }
+
+        /// <summary>
+        /// Quitte la salle : le GameObject se DÉSACTIVE — SVEN clôt ses intervalles (il
+        /// n'est plus dans le monde, « sélectionne les clients » ne le trouve plus), le
+        /// tableau ne liste que les présents, et sa table redevient libre pour le flux.
+        /// Jamais détruit : son état figé (Served/Gone, refus, patience au service) est ce
+        /// que le score du tableau relit — détruire effacerait le score avec le corps.
+        /// </summary>
+        private void Depart(string reason)
+        {
+            Debug.Log($"[Client] {name} : {reason}.");
+            gameObject.SetActive(false);
         }
 
         private void UpdateGauge()
@@ -476,6 +508,7 @@ namespace Sc4ve.Multimodality
                 if (report.IsConformant)
                 {
                     _stage = Stage.Served;
+                    _servedAt = Time.time;
                     UpdateGauge();
                     string dishLabel = await OntologyLabels.GetAsync(report.Recipe, UserData.Locale);
                     Debug.Log($"[Client] {name} : accepte — {report}.");
