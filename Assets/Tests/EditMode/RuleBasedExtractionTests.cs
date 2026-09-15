@@ -417,6 +417,61 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void VerbeMangeParWhisper_LePlatSuffit_ADireLIntention()
+        {
+            _recognizer = MakeRecognizer(Language.French, recipes: Recipes());
+
+            // Whisper a réellement sorti « Répare », « Par » et « Et par » pour « Prépare »
+            // dans une même session : quand aucun déclencheur ne matche mais qu'un plat est
+            // nommé, la phrase est un ordre de préparation.
+            PrepareCommand cmd = RecognizeSingle<PrepareCommand>("répare une soupe de carottes");
+            Assert.AreEqual("sven:CarrotSoup",
+                cmd.Parameters.OfType<RecipeParameter>().First().Value);
+        }
+
+        [Test]
+        public void PlatSeul_EstUnOrdreDePreparation_DoncUneReponseALaquelle()
+        {
+            _recognizer = MakeRecognizer(Language.French, recipes: Recipes());
+
+            // C'est aussi ce qui rend « Laquelle : soupe de carottes ou soupe de
+            // citrouille ? » répondable : la réponse naturelle ne contient aucun verbe.
+            PrepareCommand cmd = RecognizeSingle<PrepareCommand>("Soupe de carottes.");
+            Assert.AreEqual("sven:CarrotSoup",
+                cmd.Parameters.OfType<RecipeParameter>().First().Value);
+        }
+
+        [Test]
+        public void RecetteAuSingulier_ResteLaRecette_PasSaFamille()
+        {
+            _recognizer = MakeRecognizer(Language.French, recipes: Recipes());
+
+            // « soupe de carotte » (accord à l'oreille de Whisper) retombait sur la famille
+            // « Soupe » et déclenchait « Laquelle ? » alors que le joueur avait bien nommé
+            // la recette : chaque mot d'un libellé tolère un « s » final en plus ou en moins.
+            PrepareCommand cmd = RecognizeSingle<PrepareCommand>("prépare une soupe de carotte");
+            Assert.AreEqual("sven:CarrotSoup",
+                cmd.Parameters.OfType<RecipeParameter>().First().Value,
+                "Le singulier de Whisper ne doit pas faire retomber sur la famille.");
+        }
+
+        [Test]
+        public void QuestionSurUnPlat_NEstPasUnOrdreDePreparation()
+        {
+            _recognizer = MakeRecognizer(Language.French, recipes: Recipes());
+
+            // « est-ce que c'est une salade de fruits ? » interroge sur un plat, elle n'en
+            // commande pas : le repli « un plat nommé = préparer » exclut les questions.
+            string json = _recognizer.Recognize(new Sentence("est-ce que c'est une salade de fruits ?"));
+            if (json != null)
+            {
+                List<Command> commands = JsonConvert.DeserializeObject<List<Command>>(json);
+                Assert.IsFalse(commands.Any(c => c is PrepareCommand),
+                    "Une question sur un plat ne doit pas devenir un PrepareCommand.");
+            }
+        }
+
+        [Test]
         public void OeLigature_InRecipeLabel_MatchesAsciiSpelling()
         {
             // Le libellé ontologique porte la ligature « bœuf », Whisper écrit « boeuf » :

@@ -563,6 +563,19 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                     }
                 }
             }
+
+            // Une phrase qui NOMME UN PLAT et ne correspond à aucune commande est un ordre de
+            // préparation. Whisper mange volontiers le verbe — « Prépare une soupe » est sorti
+            // « Par une soupe », « Répare une soupe », « Et par une soupe » dans la même
+            // session — et c'est aussi la forme naturelle de la réponse à « Laquelle : soupe
+            // de carottes ou soupe de citrouille ? » : « Soupe de carottes. » Quand le verbe
+            // manque, le plat suffit à dire l'intention. Les QUESTIONS sont exclues :
+            // « est-ce que c'est une salade de fruits ? » interroge sur un plat, elle n'en
+            // commande pas.
+            bool question = text.Contains("?") || Regex.IsMatch(normalizedText, @"\best[ -]ce\b");
+            if (!question && FindRecipe(text, out _) != null)
+                return "PrepareCommand";
+
             return null;
         }
 
@@ -587,10 +600,12 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             foreach (RecipeVocabulary.Recipe recipe in _recipes)
             {
                 string label = FrenchStemmer.NormalizeAccents(recipe.Label.ToLowerInvariant());
-                if (!ContainsPhrase(FrenchStemmer.NormalizeAccents(text), label)) continue;
+                if (!Regex.IsMatch(FrenchStemmer.NormalizeAccents(text),
+                                   $@"\b{PluralTolerantPattern(label)}\b", RegexOptions.IgnoreCase))
+                    continue;
 
                 remainingText = Regex.Replace(
-                    text, $@"\b{LigatureTolerantPattern(recipe.Label)}\b", " ", RegexOptions.IgnoreCase);
+                    text, $@"\b{PluralTolerantPattern(recipe.Label)}\b", " ", RegexOptions.IgnoreCase);
 
                 Debug.Log($"[RuleBased] Recette reconnue : {recipe.Label} → {recipe.Uri}" +
                           (recipe.IsConcrete ? "" : " (famille — sous-spécifiée)"));
@@ -833,6 +848,23 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             => Regex.Escape(phrase)
                 .Replace("œ", "(?:œ|oe)").Replace("Œ", "(?:Œ|OE)")
                 .Replace("æ", "(?:æ|ae)").Replace("Æ", "(?:Æ|AE)");
+
+        /// <summary>
+        /// Motif d'un libellé dont CHAQUE mot tolère un « s » final en plus ou en moins.
+        ///
+        /// Whisper accorde à l'oreille : « soupe de carottes » sort « soupe de carotte » au
+        /// gré de la prosodie, et l'accord exact faisait retomber la phrase sur la FAMILLE
+        /// (« soupe ») — le joueur nommait la bonne recette et s'entendait demander laquelle.
+        /// La tolérance est bornée au « s » final : rien d'autre ne varie à l'oral sur un nom
+        /// de plat, et élargir davantage ferait se recouvrir des libellés distincts.
+        /// </summary>
+        private static string PluralTolerantPattern(string phrase)
+        {
+            IEnumerable<string> words = phrase
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(word => LigatureTolerantPattern(word.TrimEnd('s', 'S')) + "s?");
+            return string.Join(@"\s+", words);
+        }
 
         /// <summary>
         /// Retire du texte la PREMIÈRE occurrence de la phrase. Une seule, pour que « la pomme
