@@ -137,18 +137,27 @@ namespace Sc4ve.Multimodality
 
             foreach (RecipeConformity.Requirement requirement in requirements)
             {
-                SemantizationCore item = FindIngredient(requirement);
-                if (item == null)
+                SemantizationCore source = FindIngredient(requirement);
+                if (source == null)
                 {
-                    // Un échec est une information, pas un bug (§8) : il s'énonce, et il rend
-                    // la main. Le plat reste à moitié fait dans l'assiette — c'est un état de
-                    // jeu légitime, que « est-ce que c'est prêt ? » saura décrire.
+                    // Plus AUCUNE instance de ce type dans la scène, même en assiette : cette
+                    // scène n'a jamais eu cet ingrédient. Un échec est une information, pas
+                    // un bug (§8) : il s'énonce, et il rend la main.
                     Say(French
                         ? $"Il me manque {MissingLabel(requirement)}."
                         : $"I am missing {MissingLabel(requirement)}.");
                     Finish();
                     yield break;
                 }
+
+                // GARDE-MANGER INFINI : le cuisinier travaille sur une COPIE et ne consomme
+                // jamais la scène. La caisse reste pleine, ce que le joueur a sorti sur une
+                // table ne conditionne plus rien, et une assiette déjà servie peut servir de
+                // modèle. Même geste que DuplicateCommand : le clone d'un objet sémantisé se
+                // ré-initialise comme un objet neuf (UUID compris), et l'état déjà acquis
+                // (coupé, cuit) voyage avec la copie — cloner l'instance la plus avancée
+                // épargne les mêmes étapes qu'avant.
+                SemantizationCore item = CloneIngredient(source);
 
                 foreach (string state in requirement.States.Select(Prefixed))
                 {
@@ -259,14 +268,28 @@ WHERE { ?type sven:appliesState ?state . }";
                 .FirstOrDefault(c => c.GetComponentInParent<Delegation>() == null);
 
         /// <summary>
-        /// Un ingrédient du bon type, libre, et qui ne viole aucun état interdit.
+        /// Copie de travail d'un ingrédient, instanciée hors de tout contenant et au nom de
+        /// l'original — le « (Clone) » d'Unity n'apprendrait rien aux journaux ni au tableau.
+        /// La copie se ré-initialise comme un objet sémantisé neuf, exactement comme celles
+        /// de DuplicateCommand.
+        /// </summary>
+        private static SemantizationCore CloneIngredient(SemantizationCore original)
+        {
+            GameObject clone = Instantiate(original.gameObject,
+                original.transform.position, original.transform.rotation);
+            clone.name = original.gameObject.name;
+            return clone.GetComponent<SemantizationCore>();
+        }
+
+        /// <summary>
+        /// L'instance MODÈLE d'un ingrédient : du bon type, sans état interdit, la plus
+        /// avancée d'abord — si le joueur a coupé une carotte à la main, autant copier
+        /// celle-là et s'épargner la planche.
         ///
-        /// Libre = dans aucun contenant : ce qui est déjà dans une assiette appartient à un
-        /// autre plat, et le reprendre déferait une commande en cours sous les yeux du joueur.
-        ///
-        /// À égalité, celui qui est DÉJÀ le plus avancé : si le joueur a coupé une carotte à la
-        /// main, le cuisinier s'en sert au lieu d'en couper une seconde. C'est ce qui permet aux
-        /// deux modes — le joueur cuisine, le cuisinier cuisine — de coexister sans se gêner.
+        /// Libre de préférence ; mais une instance déjà en assiette suffit comme modèle,
+        /// puisque le cuisinier CLONE (PrepareTask) et ne reprend rien à personne. C'est ce
+        /// repli qui rend le garde-manger réellement infini : tant qu'UNE instance du type
+        /// existe quelque part dans la scène, il y a de quoi copier.
         /// </summary>
         private static SemantizationCore FindIngredient(RecipeConformity.Requirement requirement)
         {
@@ -274,13 +297,16 @@ WHERE { ?type sven:appliesState ?state . }";
             var forbidden = requirement.ForbiddenStates.Select(Prefixed).ToList();
             var wanted = requirement.States.Select(Prefixed).ToList();
 
-            return FindObjectsByType<SemanticAnnotator>(FindObjectsInactive.Exclude)
+            List<SemantizationCore> candidates = FindObjectsByType<SemanticAnnotator>(FindObjectsInactive.Exclude)
                 .Where(a => a.Annotations.Contains(ingredient))
                 .Where(a => !forbidden.Any(f => a.Annotations.Contains(f)))
                 .Select(a => a.GetComponent<SemantizationCore>())
-                .Where(o => o != null && ContainerContent.Of(o) == null)
+                .Where(o => o != null)
                 .OrderByDescending(o => wanted.Count(s => Has(o, s)))
-                .FirstOrDefault();
+                .ToList();
+
+            return candidates.FirstOrDefault(o => ContainerContent.Of(o) == null)
+                   ?? candidates.FirstOrDefault();
         }
 
         private IEnumerator WaitForState(SemantizationCore item, string state)
