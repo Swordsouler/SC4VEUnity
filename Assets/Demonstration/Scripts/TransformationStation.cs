@@ -27,7 +27,7 @@ namespace Sc4ve.Demonstration
         [SerializeField, Tooltip("Secondes avant que l'aliment posé ne prenne l'état de la station. " +
                                  "Assez long pour être lisible, assez court pour ne pas ennuyer.")]
         [Range(0.5f, 10f)]
-        private float _duration = 3f;
+        private float _duration = 1.5f;
 
         private ContainerContent _content;
         private string _state;

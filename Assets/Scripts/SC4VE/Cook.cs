@@ -43,7 +43,7 @@ namespace Sc4ve.Multimodality
         [SerializeField, Tooltip("Pause après chaque ingrédient posé dans l'assiette. Assez " +
                                  "longue pour que le joueur voie le plat se construire.")]
         [Range(0.1f, 3f)]
-        private float _actionDuration = 0.6f;
+        private float _actionDuration = 0.3f;
 
         [SerializeField, Tooltip("Secondes au-delà desquelles une station qui ne transforme pas " +
                                  "est considérée en panne. Sans ce garde-fou, un cuisinier " +

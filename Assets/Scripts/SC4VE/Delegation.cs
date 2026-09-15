@@ -50,10 +50,11 @@ namespace Sc4ve.Multimodality
         /// </summary>
         public enum Activity { Idle, Moving, Acting }
 
-        [SerializeField, Tooltip("Vitesse de marche. Lente à dessein : le joueur doit avoir le " +
-                                 "temps de voir qui part où, et de donner un contre-ordre.")]
+        [SerializeField, Tooltip("Vitesse de marche. Un pas décidé : la lenteur d'origine " +
+                                 "(1,1 m/s) laissait le temps d'un contre-ordre mais faisait " +
+                                 "attendre tout le monde à chaque course.")]
         [Range(0.3f, 3f)]
-        private float _speed = 1.1f;
+        private float _speed = 2f;
 
         [SerializeField, Tooltip("Distance à laquelle le serveur se considère arrivé.")]
         [Range(0.2f, 2f)]
@@ -61,7 +62,7 @@ namespace Sc4ve.Multimodality
 
         [SerializeField, Tooltip("Durée d'une action sur place (poser un plat, prendre une commande).")]
         [Range(0.2f, 5f)]
-        private float _actionDuration = 1.2f;
+        private float _actionDuration = 0.8f;
 
         [SerializeField, Tooltip("Où le plat se pose quand le serveur le porte. Laissé vide, " +
                                  "un point est créé devant lui à hauteur de taille.")]

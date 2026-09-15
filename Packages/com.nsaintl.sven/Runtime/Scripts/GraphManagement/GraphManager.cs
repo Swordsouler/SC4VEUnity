@@ -43,6 +43,9 @@ namespace Sven.GraphManagement
         // Hard memory ceiling (as a multiple of BufferSize). Past it, a failed batch is spooled to a local
         // backup file and freed from memory so an unreachable endpoint cannot grow RAM without bound.
         private const int MaxBufferMultiplier = 3;
+        // Nombre d'échecs consécutifs au-delà duquel l'endpoint est tenu pour ABSENT jusqu'à
+        // la fin de la session — le disjoncteur du bloc catch de FlushBufferToEndpointAsync.
+        private const int MaxConsecutiveFlushFailures = 5;
         private static int _backupCounter = 0;
         public static int Count
         {
@@ -756,6 +759,27 @@ WHERE {
                 // en mémoire pour être renvoyés plus tard. On programme un backoff exponentiel (plafonné à 30 s)
                 // pour ne pas re-sérialiser tout le graphe à chaque Assert ni marteler le réseau.
                 _consecutiveFlushFailures++;
+
+                // DISJONCTEUR : au-delà de quelques échecs consécutifs, l'endpoint est tenu
+                // pour ABSENT jusqu'à la fin de la session et l'on cesse d'essayer. Chaque
+                // tentative re-sérialise TOUT le graphe sur le pool de threads : mesuré en
+                // démo (endpoint éteint, ~60 000 triplets), ce travail de fond concurrençait
+                // l'évaluation des requêtes au point de faire dépasser 20 s au verdict d'un
+                // client — verdict arrivé « conforme » une seconde après l'abandon — pendant
+                // que la tentative suivante déversait la mémoire sur disque (TrySpoolToBackup),
+                // emportant les annotations dont toutes les requêtes vivent. Le graphe en
+                // mémoire devient alors l'unique magasin de la session : le mode nominal de la
+                // démo sans GraphDB. Pas de spool dans ce mode, et c'est voulu — il viderait ce
+                // qui reste interrogeable. Relancer la partie réarme le disjoncteur ; le vidage
+                // de fermeture (ForceFlushToEndpointBlocking) n'est pas concerné.
+                if (_consecutiveFlushFailures >= MaxConsecutiveFlushFailures)
+                {
+                    _nextFlushRetryUtc = DateTime.MaxValue;
+                    Debug.LogWarning($"SVEN : endpoint injoignable {_consecutiveFlushFailures} fois de suite — " +
+                                     "sauvegarde vers l'endpoint désactivée pour la session, le graphe reste en mémoire.");
+                    return;
+                }
+
                 double backoffSeconds = Math.Min(30.0, Math.Pow(2, Math.Min(_consecutiveFlushFailures, 5)));
                 _nextFlushRetryUtc = DateTime.UtcNow.AddSeconds(backoffSeconds);
                 Debug.LogError($"Échec du vidage du tampon (tentative {_consecutiveFlushFailures}, prochaine dans {backoffSeconds:0}s) : {ex.Message}");
