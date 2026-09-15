@@ -28,7 +28,7 @@ namespace Sc4ve.Voice
         private bool _isBuffering;
         private bool _isTranscribing;
         private bool _pttKeyActive;
-        private bool _suspended;   // micro ignoré pendant que le système parle (TTS)
+        private bool _suspended;   // micro ignoré pendant que le système parle (TTS) — VAD seulement
 
         // Prompt initial : amorce Whisper avec des exemples de commandes. Whisper segmente bien
         // mieux les mots liés (« colorie là » au lieu de « colorila ») quand il est amorcé par
@@ -120,8 +120,18 @@ namespace Sc4ve.Voice
 
         // Ignore le micro pendant que le système parle (et jette l'audio capté entre-temps,
         // souvent la voix de synthèse), pour éviter de re-transcrire le TTS comme une commande.
+        //
+        // UNIQUEMENT hors push-to-talk : la boucle de rétroaction suppose un micro toujours
+        // ouvert (mode VAD). En push-to-talk, l'appui sur F est déjà la barrière — suspendre
+        // revenait à confisquer le micro pendant chaque énoncé Piper, et à JETER ce que le
+        // joueur avait déjà dit (le Clear ci-dessous) si un agent se mettait à parler pendant
+        // son appui : « la touche ne fait plus rien ». Parler par-dessus un agent près de
+        // haut-parleurs mêlera la voix de synthèse à la sienne et dégradera cette
+        // transcription-là — choix du joueur, préférable à un micro coupé.
         public override void SetListeningSuspended(bool suspended)
         {
+            if (_pushToTalk) return;
+
             _suspended = suspended;
             if (suspended)
             {

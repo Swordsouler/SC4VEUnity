@@ -166,6 +166,8 @@ namespace Sc4ve.Multimodality
 
             // Suspendre l'écoute pendant que le système parle (Piper) : sinon le micro re-capte
             // la voix de synthèse et la réinterprète comme une commande (boucle de rétroaction).
+            // Ne vaut qu'en mode VAD (micro toujours ouvert) : en push-to-talk,
+            // WhisperSpeechToText ignore cette suspension — l'appui du joueur fait foi.
             _tts = FindAnyObjectByType<PiperTextToSpeech>();
             if (_tts != null && _speechToText != null)
             {
