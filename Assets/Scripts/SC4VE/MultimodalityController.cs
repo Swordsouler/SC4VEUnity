@@ -162,6 +162,13 @@ namespace Sc4ve.Multimodality
         private void Awake()
         {
             UserData.Language = _language;
+
+            // Publie le mode pour le journal (MultimodalityMetrics, §10) : c'est la colonne
+            // qui fait de l'écran de départ un plan d'expérience. Le service LLM est
+            // distingué — OpenAI et un modèle local n'ont pas les mêmes latences.
+            MultimodalitySettings.RecognizerMode = _recognizerMode == RecognizerMode.RuleBased
+                ? "RuleBased"
+                : $"LLM-{_llmService}";
             if (_speechToText != null) _speechToText.OnTranscriptionResult += OnTranscriptionResult;
 
             // Suspendre l'écoute pendant que le système parle (Piper) : sinon le micro re-capte
@@ -530,9 +537,11 @@ namespace Sc4ve.Multimodality
             // Les prénoms viennent de la SCÈNE sémantisée : le nom d'un GameObject porteur
             // d'un CustomerOrder est exactement le littéral que SemantizationCore a écrit en
             // rdfs:label — celui que le filtre « Name » de la sélection compare tel quel.
-            // Relevés une fois, à la construction : les clients de la démo existent dès le
-            // chargement de la scène.
-            List<string> objectNames = FindObjectsByType<CustomerOrder>()
+            // Relevés une fois, à la construction, INACTIFS COMPRIS : la progression du
+            // lot 5 (ServiceProgression) fait arriver les clients en cours de partie, et
+            // leur prénom doit être compris AVANT leur arrivée. La sélection, elle, ne
+            // trouvera que les présents — un client inactif n'est pas encore sémantisé.
+            List<string> objectNames = FindObjectsByType<CustomerOrder>(FindObjectsInactive.Include, FindObjectsSortMode.None)
                 .Select(c => c.name)
                 .ToList();
 

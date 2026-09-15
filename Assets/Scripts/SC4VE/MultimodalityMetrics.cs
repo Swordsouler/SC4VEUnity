@@ -67,16 +67,31 @@ namespace Sc4ve.Multimodality
         {
             try
             {
+                const string header =
+                    "timestamp;locale;phrase;command;modality;outcome;affected;duration_ms;pointing_enabled;mode";
                 _csvPath ??= Path.Combine(Application.persistentDataPath, "sven_metrics.csv");
+
+                // Un journal n'est exploitable que si TOUTES ses lignes suivent le schéma de
+                // son en-tête (« une partie complète produit un journal exploitable », lot 5).
+                // Un fichier d'une version antérieure est mis de côté, jamais complété :
+                // mieux vaut deux fichiers cohérents qu'un seul mixte.
+                if (File.Exists(_csvPath) &&
+                    !string.Equals(File.ReadLines(_csvPath).FirstOrDefault(), header, StringComparison.Ordinal))
+                {
+                    string retired = Path.Combine(Application.persistentDataPath,
+                        $"sven_metrics_{DateTime.Now:yyyyMMdd_HHmmss}.old.csv");
+                    File.Move(_csvPath, retired);
+                    Debug.Log($"[Metrics] Ancien journal (schéma différent) mis de côté : {retired}");
+                }
+
                 if (!File.Exists(_csvPath))
                 {
-                    File.AppendAllText(_csvPath,
-                        "timestamp;locale;phrase;command;modality;outcome;affected;duration_ms;pointing_enabled\n");
+                    File.AppendAllText(_csvPath, header + "\n");
                     Debug.Log($"[Metrics] Journal CSV créé : {_csvPath}");
                 }
                 string safePhrase = _phrase.Replace("\"", "'").Replace("\n", " ").Replace("\r", " ");
                 File.AppendAllText(_csvPath,
-                    $"{DateTime.Now:o};{UserData.Locale};\"{safePhrase}\";{cmd};{modality};{outcome};{count};{ms:F0};{pointing}\n");
+                    $"{DateTime.Now:o};{UserData.Locale};\"{safePhrase}\";{cmd};{modality};{outcome};{count};{ms:F0};{pointing};{MultimodalitySettings.RecognizerMode}\n");
             }
             catch (Exception e)
             {
