@@ -1216,8 +1216,14 @@ namespace Sc4ve.Demonstration.EditorTools
                 stripped = true;
             }
 
+            // TOUT ce qui pend sous la main disparaît — interactors, rayon, et le MODÈLE de
+            // la manette : la main gauche n'est plus une manette, c'est une tablette. On
+            // désactive enfant par enfant plutôt que de détruire, parce que les composants XR
+            // se référencent entre eux et référencent la locomotion. Seule la tablette, posée
+            // par EnsureHandTablet sous cette même main, survit — l'outil se relance sur un
+            // rig existant où elle est déjà là.
             foreach (Transform child in hand)
-                if (child.name.Contains("Interactor") && child.gameObject.activeSelf)
+                if (child.name != TabletName && child.gameObject.activeSelf)
                 {
                     child.gameObject.SetActive(false);
                     stripped = true;
@@ -1288,6 +1294,13 @@ namespace Sc4ve.Demonstration.EditorTools
         /// grande ou illisible : fond, marges et taille de caractère en découlent.
         /// </summary>
         private const float TabletWidth = 0.22f;
+
+        /// <summary>
+        /// Nom de la tablette dans la hiérarchie. Une constante parce que DEUX endroits en
+        /// dépendent : EnsureHandTablet pour ne pas en empiler une seconde, et StripPointing
+        /// pour être la seule chose qui survive sous la main gauche.
+        /// </summary>
+        private const string TabletName = "Tablette des commandes";
 
         /// <summary>
         /// Fond sombre + TextMesh piloté par <see cref="OrderBoard"/>.
@@ -1362,15 +1375,16 @@ namespace Sc4ve.Demonstration.EditorTools
                 return;
             }
 
-            const string tabletName = "Tablette des commandes";
-            if (hand.Find(tabletName) != null) return;
+            if (hand.Find(TabletName) != null) return;
 
-            GameObject tablet = BuildBoardPanel(hand, tabletName, TabletWidth);
+            GameObject tablet = BuildBoardPanel(hand, TabletName, TabletWidth);
 
-            // Au-dessus et devant la main, incliné vers le visage. Un TextMesh se lit à
-            // l'opposé de son +z : à 55°, ce +z part vers le bas et l'avant, donc l'écran
-            // regarde les yeux du joueur, qui sont au-dessus et en arrière de sa main.
-            tablet.transform.localPosition = new Vector3(0f, 0.06f, 0.04f);
+            // AU NIVEAU de la main, à peine devant, incliné vers le visage : le modèle de la
+            // manette est désactivé (StripPointing), donc la tablette EST la main gauche — la
+            // décoller vers le haut la faisait flotter au-dessus d'une main invisible. Un
+            // TextMesh se lit à l'opposé de son +z : à 55°, ce +z part vers le bas et
+            // l'avant, donc l'écran regarde les yeux, au-dessus et en arrière de la main.
+            tablet.transform.localPosition = new Vector3(0f, 0.015f, 0.05f);
             tablet.transform.localRotation = Quaternion.Euler(55f, 0f, 0f);
 
             Debug.Log("[DemoSceneBuilder] Tablette des commandes posée sur la main gauche.");
