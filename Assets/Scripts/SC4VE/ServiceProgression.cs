@@ -49,13 +49,17 @@ namespace Sc4ve.Multimodality
         [Range(0f, 30f)]
         private float _firstArrivalDelay = 2f;
 
-        [SerializeField, Tooltip("Intervalle initial entre deux arrivées (secondes de JEU).")]
+        [SerializeField, Tooltip("Le DEUXIÈME client arrive vite lui aussi — la salle s'anime d'emblée.")]
+        [Range(2f, 30f)]
+        private float _secondArrivalDelay = 8f;
+
+        [SerializeField, Tooltip("Intervalle de croisière initial entre deux arrivées, à partir du 3e client (secondes de JEU).")]
         [Range(6f, 120f)]
-        private float _startInterval = 45f;
+        private float _startInterval = 30f;
 
         [SerializeField, Tooltip("Chaque arrivée raccourcit l'intervalle de ce pas…")]
         [Range(0f, 20f)]
-        private float _intervalStep = 4f;
+        private float _intervalStep = 6f;
 
         [SerializeField, Tooltip("… jusqu'à ce plancher : au plus fort, un client toutes les N secondes.")]
         [Range(3f, 60f)]
@@ -63,6 +67,7 @@ namespace Sc4ve.Multimodality
 
         private float _interval;
         private float _nextArrivalAt;
+        private int _spawned;
 
         /// <summary>Appelé par DemoSceneBuilder, à la construction : mémorise et ENDORT les modèles.</summary>
         public void Bind(List<CustomerOrder> templates)
@@ -92,9 +97,20 @@ namespace Sc4ve.Multimodality
             if (free.Count == 0) return; // salle pleine : on guette, la prochaine table libérée est servie
 
             Spawn(free[Random.Range(0, free.Count)]);
+            _spawned++;
 
-            _interval = Mathf.Max(_minInterval, _interval - _intervalStep);
-            _nextArrivalAt = Time.time + _interval;
+            // Les DEUX premiers arrivent rapprochés (la salle s'anime d'emblée), puis la
+            // cadence de croisière s'installe : _startInterval, raccourcie d'un pas à
+            // CHAQUE arrivée, jusqu'au plancher — 30, 24, 18, 12, 6, 6… par défaut.
+            if (_spawned == 1)
+            {
+                _nextArrivalAt = Time.time + _secondArrivalDelay;
+            }
+            else
+            {
+                _nextArrivalAt = Time.time + _interval;
+                _interval = Mathf.Max(_minInterval, _interval - _intervalStep);
+            }
         }
 
         private void Spawn(CustomerOrder template)
@@ -108,7 +124,7 @@ namespace Sc4ve.Multimodality
             if (label != null) label.text = clone.name;
 
             clone.SetActive(true);
-            Debug.Log($"[Progression] {clone.name} s'installe (prochaine arrivée dans {_interval:0} s de jeu).");
+            Debug.Log($"[Progression] {clone.name} s'installe.");
         }
 
         /// <summary>
