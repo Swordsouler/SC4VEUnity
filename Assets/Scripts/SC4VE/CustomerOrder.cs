@@ -84,6 +84,9 @@ namespace Sc4ve.Multimodality
 
         /// <summary>Time.time du service — le repas (_eatingDuration) se chronomètre dessus.</summary>
         private float _servedAt;
+
+        /// <summary>L'assiette acceptée — vidée à son départ (ConsumeDish) : le client a mangé.</summary>
+        private ContainerContent _servedDish;
         [SerializeField] private string _family = "";
         [SerializeField] private string _constraint = "";
 
@@ -372,8 +375,28 @@ namespace Sc4ve.Multimodality
         /// </summary>
         private void Depart(string reason)
         {
+            ConsumeDish();
             Debug.Log($"[Client] {name} : {reason}.");
             gameObject.SetActive(false);
+        }
+
+        /// <summary>
+        /// Le client a MANGÉ : son assiette se vide à son départ. Les aliments quittent le
+        /// monde comme lui — désactivés, jamais détruits (SVEN clôt leurs intervalles) — et
+        /// l'habillage du plat se retire de LUI-MÊME au changement de contenu (DishDressing).
+        /// L'assiette, elle, reste sur la table, sale : la ranger est le travail du serveur
+        /// (« range l'assiette de cette table », ClearTableCommand → Delegation.Clear).
+        /// </summary>
+        private void ConsumeDish()
+        {
+            if (_servedDish == null) return;
+
+            foreach (SemantizationCore item in _servedDish.Content.ToList())
+            {
+                _servedDish.Remove(item);
+                if (item != null) item.gameObject.SetActive(false);
+            }
+            _servedDish = null;
         }
 
         private void UpdateGauge()
@@ -509,6 +532,7 @@ namespace Sc4ve.Multimodality
                 {
                     _stage = Stage.Served;
                     _servedAt = Time.time;
+                    _servedDish = dish;
                     UpdateGauge();
                     string dishLabel = await OntologyLabels.GetAsync(report.Recipe, UserData.Locale);
                     Debug.Log($"[Client] {name} : accepte — {report}.");

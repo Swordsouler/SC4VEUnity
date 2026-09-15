@@ -484,6 +484,14 @@ sc4ve:TakeOrderCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
     [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
     rdfs:label "Take Order Command"@en , "Commande de Prise de Commande"@fr .
 
+###  Débarrassage (flux de clients) : l'assiette VIDÉE par le client parti revient au plan de
+###  travail, où elle redevient utilisable — les assiettes sont en nombre fini, ce circuit est
+###  leur cycle de vie. UN SelectionParameter : la table, au pointage — les tables n'ont pas
+###  de nom, la deixis est le seul chemin (§3 du README de démonstration).
+sc4ve:ClearTableCommand rdf:type owl:Class ; rdfs:subClassOf sc4ve:Command ,
+    [ rdf:type owl:Restriction ; owl:onProperty sc4ve:hasParameter ; owl:qualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass sc4ve:SelectionParameter ] ;
+    rdfs:label "Clear Table Command"@en , "Commande de Débarrassage"@fr .
+
 ###  Réénonciation de la commande d'une table (lot 4).
 ###
 ###  Elle ne délègue rien et ne change rien au monde : elle parle, tout de suite (§7 du
@@ -769,6 +777,8 @@ sc4ve:UndoCommand rdfs:comment "Annule la dernière action."@fr , "Undoes the la
 sc4ve:RedoCommand rdfs:comment "Rétablit la dernière action annulée."@fr , "Redoes the last undone action."@en .
 sc4ve:RepeatOrderCommand rdfs:comment "Réénonce à voix haute la commande DÉJÀ prise à une table, sans envoyer de serveur et sans rien changer au monde. Générer pour « répète la commande de cette table », « c'est quoi la commande ? ». Paramètre: UN SelectionParameter — la table, ou le client, désigné au pointage. Ne PAS générer pour « va prendre la commande » : c'est TakeOrderCommand, qui envoie un serveur."@fr , "Says out loud again the order ALREADY taken at a table, without sending a waiter and without changing anything in the world. Generate for « repeat the order of that table », « what is the order? ». Parameter: ONE SelectionParameter — the table, or the customer, pointed at. Do NOT generate for « go take the order »: that is TakeOrderCommand, which sends a waiter."@en .
 
+sc4ve:ClearTableCommand rdfs:comment "Envoie un serveur DÉBARRASSER une table : il prend l'assiette vidée par le client parti et la range sur le plan de travail, où elle redevient utilisable. Générer pour « range l'assiette de cette table », « vide cette table », « débarrasse cette table-là ». Paramètre: UN SelectionParameter — la table, désignée au pointage. Ne PAS générer pour « range X dans Y » : c'est PutInCommand."@fr , "Sends a waiter to CLEAR a table: he takes the plate emptied by the departed customer and puts it back on the worktop, where it becomes usable again. Generate for « clear that table », « bus the table ». Parameter: ONE SelectionParameter — the table, pointed at. Do NOT generate for « put X in Y »: that is PutInCommand."@en .
+
 
 #################################################################
 #    Déictiques de pointage (vocabulaire d'interaction)
@@ -874,6 +884,16 @@ sc4ve:ServeCommand sc4ve:trigger
     "va servir"@fr , "sers"@fr , "servir"@fr , "donne"@fr , "donner"@fr , "donnez"@fr ,
     "apporte"@fr , "apporter"@fr , "porte à"@fr ,
     "go serve"@en , "serve"@en , "give"@en , "bring"@en .
+
+###  « range » NU est disponible : « range … dans/sur … » est intercepté AVANT la boucle des
+###  déclencheurs par la pré-vérification PutInCommand de DetectCommandType (verbe de
+###  rangement + préposition) — ici, pas de préposition (« range l'assiette de cette table »).
+###  « clear » nu ne gêne pas « clear selection » (UnselectCommand) : du plus long au plus
+###  court. L'ontologie PRIME sur l'attribut C# [RuleBasedTriggers] : listes alignées.
+sc4ve:ClearTableCommand sc4ve:trigger
+    "range"@fr , "ranger"@fr , "rangez"@fr , "débarrasse"@fr , "débarrasser"@fr , "débarrassez"@fr ,
+    "vide"@fr , "vider"@fr , "videz"@fr , "nettoie"@fr , "nettoyer"@fr , "nettoyez"@fr ,
+    "clear"@en , "clean"@en , "tidy up"@en , "bus the table"@en .
 
 ###  « prend la commande » sans s : Whisper transcrit volontiers l'impératif « prends » en
 ###  3e personne — sans cette forme, le stem « prend » (= prendre) routait vers GrabCommand.

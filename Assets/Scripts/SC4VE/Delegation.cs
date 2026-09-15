@@ -229,6 +229,52 @@ namespace Sc4ve.Multimodality
         }
 
         /// <summary>
+        /// « Range l'assiette de cette table 👆 » : débarrasser — prendre l'assiette laissée
+        /// par le client parti et la ranger sur le plan de travail, où le joueur la
+        /// réutilise. Les assiettes sont en nombre FINI (limite assumée du garde-manger
+        /// infini) : ce circuit table → plan de travail → nouveau plat est leur cycle de vie.
+        ///
+        /// Seules les assiettes VIDES se débarrassent : le client parti a mangé son contenu
+        /// (CustomerOrder.ConsumeDish). Une assiette pleine sur une table est un repas en
+        /// cours — on ne débarrasse pas sous le nez de qui mange.
+        /// </summary>
+        public bool Clear(SemantizationCore table)
+        {
+            if (table == null) return false;
+            if (!Accept(French ? "débarrasse une table" : "clearing a table")) return false;
+
+            List<ContainerContent> dishes = DishesOn(table);
+            ContainerContent dish = dishes.FirstOrDefault(d => d.Content.Count == 0);
+            if (dish == null)
+            {
+                // Un échec est une information, pas un bug (§8) : il s'énonce, et il rend la
+                // main — sans quoi le serveur resterait marqué occupé sans rien faire.
+                Say(dishes.Count > 0
+                    ? (French ? "Le client mange encore." : "The customer is still eating.")
+                    : (French ? "Il n'y a rien à débarrasser." : "There is nothing to clear."));
+                Finish();
+                return false;
+            }
+
+            _task = StartCoroutine(ClearTask(dish));
+            return true;
+        }
+
+        /// <summary>
+        /// Les assiettes posées sur cette table — à moins d'un mètre de son centre (le point
+        /// de dépôt du service est à 0,22 m), les plus proches d'abord.
+        /// </summary>
+        private static List<ContainerContent> DishesOn(SemantizationCore table)
+        {
+            return UnityEngine.Object
+                .FindObjectsByType<ContainerContent>(FindObjectsInactive.Exclude)
+                .Where(c => c != null && IsPlate(c) && !IsCarriedBySomeone(c))
+                .Where(c => Vector3.SqrMagnitude(c.transform.position - table.transform.position) < 1f)
+                .OrderBy(c => Vector3.SqrMagnitude(c.transform.position - table.transform.position))
+                .ToList();
+        }
+
+        /// <summary>
         /// « Va prendre la commande de cette table-là 👆 » : se rendre à la table et y rester le
         /// temps de l'échange. Le client ne parle qu'une fois le serveur arrivé — c'est ce qui
         /// donne son sens à la délégation (§4 du README). La parole du client viendra au lot 4.
@@ -341,6 +387,52 @@ namespace Sc4ve.Multimodality
                     // PORTÉ et visible — il ne disparaît pas et ne se vide pas tout seul (§8).
                     yield return ReturnDishToPass();
                 }
+            }
+
+            yield return Walk(_home);
+            Finish();
+        }
+
+        /// <summary>
+        /// Débarrasser : aller à la table, prendre l'assiette vide, la ranger sur le plan de
+        /// travail, rentrer. Même squelette que ServeTask, sans verdict : personne ne juge
+        /// une assiette sale.
+        /// </summary>
+        private IEnumerator ClearTask(ContainerContent dish)
+        {
+            Bubble(French ? "Je débarrasse." : "Clearing up.");
+
+            yield return Walk(dish.transform.position);
+            if (_walkFailed) { Abandon(); yield break; }
+
+            // L'assiette a pu partir pendant le trajet (le joueur l'a reprise) : constat,
+            // pas erreur — le monde n'est pas figé pendant qu'un agent marche.
+            if (dish == null)
+            {
+                Say(French ? "L'assiette n'est plus là." : "The plate is gone.");
+                Abandon();
+                yield break;
+            }
+
+            Take(dish);
+
+            Transform worktop = Worktop();
+            if (worktop != null)
+                yield return Walk(worktop.position);
+
+            SetActivity(Activity.Acting, _taskLabel);
+            yield return Wait(_actionDuration);
+
+            if (worktop != null && !_walkFailed)
+            {
+                Drop(DropPointOn(worktop));
+            }
+            else
+            {
+                // Pas de plan de travail, ou marche échouée : dépôt sur place, et on le DIT —
+                // jamais de dépôt silencieux (même règle que ReturnDishToPass).
+                Say(French ? "Je repose l'assiette ici." : "I am putting the plate down here.");
+                Drop(transform.position + transform.forward * 0.4f);
             }
 
             yield return Walk(_home);
@@ -583,6 +675,26 @@ namespace Sc4ve.Multimodality
         }
 
         private static bool _passMissingWarned;
+
+        /// <summary>
+        /// Le plan de travail — où reviennent les assiettes débarrassées, prêtes à resservir.
+        /// Même contrat que Pass() : l'objet est créé par le builder, un renommage se signale
+        /// au premier échec plutôt qu'un null muet.
+        /// </summary>
+        private static Transform Worktop()
+        {
+            GameObject worktop = GameObject.Find("Plan de travail");
+            if (worktop == null && !_worktopMissingWarned)
+            {
+                _worktopMissingWarned = true;
+                Debug.LogWarning("[Serveur] Aucun objet « Plan de travail » dans la scène : les " +
+                                 "assiettes débarrassées se posent au pied du serveur. L'objet " +
+                                 "est créé par « SC4VE > Démonstration > 1 » — renommé ?");
+            }
+            return worktop != null ? worktop.transform : null;
+        }
+
+        private static bool _worktopMissingWarned;
 
         // ─────────────────────────────────────────────────────────────────────
         // Portage
