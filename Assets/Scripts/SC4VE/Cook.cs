@@ -93,27 +93,39 @@ namespace Sc4ve.Multimodality
         private readonly Queue<string> _orders = new();
 
         /// <summary>
-        /// Demi-angle du cône de regard : généreux, parce qu'en VR « regarder quelqu'un »
-        /// est un geste social, pas une visée — exiger la précision d'un pointeur
-        /// transformerait la règle en épreuve d'adresse.
-        /// </summary>
-        private const float GazeConeDegrees = 35f;
-
-        /// <summary>
-        /// Vrai si le joueur REGARDE le cuisinier : l'angle entre l'axe de la caméra (la
-        /// tête, en VR) et la direction vers son buste tient dans le cône. Sans caméra
-        /// identifiable, vrai — la règle est un raffinement d'interaction, jamais un
-        /// verrou qui casserait la démo.
+        /// Vrai si le cuisinier est DANS LE CHAMP DE VISION du joueur — et la réponse est
+        /// SÉMANTIQUE : PointOfView (SVEN), l'interactor de la caméra de tête, maintient la
+        /// liste des objets dont le collider coupe le frustum, et sémantise chaque
+        /// entrée/sortie du champ en événement à intervalles dans le graphe. Lire
+        /// currentInteractedObjects, c'est lire la SOURCE de ces triplets — même motif que
+        /// CustomerOrder.HoldsRefused avec les annotations : la matière première de la
+        /// sémantisation, lisible en synchrone (Execute n'attend pas une requête). Un calcul
+        /// caméra maison pouvait dire autre chose que le graphe ; ici, c'est impossible.
+        /// (Un cône de visée de 35°, essayé d'abord, était plus étroit que le champ du
+        /// casque : il refusait un joueur qui VOYAIT le cuisinier.)
+        ///
+        /// Sans PointOfView dans la scène, vrai — la règle est un raffinement d'interaction,
+        /// jamais un verrou qui casserait la démo — et on le signale UNE fois.
         /// </summary>
         public bool IsInPlayerGaze()
         {
-            Camera head = Camera.main;
-            if (head == null) return true;
+            Sven.Context.PointOfView view = FindAnyObjectByType<Sven.Context.PointOfView>();
+            if (view == null)
+            {
+                if (!_gazeRuleUnavailableWarned)
+                {
+                    _gazeRuleUnavailableWarned = true;
+                    Debug.LogWarning("[Cuisinier] Aucun PointOfView (SVEN) sur la caméra : la " +
+                                     "règle « me regarder pour commander » est inactive.");
+                }
+                return true;
+            }
 
-            Vector3 chest = transform.position + Vector3.up * 1.4f;
-            float angle = Vector3.Angle(head.transform.forward, chest - head.transform.position);
-            return angle <= GazeConeDegrees;
+            return !TryGetComponent(out SemantizationCore self)
+                   || view.currentInteractedObjects.Contains(self);
         }
+
+        private static bool _gazeRuleUnavailableWarned;
 
         /// <summary>
         /// « Prépare une soupe de carottes. » Occupé, il NOTE et enchaînera (le carnet de
