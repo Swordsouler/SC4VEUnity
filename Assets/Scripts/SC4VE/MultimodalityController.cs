@@ -163,12 +163,7 @@ namespace Sc4ve.Multimodality
         {
             UserData.Language = _language;
 
-            // Publie le mode pour le journal (MultimodalityMetrics, §10) : c'est la colonne
-            // qui fait de l'écran de départ un plan d'expérience. Le service LLM est
-            // distingué — OpenAI et un modèle local n'ont pas les mêmes latences.
-            MultimodalitySettings.RecognizerMode = _recognizerMode == RecognizerMode.RuleBased
-                ? "RuleBased"
-                : $"LLM-{_llmService}";
+            PublishModeForJournal();
             if (_speechToText != null) _speechToText.OnTranscriptionResult += OnTranscriptionResult;
 
             // Suspendre l'écoute pendant que le système parle (Piper) : sinon le micro re-capte
@@ -183,6 +178,31 @@ namespace Sc4ve.Multimodality
                 _tts.OnSpeechStart += _ttsSpeechStartHandler;
                 _tts.OnSpeechEnd   += _ttsSpeechEndHandler;
             }
+        }
+
+        /// <summary>
+        /// Le choix de l'écran de départ (ModeSelectScreen, §2 du README de démonstration) :
+        /// écrit le mode AVANT le premier énoncé — il se relit à chaque phrase — et le
+        /// republie pour le journal. Vers RuleBased, le reconnaisseur se construit tout de
+        /// suite : le chemin paresseux d'OnTranscriptionResult resterait un filet, mais
+        /// autant payer la construction pendant l'écran que sur la première phrase du joueur.
+        /// </summary>
+        public void SetRecognizerMode(RecognizerMode mode)
+        {
+            _recognizerMode = mode;
+            PublishModeForJournal();
+            if (mode == RecognizerMode.RuleBased) EnsureRuleBasedRecognizer();
+        }
+
+        // La colonne « mode » du journal (MultimodalityMetrics, §10) : la variable qui rend
+        // toutes les autres comparables — c'est elle qui fait de l'écran de départ un plan
+        // d'expérience. Le service LLM est distingué : OpenAI et un modèle local n'ont pas
+        // les mêmes latences.
+        private void PublishModeForJournal()
+        {
+            MultimodalitySettings.RecognizerMode = _recognizerMode == RecognizerMode.RuleBased
+                ? "RuleBased"
+                : $"LLM-{_llmService}";
         }
 
         /// <summary>

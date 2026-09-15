@@ -69,6 +69,14 @@ namespace Sc4ve.Multimodality
         private float _nextArrivalAt;
         private int _spawned;
 
+        /// <summary>
+        /// Vrai tant que l'écran de départ attend le choix du mode (ModeSelectScreen) : la
+        /// partie ne commence pas — aucun client — avant que le joueur ait choisi COMMENT
+        /// il sera compris. Sans écran dans la scène, personne ne la lève : le flux part
+        /// comme avant.
+        /// </summary>
+        public static bool WaitingForModeChoice;
+
         /// <summary>Appelé par DemoSceneBuilder, à la construction : mémorise et ENDORT les modèles.</summary>
         public void Bind(List<CustomerOrder> templates)
         {
@@ -86,6 +94,14 @@ namespace Sc4ve.Multimodality
 
         private void Update()
         {
+            if (WaitingForModeChoice)
+            {
+                // La partie n'a pas commencé : on ré-arme, pour que le premier client
+                // arrive _firstArrivalDelay après le CHOIX, pas pendant l'écran.
+                _nextArrivalAt = Time.time + _firstArrivalDelay;
+                return;
+            }
+
             if (Time.time < _nextArrivalAt) return;
 
             // Une table LIBRE, au hasard. Le couple (famille, contrainte) est celui de la
