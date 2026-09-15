@@ -772,11 +772,18 @@ WHERE {
                 // démo sans GraphDB. Pas de spool dans ce mode, et c'est voulu — il viderait ce
                 // qui reste interrogeable. Relancer la partie réarme le disjoncteur ; le vidage
                 // de fermeture (ForceFlushToEndpointBlocking) n'est pas concerné.
-                if (_consecutiveFlushFailures >= MaxConsecutiveFlushFailures)
+                // Un refus de CONNEXION (IsEndpointAbsent : port fermé, hôte introuvable) le
+                // déclenche dès la PREMIÈRE tentative — ce refus-là est définitif, et les
+                // tentatives 2 à 5 re-sérialisaient tout le graphe pendant la première minute
+                // de partie, précisément quand la démonstration se joue.
+                bool endpointAbsent = IsEndpointAbsent(ex);
+                if (endpointAbsent || _consecutiveFlushFailures >= MaxConsecutiveFlushFailures)
                 {
                     _nextFlushRetryUtc = DateTime.MaxValue;
-                    Debug.LogWarning($"SVEN : endpoint injoignable {_consecutiveFlushFailures} fois de suite — " +
-                                     "sauvegarde vers l'endpoint désactivée pour la session, le graphe reste en mémoire.");
+                    Debug.LogWarning("SVEN : endpoint " +
+                                     (endpointAbsent ? "absent (connexion impossible)"
+                                                     : $"injoignable {_consecutiveFlushFailures} fois de suite") +
+                                     " — sauvegarde vers l'endpoint désactivée pour la session, le graphe reste en mémoire.");
                     return;
                 }
 
@@ -795,6 +802,28 @@ WHERE {
             {
                 _isFlushing = false;
             }
+        }
+
+        /// <summary>
+        /// Vrai si l'échec de vidage est un échec de CONNEXION — port fermé, hôte introuvable :
+        /// l'endpoint n'est pas là, et il n'y sera pas davantage dans deux secondes. Ce motif
+        /// déclenche le disjoncteur dès la première tentative ; une erreur applicative
+        /// (HTTP 500, délai dépassé) reste tenue pour transitoire et garde ses tentatives.
+        /// </summary>
+        private static bool IsEndpointAbsent(Exception ex)
+        {
+            for (Exception e = ex; e != null; e = e.InnerException)
+            {
+                if (e is System.Net.Sockets.SocketException) return true;
+                if (e is System.Net.WebException web &&
+                    (web.Status == System.Net.WebExceptionStatus.ConnectFailure ||
+                     web.Status == System.Net.WebExceptionStatus.NameResolutionFailure))
+                    return true;
+                if (e is AggregateException aggregate)
+                    foreach (Exception inner in aggregate.InnerExceptions)
+                        if (IsEndpointAbsent(inner)) return true;
+            }
+            return false;
         }
 
         /// <summary>

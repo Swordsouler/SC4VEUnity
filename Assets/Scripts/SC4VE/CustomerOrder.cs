@@ -273,6 +273,18 @@ namespace Sc4ve.Multimodality
                 // le §6.5 (plusieurs plats satisfont une même commande) tout en donnant au
                 // joueur un but concret à préparer.
                 string wanted = _acceptable.OrderBy(uri => uri, StringComparer.Ordinal).FirstOrDefault();
+
+                // CheckAny essaie les recettes DANS L'ORDRE de la liste : le plat demandé
+                // passe en tête, parce que le chemin nominal — le cuisinier a préparé
+                // exactement ce plat — doit coûter UNE vérification, pas deux ou trois
+                // candidates ratées d'abord. À ~2 requêtes par recette sur un graphe de fin
+                // de partie, chaque ratée se paie en secondes, face à un verdict gardé 20 s.
+                if (wanted != null)
+                {
+                    _acceptable.Remove(wanted);
+                    _acceptable.Insert(0, wanted);
+                }
+
                 _dishLabel = wanted != null ? await OntologyLabels.GetAsync(wanted, locale) : _familyLabel;
 
                 _spokenOrder = BuildSpokenOrder();
