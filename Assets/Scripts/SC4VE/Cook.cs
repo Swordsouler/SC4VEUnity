@@ -87,8 +87,14 @@ namespace Sc4ve.Multimodality
         // Ordre
         // ─────────────────────────────────────────────────────────────────────
 
+        // Le carnet de commandes : les plats demandés pendant qu'il cuisine — « prépare une
+        // salade de fruits et une salade César » arrive en commandes séparées — dépilés par
+        // Finish, dans l'ordre.
+        private readonly Queue<string> _orders = new();
+
         /// <summary>
-        /// « Prépare une soupe de carottes. » Rend faux — et le dit — s'il est déjà occupé.
+        /// « Prépare une soupe de carottes. » Occupé, il NOTE et enchaînera (le carnet de
+        /// commandes) : un cuisinier qui refuse du travail n'existe pas.
         /// </summary>
         public bool Prepare(string recipe)
         {
@@ -96,8 +102,9 @@ namespace Sc4ve.Multimodality
 
             if (_busy)
             {
-                Say(French ? "Je finis ce plat." : "I am finishing this dish.");
-                return false;
+                _orders.Enqueue(recipe);
+                Say(French ? "Je note, ce sera après." : "Noted, right after this one.");
+                return true;
             }
 
             // L'état passe à occupé ICI et non dans la coroutine : Unity ne la démarre qu'à
@@ -353,6 +360,12 @@ WHERE { ?type sven:appliesState ?state . }";
         {
             _busy = false;
             _taskLabel = "";
+
+            // Le plat suivant du carnet part immédiatement. Un refus synchrone passe au
+            // suivant plutôt que de laisser mourir la liste ; Dequeue est destructif, un
+            // Finish réentrant ne rejoue rien.
+            while (_orders.Count > 0)
+                if (Prepare(_orders.Dequeue())) break;
         }
 
         private void Say(string text)

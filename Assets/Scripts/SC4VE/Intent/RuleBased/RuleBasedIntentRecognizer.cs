@@ -135,16 +135,19 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         /// </summary>
         public string Recognize(Sentence sentence)
         {
-            Command recognized = Build(sentence, null);
+            List<Command> recognized = Build(sentence, null);
             if (recognized == null) return null;
 
-            string produced = JsonConvert.SerializeObject(new List<Command> { recognized }, Formatting.Indented);
+            string produced = JsonConvert.SerializeObject(recognized, Formatting.Indented);
             Debug.Log($"[RuleBased] JSON produit :\n{produced}");
             return produced;
         }
 
         /// <summary>
-        /// Le corps de la reconnaissance, qui rend la commande elle-même.
+        /// Le corps de la reconnaissance, qui rend la ou LES commandes : une phrase de
+        /// préparation peut nommer plusieurs plats (« prépare une salade de fruits et une
+        /// salade César ») — chacun devient sa propre PrepareCommand, exécutées dans
+        /// l'ordre par ResolveCommands, notées et enchaînées par le cuisinier.
         /// </summary>
         /// <param name="forcedCommandType">
         /// Type imposé quand la phrase est une RÉPONSE à une question (« ce serveur-là 👆 » après
@@ -152,7 +155,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         /// que tout le reste — annotations, pointage, limite — s'en extrait normalement.
         /// Null en usage courant : le type se détecte.
         /// </param>
-        private Command Build(Sentence sentence, string forcedCommandType)
+        private List<Command> Build(Sentence sentence, string forcedCommandType)
         {
             if (sentence == null || string.IsNullOrWhiteSpace(sentence.Text))
                 return null;
@@ -199,7 +202,8 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // lexicalement des noms d'ingrédients (§6.4 du README). « Coupe les carottes pour
             // la soupe de carottes » reste correct : la recette consomme sa part, la première
             // occurrence demeure un ingrédient.
-            string recipe = FindRecipe(text, out string remainingText);
+            List<string> recipes = FindRecipes(text, out string remainingText);
+            string recipe = recipes.Count > 0 ? recipes[0] : null;
 
             // Les PRÉNOMS ensuite, consommés eux aussi : un prénom nomme UN objet du graphe —
             // la cible la plus spécifique qui soit — et rien de ce qu'il recouvre ne doit
@@ -315,7 +319,29 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             if (cmd.Parameters == null)
                 return null;
 
-            return cmd;
+            var commands = new List<Command> { cmd };
+
+            // « Prépare une salade de fruits ET une salade César » : chaque plat nommé
+            // au-delà du premier devient SA PROPRE PrepareCommand — le cuisinier note et
+            // enchaîne (Cook.Prepare). Seule la préparation est concernée : les autres
+            // commandes ne consomment qu'une recette (le service nommé, par exemple, porte
+            // UN plat à la fois).
+            if (commandType == "PrepareCommand")
+                foreach (string extra in recipes.Skip(1))
+                {
+                    Command another = CreateCommand("PrepareCommand");
+                    another.Parameters = another.BuildRuleBasedParameters(new RuleBasedContext
+                    {
+                        Text             = text,
+                        Words            = words,
+                        PointerName      = _pointerName,
+                        MovePointDelayMs = _movePointDelayMs,
+                        Recipe           = extra
+                    });
+                    if (another.Parameters != null) commands.Add(another);
+                }
+
+            return commands;
         }
 
         /// <summary>
@@ -363,7 +389,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // y a été laissée par Execute, et la réponse doit s'y AJOUTER, pas la remplacer.
             if (!filled && pending.ExpectsTargetAnswer)
             {
-                Command answer = Build(sentence, pending.Type);
+                Command answer = Build(sentence, pending.Type)?.FirstOrDefault();
                 List<SelectionParameter> selections =
                     answer?.Parameters?.OfType<SelectionParameter>().ToList() ?? new List<SelectionParameter>();
 
@@ -624,6 +650,29 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         /// </summary>
         /// <param name="remainingText">Le texte privé du nom de recette.</param>
         /// <returns>Le nom préfixé de la recette, ou null si aucune n'est nommée.</returns>
+        /// <summary>
+        /// TOUS les plats nommés dans la phrase, dans l'ordre de détection, chacun consommé
+        /// du texte avant de chercher le suivant. La garde sur le texte inchangé pare au
+        /// retrait qui ne mordrait pas (graphie inattendue du libellé) : mieux vaut perdre
+        /// un doublon que boucler sans fin sur la même recette.
+        /// </summary>
+        private List<string> FindRecipes(string text, out string remainingText)
+        {
+            var recipes = new List<string>();
+            remainingText = text;
+
+            while (true)
+            {
+                string found = FindRecipe(remainingText, out string next);
+                if (found == null) break;
+                recipes.Add(found);
+                if (next == remainingText) break;
+                remainingText = next;
+            }
+
+            return recipes;
+        }
+
         private string FindRecipe(string text, out string remainingText)
         {
             remainingText = text;

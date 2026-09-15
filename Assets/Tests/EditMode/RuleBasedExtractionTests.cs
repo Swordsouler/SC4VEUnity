@@ -677,5 +677,28 @@ namespace Sc4ve.Tests.EditMode
             Assert.IsTrue(selection.Filters[1].IsOr, "Deux prénoms se joignent par OR (UNION).");
             Assert.IsFalse(selection.SingularIntent);
         }
+
+        [Test]
+        public void DeuxRecettes_DonnentDeuxPreparations()
+        {
+            // « Prépare une salade de fruits et une salade César » ne préparait QUE la
+            // première (vu en démo) : FindRecipe ne consommait qu'un plat, le second restait
+            // lettre morte. Chaque plat nommé devient sa propre PrepareCommand — le cuisinier
+            // les note et les enchaîne.
+            _recognizer = MakeRecognizer(Language.French, recipes: new List<RecipeVocabulary.Recipe>
+            {
+                new RecipeVocabulary.Recipe("sven:FruitSalad",  "Salade de fruits", isConcrete: true),
+                new RecipeVocabulary.Recipe("sven:CaesarSalad", "Salade César",     isConcrete: true),
+            });
+
+            string json = _recognizer.Recognize(
+                new Sentence("Prépare une salade de fruits et une salade César."));
+            Assert.IsNotNull(json, "La phrase doit être reconnue.");
+            List<Command> commands = JsonConvert.DeserializeObject<List<Command>>(json);
+            Assert.AreEqual(2, commands.Count);
+            Assert.IsTrue(commands.TrueForAll(c => c is PrepareCommand));
+            CollectionAssert.AreEquivalent(new[] { "sven:FruitSalad", "sven:CaesarSalad" },
+                commands.Select(c => c.Parameters.OfType<RecipeParameter>().Single().Value).ToList());
+        }
     }
 }
