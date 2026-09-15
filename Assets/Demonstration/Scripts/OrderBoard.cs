@@ -73,6 +73,11 @@ namespace Sc4ve.Demonstration
                     // (critère 1). La ligne existe quand même, sinon le tableau serait vide
                     // au démarrage — et une table sans ligne se lit « personne » plutôt que
                     // « personne n'est encore allé la voir ».
+                    // Pas encore ARRIVÉ (ServiceProgression le tient inactif) : le dire.
+                    // Une ligne « en attente » pour une chaise vide enverrait le serveur
+                    // prendre la commande d'un absent.
+                    CustomerOrder.Stage.Seated when !customer.gameObject.activeInHierarchy
+                        => french ? $"{customer.name} — à venir" : $"{customer.name} — arriving later",
                     CustomerOrder.Stage.Seated
                         => french ? $"{customer.name} — en attente" : $"{customer.name} — waiting",
                     CustomerOrder.Stage.Gone when !customer.HasOrdered
@@ -84,7 +89,29 @@ namespace Sc4ve.Demonstration
                 if (line != null) lines.Append('\n').Append(line);
             }
 
+            lines.Append('\n').Append(ScoreLine(customers, french));
             return lines.ToString();
+        }
+
+        /// <summary>
+        /// Le score VISIBLE du lot 5, dérivé des mêmes CustomerOrder que les lignes — le
+        /// tableau reste une projection, le score n'a aucun état à lui. La satisfaction est
+        /// la patience RESTANTE moyenne des clients servis (la jauge se fige au service) :
+        /// servir vite rapporte, servir à la dernière seconde ne rapporte presque rien.
+        /// </summary>
+        private static string ScoreLine(CustomerOrder[] customers, bool french)
+        {
+            int served   = customers.Count(c => c.State == CustomerOrder.Stage.Served);
+            int gone     = customers.Count(c => c.State == CustomerOrder.Stage.Gone);
+            int refusals = customers.Sum(c => c.Refusals);
+
+            string satisfaction = served > 0
+                ? $" · satisfaction {customers.Where(c => c.State == CustomerOrder.Stage.Served).Average(c => c.PatienceRatio):P0}"
+                : "";
+
+            return french
+                ? $"— servis {served}/{customers.Length} · refus {refusals} · partis {gone}{satisfaction}"
+                : $"— served {served}/{customers.Length} · refusals {refusals} · left {gone}{satisfaction}";
         }
 
         private static string Row(CustomerOrder customer, bool french)

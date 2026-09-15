@@ -123,6 +123,13 @@ namespace Sc4ve.Multimodality
         /// <summary>1 → 0. Figée dès que l'état vaut Served ou Gone.</summary>
         public float PatienceRatio => _patience > 0f ? Mathf.Clamp01(_remaining / _patience) : 0f;
 
+        /// <summary>
+        /// Plats refusés par CE client (contrainte, plat déjà passé, non-conformité, assiette
+        /// vide). Porté par le client et LU par le tableau : le score du lot 5 reste une
+        /// projection d'états du monde, jamais un compteur tenu ailleurs.
+        /// </summary>
+        public int Refusals { get; private set; }
+
         /// <summary>Vrai quand le vocabulaire du client a été lu sans erreur dans l'ontologie.</summary>
         public bool Ready => _ready;
 
@@ -549,6 +556,13 @@ namespace Sc4ve.Multimodality
 
         private Verdict Speak(Verdict verdict)
         {
+            // L'entonnoir unique des verdicts parlés : le comptage des refus vit ici pour ne
+            // pas s'éparpiller dans les cinq branches de Judge. Le « trop tard » d'un client
+            // déjà parti n'en est pas un — aucun plat ne lui a été présenté à temps, et son
+            // départ se compte déjà (Gone).
+            if (verdict.Outcome == Outcome.Refused && _stage != Stage.Gone)
+                Refusals++;
+
             Say(verdict.Sentence);
             return verdict;
         }
