@@ -756,10 +756,10 @@ namespace Sc4ve.Demonstration.EditorTools
             // critères 4 et 7 du lot 4 doivent être montrables à CHAQUE lancement, pas dans
             // 74 % des cas. Les quatre couples découpent quatre sous-ensembles différents et
             // non dégénérés des neuf recettes — vérifié contre les sven:requires réels :
-            //   A  Salade    sans banane   → refuse la salade de fruits POURTANT CONFORME
-            //   B  Soupe     sans poisson  → l'inférence de branche (Salmon ⊑ Fish)
-            //   C  Salade    végétarien    → l'union de branches, un seul plat conforme
-            //   D  Sandwich  sans lactose  → Cheese ⊑ Dairy
+            //   A  Florianne  Salade    sans banane   → refuse la salade de fruits POURTANT CONFORME
+            //   B  Logan      Soupe     sans poisson  → l'inférence de branche (Salmon ⊑ Fish)
+            //   C  Patricia   Salade    végétarien    → l'union de branches, un seul plat conforme
+            //   D  Jean       Sandwich  sans lactose  → Cheese ⊑ Dairy
             // La colonne « plats acceptables » n'est écrite nulle part : le client la CALCULE.
             (string family, string constraint)[] couples =
             {
@@ -768,6 +768,12 @@ namespace Sc4ve.Demonstration.EditorTools
                 ("sven:Salad",    "sven:Vegetarian"),
                 ("sven:Sandwich", "sven:LactoseFree"),
             };
+
+            // Des prénoms, pas des matricules : « Client A » se lit comme du débogage au
+            // milieu d'une salle de restaurant. Le prénom EST le nom du GameObject — les
+            // journaux ([Client] Florianne), le tableau des commandes et l'étiquette
+            // au-dessus de la tête y puisent tous, sans champ supplémentaire nulle part.
+            string[] names = { "Florianne", "Logan", "Patricia", "Jean" };
 
             for (int i = 0; i < tables.Length; i++)
             {
@@ -781,7 +787,7 @@ namespace Sc4ve.Demonstration.EditorTools
                 // sur l'économie de batching de quatre guéridons. Le NavMesh n'y perd rien :
                 // NavMeshSurface cuit sur la géométrie, pas sur le drapeau statique.
 
-                MakeCustomer(room, table, couples[i].family, couples[i].constraint, i);
+                MakeCustomer(room, table, couples[i].family, couples[i].constraint, names[i]);
             }
 
             // UN SEUL serveur. Le second existait pour rendre « quel serveur ? » possible : sans
@@ -877,7 +883,7 @@ namespace Sc4ve.Demonstration.EditorTools
         /// GetSemanticTypes lèverait, et le repli poserait l'annotation sans son parent.
         /// </summary>
         private static void MakeCustomer(Transform room, GameObject table,
-                                         string family, string constraint, int index)
+                                         string family, string constraint, string customerName)
         {
             // Du côté OPPOSÉ à la cuisine (z de la table + 0,62) : le serveur arrive toujours
             // du côté cuisine et n'a jamais à traverser le client pour atteindre la table.
@@ -891,7 +897,7 @@ namespace Sc4ve.Demonstration.EditorTools
             // est là : même tête, même largeur de buste — un assis n'est pas un humain
             // rétréci, c'est le même humain plus bas. Changer la taille des serveurs se
             // répercute donc ici par la même règle de trois.
-            GameObject customer = Prop(room, $"Client {(char)('A' + index)}", "sven:Customer",
+            GameObject customer = Prop(room, customerName, "sven:Customer",
                 position, height: 1.43f);
             RestOnSurface(customer, 0f);
             // Rotation IDENTITÉ, comme les serveurs : le visage du modèle est côté -z (les
@@ -915,7 +921,7 @@ namespace Sc4ve.Demonstration.EditorTools
                     annotator.Annotations.Add("sven:DietaryConstraint");
             }
 
-            Transform gaugeFill = MakeGauge(customer.transform);
+            Transform gaugeFill = MakeGauge(customer.transform, customerName);
 
             var order = customer.AddComponent<CustomerOrder>();
             order.Bind(table.GetComponent<SemantizationCore>(), gaugeFill, family, constraint);
@@ -925,7 +931,7 @@ namespace Sc4ve.Demonstration.EditorTools
         }
 
         /// <summary>
-        /// La jauge de patience, au-dessus de la tête, face à la cuisine. Rend le PIVOT dont
+        /// La jauge de patience et le prénom, au-dessus de la tête, face à la cuisine. Rend le PIVOT dont
         /// CustomerOrder pilote l'échelle X (1 → 0, le remplissage fond vers la gauche).
         ///
         /// Le porte-jauge annule l'échelle du client : le modèle est mis à l'échelle pour
@@ -933,7 +939,7 @@ namespace Sc4ve.Demonstration.EditorTools
         /// Delegation.Awake pour la main. Les colliders des primitives sont détruits : ils
         /// intercepteraient le pointeur XR (« mets ça ici 👆 » viserait la jauge).
         /// </summary>
-        private static Transform MakeGauge(Transform customer)
+        private static Transform MakeGauge(Transform customer, string customerName)
         {
             // Le sommet MESURÉ du modèle, avant que la jauge n'ajoute ses propres renderers.
             // L'offset fixe depuis le pivot d'abord écrit (pivot ≈ mi-corps + 1,45 m) faisait
@@ -976,6 +982,28 @@ namespace Sc4ve.Demonstration.EditorTools
             fill.GetComponent<Renderer>().sharedMaterial =
                 GetMaterial("JaugeRemplissage", new Color(0.35f, 0.65f, 0.30f));
             UnityEngine.Object.DestroyImmediate(fill.GetComponent<Collider>());
+
+            // Le prénom, juste au-dessus de la jauge. Même orientation FIXE qu'elle : un
+            // TextMesh se lit depuis le -z de son transform et le joueur regarde la salle
+            // depuis -z — l'identité suffit, pas de billboard. Dans le porte-jauge : l'échelle
+            // du client y est déjà annulée, et un TextMesh ne porte aucun collider — rien à
+            // détruire pour protéger le pointeur.
+            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (font != null)
+            {
+                var plate = new GameObject("Prénom");
+                plate.transform.SetParent(holder.transform, worldPositionStays: false);
+                plate.transform.localPosition = new Vector3(0f, 0.10f, 0f);
+                var mesh = plate.AddComponent<TextMesh>();
+                mesh.text = customerName;
+                mesh.font = font;
+                mesh.fontSize = 72;
+                mesh.characterSize = 0.007f;
+                mesh.anchor = TextAnchor.LowerCenter;
+                mesh.alignment = TextAlignment.Center;
+                mesh.color = Color.white;
+                plate.GetComponent<MeshRenderer>().sharedMaterial = font.material;
+            }
 
             return pivot.transform;
         }

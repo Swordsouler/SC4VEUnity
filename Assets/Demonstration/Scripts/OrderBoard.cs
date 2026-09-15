@@ -19,8 +19,9 @@ namespace Sc4ve.Demonstration
     /// jour », et la divergence sera indétectable. Aucun membre public, à dessein : le tableau
     /// n'est pilotable par personne.
     ///
-    /// Chaque ligne affiche le PLAT PRÉCIS énoncé par le client — le tableau dit la même
-    /// chose que la voix, et c'est sa seule fonction. (L'ancien « Salade ? » qui exhibait la
+    /// Chaque ligne affiche le prénom du client (le nom de son GameObject) et le PLAT
+    /// PRÉCIS qu'il a énoncé — le tableau dit la même chose que la voix, et c'est sa
+    /// seule fonction. (L'ancien « Salade ? » qui exhibait la
     /// sous-spécification a disparu avec elle : le client nomme désormais un plat.)
     /// </summary>
     [RequireComponent(typeof(TextMesh))]
@@ -72,9 +73,12 @@ namespace Sc4ve.Demonstration
                     // (critère 1). La ligne existe quand même, sinon le tableau serait vide
                     // au démarrage — et une table sans ligne se lit « personne » plutôt que
                     // « personne n'est encore allé la voir ».
-                    CustomerOrder.Stage.Seated => french ? "— en attente —" : "— waiting —",
+                    CustomerOrder.Stage.Seated
+                        => french ? $"{customer.name} — en attente" : $"{customer.name} — waiting",
                     CustomerOrder.Stage.Gone when !customer.HasOrdered
-                        => french ? "— parti sans commander —" : "— left without ordering —",
+                        => french
+                            ? $"{customer.name} — départ sans commande"
+                            : $"{customer.name} — left without ordering",
                     _ => Row(customer, french),
                 };
                 if (line != null) lines.Append('\n').Append(line);
@@ -104,7 +108,7 @@ namespace Sc4ve.Demonstration
                 _ => "",
             };
 
-            return $"{dish}{mark}";
+            return $"{customer.name} : {dish}{mark}";
         }
     }
 }
