@@ -211,30 +211,42 @@ WHERE {{
         /// et celui de l'annotation — car ils n'ont aucune raison de coïncider : une pomme est
         /// annotée depuis le début de la partie et posée dans l'assiette bien plus tard.
         /// Les confondre en une seule variable ne renverrait rien.
+        ///
+        /// La requête PART du contenant et ne visite que SES intervalles, jamais « tous les
+        /// intervalles valides du graphe » — voir ValidNow pour l'autopsie de la forme
+        /// précédente, qui rendait le verdict du client quadratique en la taille du graphe.
         /// </summary>
         private static async Task<Dictionary<string, HashSet<string>>> QueryContent(SemantizationCore container)
         {
             string containerUri = $"<{GraphManager.BaseUri}{container.GetUUID()}>";
+            string containerName = container.name;
 
             string query = $@"{Prefixes}
 SELECT DISTINCT ?item ?class
 WHERE {{
-{CurrentInterval("intervalContent")}
-{CurrentInterval("intervalAnnotation")}
     {containerUri} sven:component ?containerComponent .
     ?containerComponent a sven:ContainerContent ;
                         sven:content ?contentProperty .
     ?contentProperty sven:value ?item ;
                      sven:hasTemporalExtent ?intervalContent .
+{ValidNow("intervalContent")}
 
     ?item sven:component ?annotatorComponent .
     ?annotatorComponent a sven:Annotator ;
                         sven:annotation ?annotationProperty .
     ?annotationProperty sven:value ?class ;
                         sven:hasTemporalExtent ?intervalAnnotation .
+{ValidNow("intervalAnnotation")}
 }} LIMIT 10000";
 
+            // Chronomètre pérenne, même contrat que celui de SelectionParameter : le verdict
+            // est l'AUTRE requête du chemin critique, et la seule sous échéance (Delegation,
+            // _verdictTimeout). Sans ce chiffre dans le log, un abandon ne distingue pas une
+            // requête redevenue lente d'un graphe devenu gros.
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             SparqlResultSet results = await GraphManager.QueryMemoryAsync(query, withInference: false);
+            Debug.Log($"[Perf] RecipeConformity : contenu de « {containerName} », " +
+                      $"requête {watch.ElapsedMilliseconds} ms.");
 
             var content = new Dictionary<string, HashSet<string>>();
             foreach (SparqlResult result in results.Cast<SparqlResult>())
@@ -251,8 +263,21 @@ WHERE {{
         }
 
         /// <summary>
-        /// Sous-requête « intervalle valide en ce moment », nommée pour pouvoir en poser
-        /// plusieurs dans la même requête sans qu'elles se contraignent l'une l'autre.
+        /// Motif « cet intervalle est valide en ce moment », posé EN LIGNE sur une variable
+        /// que le motif appelant vient de lier (sven:hasTemporalExtent ?variable). Plusieurs
+        /// occurrences dans la même requête ne se contraignent pas l'une l'autre : chacune ne
+        /// parle que de ses propres variables (?start_x, ?_end_x).
+        ///
+        /// La forme précédente — une SOUS-REQUÊTE fermée « tous les intervalles valides du
+        /// graphe » — était correcte mais explosive : chaque occurrence balayait TOUS les
+        /// time:Interval (un par changement de propriété sémantisé : un serveur qui marche en
+        /// crée en continu), et les deux occurrences, sans variable commune, se joignaient en
+        /// PRODUIT CARTÉSIEN avant que le motif du contenant n'élimine quoi que ce soit. À
+        /// 35 000 triplets le verdict dépassait ses 20 s d'échéance : « Je ne peux pas servir
+        /// ce plat », puis « accepte — conforme » une seconde plus tard, la tâche n'étant pas
+        /// annulable — le bon plat, le bon client, et un refus de pur chronomètre. En ligne,
+        /// la requête ne visite que les intervalles du contenant : quelques-uns, quel que
+        /// soit l'âge de la partie.
         ///
         /// L'intervalle OUVERT — celui qui court encore, donc le seul qui décrive l'état
         /// présent — se teste par l'ABSENCE de fin, jamais par une borne calculée. J'avais
@@ -265,16 +290,10 @@ WHERE {{
         /// strictement antérieur à NOW() ; le recopier en remplaçant cet instant par NOW()
         /// casse l'invariant.
         /// </summary>
-        private static string CurrentInterval(string variable) => $@"
-    {{
-        SELECT DISTINCT ?{variable}
-        WHERE {{
-            ?{variable} a time:Interval ;
-                        time:hasBeginning/time:inXSDDateTime ?start_{variable} .
-            OPTIONAL {{ ?{variable} time:hasEnd/time:inXSDDateTime ?_end_{variable} . }}
-            FILTER(?start_{variable} <= NOW() && (!BOUND(?_end_{variable}) || NOW() < ?_end_{variable}))
-        }} LIMIT 10000
-    }}";
+        private static string ValidNow(string variable) => $@"
+    ?{variable} time:hasBeginning/time:inXSDDateTime ?start_{variable} .
+    OPTIONAL {{ ?{variable} time:hasEnd/time:inXSDDateTime ?_end_{variable} . }}
+    FILTER(?start_{variable} <= NOW() && (!BOUND(?_end_{variable}) || NOW() < ?_end_{variable}))";
 
         private const string Prefixes = @"PREFIX sven: <https://sven.lisn.upsaclay.fr/ontology#>
 PREFIX time: <http://www.w3.org/2006/time#>

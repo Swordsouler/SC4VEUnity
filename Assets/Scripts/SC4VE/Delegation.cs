@@ -89,10 +89,13 @@ namespace Sc4ve.Multimodality
         [Range(2f, 30f)]
         // 20 s et non 8 : le verdict est la DERNIÈRE requête de la boucle de service, donc
         // celle qui voit le graphe le plus gros. À 95 000 triplets (mesuré en partie), la
-        // lecture du contenu de l'assiette dépasse 8 s, et le délai de garde refusait des
+        // lecture du contenu de l'assiette dépassait 8 s, et le délai de garde refusait des
         // services parfaitement légitimes — « Je ne peux pas servir ce plat » était le
-        // chronomètre qui parlait, pas le client. Le garde-fou ne vise que la tâche
-        // réellement suspendue, il peut se permettre d'être large.
+        // chronomètre qui parlait, pas le client. Élargir n'a d'ailleurs fait que reculer la
+        // rechute (dépassement des 20 s à 35 000 triplets) : la vraie correction est dans la
+        // FORME de la requête (RecipeConformity.ValidNow, intervalles corrélés au contenant),
+        // qui ne dépend plus de la taille du graphe. Le garde-fou ne vise que la tâche
+        // réellement suspendue, il peut se permettre de rester large.
         private float _verdictTimeout = 20f;
 
         /// <summary>
