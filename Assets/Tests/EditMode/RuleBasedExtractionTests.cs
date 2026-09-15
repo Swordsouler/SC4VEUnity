@@ -635,5 +635,47 @@ namespace Sc4ve.Tests.EditMode
             Assert.IsTrue(conditions[0].IsName);
             Assert.AreEqual("Florence", conditions[0].Value);
         }
+
+        [Test]
+        public void Donne_PlusRecettePlusPrenom_EstUnServiceCible()
+        {
+            // « Donne » est un verbe de SERVICE (vu en démo : sans lui, la phrase partait
+            // dans le repli plat-nommé et refaisait le plat) — et le plat nommé voyage avec
+            // l'ordre, pour que le serveur choisisse l'assiette de CETTE recette.
+            _recognizer = MakeRecognizer(Language.French,
+                recipes: new List<RecipeVocabulary.Recipe>
+                {
+                    new RecipeVocabulary.Recipe("sven:CaesarSalad", "Salade César", isConcrete: true),
+                },
+                objectNames: new List<string> { "Florence" });
+
+            ServeCommand command =
+                RecognizeSingle<ServeCommand>("Donne la salade César à Florence.");
+            List<Condition> conditions = AllConditions(command);
+            Assert.AreEqual(1, conditions.Count);
+            Assert.IsTrue(conditions[0].IsName);
+            Assert.AreEqual("Florence", conditions[0].Value);
+            Assert.AreEqual("sven:CaesarSalad",
+                command.Parameters.OfType<RecipeParameter>().Single().Value);
+        }
+
+        [Test]
+        public void DeuxPrenoms_SUnissent_SansDesambiguisation()
+        {
+            // « Prends la commande de Jean et de Florence » : deux prénoms ne désignent
+            // jamais le même objet — union (OR), et pas de « laquelle ? » : deux cibles
+            // sont VOULUES.
+            _recognizer = MakeNamedRecognizer();
+            TakeOrderCommand command =
+                RecognizeSingle<TakeOrderCommand>("Prends la commande de Jean et de Florence.");
+            SelectionParameter selection = Selection(command);
+            List<Condition> conditions = AllConditions(command);
+            Assert.AreEqual(2, conditions.Count);
+            Assert.IsTrue(conditions.TrueForAll(c => c.IsName));
+            CollectionAssert.AreEquivalent(new[] { "Jean", "Florence" },
+                conditions.Select(c => c.Value).ToList());
+            Assert.IsTrue(selection.Filters[1].IsOr, "Deux prénoms se joignent par OR (UNION).");
+            Assert.IsFalse(selection.SingularIntent);
+        }
     }
 }

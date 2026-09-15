@@ -65,6 +65,23 @@ namespace Sc4ve.Multimodality.Intent
             return table != null ? CustomerOrder.At(table) : null;
         }
 
+        /// <summary>
+        /// TOUTES les tables désignées, chaque cible routée vers la sienne (directement, ou
+        /// par le client qui y est assis — même détour que Table). C'est la forme liste de
+        /// Table, pour les directives multiples (« la commande de Jean et de Florence ») :
+        /// Resolve n'en retient que la première, l'appelant enfile les autres.
+        /// </summary>
+        public static List<SemantizationCore> Tables(Command command)
+        {
+            var tables = new List<SemantizationCore>();
+            foreach (SemantizationCore target in AllTargets(command))
+            {
+                SemantizationCore table = Table(new[] { target });
+                if (table != null && !tables.Contains(table)) tables.Add(table);
+            }
+            return tables;
+        }
+
         private static SemantizationCore Annotated(
             IEnumerable<SemantizationCore> selection, string semanticType)
             => selection?

@@ -55,6 +55,13 @@ namespace Sc4ve.Multimodality.Intent
 
             if (!agent.TakeOrder(table)) return new();
 
+            // Liste de directives (« prends la commande de Jean et de Florence ») : les
+            // tables au-delà de la première s'enfilent — le serveur unique les fait en
+            // séquence, chaque course partant à la fin de la précédente (Delegation).
+            foreach (SemantizationCore extra in DelegationRoles.Tables(this))
+                if (extra != table)
+                    agent.Enqueue(() => agent.TakeOrder(extra));
+
             return new List<SemantizationCore> { agent.GetComponent<SemantizationCore>() };
         }
     }

@@ -120,15 +120,21 @@ namespace Sc4ve.Multimodality.Intent
 
                 // Le prénom d'abord : il nomme UN objet (par rdfs:label), les types viennent
                 // ensuite — « le client Florence » doit intersecter (AND), jamais unionner.
+                // Entre DEUX prénoms en revanche, l'union s'impose (« la commande de Jean et
+                // de Florence ») : deux prénoms ne désignent jamais le même objet, leur
+                // intersection ne sélectionnerait rien — même règle que l'énumération de
+                // types, et sans dépendre de la conjonction entendue.
+                bool firstName = true;
                 foreach (RuleBasedAnnotation n in (Names ?? Enumerable.Empty<RuleBasedAnnotation>()).OrderBy(x => x.Timestamp))
                 {
-                    if (needsOp) filters.Add(new FilterElement { IsOperator = true, Operator = "AND" });
+                    if (needsOp) filters.Add(new FilterElement { IsOperator = true, Operator = firstName ? "AND" : "OR" });
                     filters.Add(new FilterElement
                     {
                         IsOperator = false,
                         Condition  = new Condition { Type = "Name", Value = n.Value, Timestamp = n.Timestamp }
                     });
                     needsOp = true;
+                    firstName = false;
                 }
 
                 // Tri par horodatage = ordre de PRONONCIATION : sans lui, l'ordre suivrait celui

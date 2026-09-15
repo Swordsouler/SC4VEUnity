@@ -5,8 +5,13 @@ using System.Collections.Generic;
 namespace Sc4ve.Multimodality.Intent
 {
     [RuleBasedTriggers(
-        "va servir", "sers", "servir", "apporte le plat", "porte à",
-        "go serve", "serve", "bring the dish")]
+        // « donne » et « apporte » : les formulations naturelles du service, entendues en
+        // démo (« Donne la salade César à Florence ») — sans elles, la phrase partait dans
+        // le repli plat-nommé et faisait REFAIRE le plat au lieu de le servir. « amène »
+        // reste à MoveCommand (« amène ça ici 👆 »).
+        "va servir", "sers", "servir", "donne", "donner", "donnez",
+        "apporte", "apporter", "porte à",
+        "go serve", "serve", "give", "bring")]
     [Serializable, CommandDescription(
         "Envoie un serveur porter un plat prêt jusqu'à une table (« toi, va servir cette " +
         "table-là »). Le serveur prend l'assiette pleine la plus proche de la passe, la porte " +
@@ -24,7 +29,17 @@ namespace Sc4ve.Multimodality.Intent
         /// rôles dans les objets (DelegationRoles), ce que la phrase ne dit de toute façon pas.
         /// </summary>
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
-            => new() { ctx.BuildSelectionParameter(fallbackToSelection: true) };
+        {
+            var parameters = new List<Parameter> { ctx.BuildSelectionParameter(fallbackToSelection: true) };
+
+            // Le plat NOMMÉ (« donne la salade César à Florence ») voyage avec l'ordre : le
+            // serveur choisira l'assiette préparée pour CETTE recette plutôt que la plus
+            // proche de la passe (Delegation.FindReadyDish).
+            if (ctx.Recipe != null)
+                parameters.Add(new RecipeParameter { Type = "RecipeParameter", Value = ctx.Recipe });
+
+            return parameters;
+        }
 
         /// <summary>La réponse attendue désigne une cible (« cette table-là 👆 »), pas un paramètre.</summary>
         public override bool ExpectsTargetAnswer => true;
@@ -52,7 +67,14 @@ namespace Sc4ve.Multimodality.Intent
 
             // Serve parle lui-même en cas de refus (occupé) ou d'échec (aucun plat prêt) :
             // un échec est une information, pas un bug (§8 du README).
-            if (!agent.Serve(table)) return new();
+            string recipe = GetParameter<RecipeParameter>()?.Value;
+            if (!agent.Serve(table, recipe)) return new();
+
+            // Liste de directives (« sers Jean et Florence ») : les tables au-delà de la
+            // première s'enfilent — le serveur unique les sert en séquence (Delegation).
+            foreach (SemantizationCore extra in DelegationRoles.Tables(this))
+                if (extra != table)
+                    agent.Enqueue(() => agent.Serve(extra, recipe));
 
             return new List<SemantizationCore> { agent.GetComponent<SemantizationCore>() };
         }

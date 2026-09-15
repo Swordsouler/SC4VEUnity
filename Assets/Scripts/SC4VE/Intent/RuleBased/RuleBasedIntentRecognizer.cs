@@ -216,7 +216,9 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             int  limit          = DetectLimit(text);
             // Intention au singulier (« la pomme ») : aucun marqueur pluriel NI nombre. Sert à la
             // désambiguïsation quand plusieurs cibles correspondent (cf. ResolveCommands).
-            bool singularIntent = !HasPluralMarker(text) && limit <= 1;
+            // Deux prénoms (« Jean et Florence ») = deux cibles VOULUES, pas une ambiguïté
+            // à lever : sans cette garde, la désambiguïsation demanderait « laquelle ? ».
+            bool singularIntent = !HasPluralMarker(text) && limit <= 1 && names.Count <= 1;
             // Une référence explicite à la sélection (« …sélectionnés », « la sélection »)
             // force la coréférence vers la sélection courante.
             bool hasCoreference = referencesSelection

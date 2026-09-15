@@ -101,6 +101,10 @@ namespace Sc4ve.Multimodality
         /// </summary>
         private bool _awaitFailed;
 
+        // Les directives d'une même phrase au-delà de la première — dépilées par Finish,
+        // vidées par Stop. Voir Enqueue.
+        private readonly Queue<Func<bool>> _orders = new();
+
         private NavMeshAgent _agent;
         private Vector3 _home;
         private Quaternion _homeRotation;
@@ -181,10 +185,20 @@ namespace Sc4ve.Multimodality
         }
 
         /// <summary>
-        /// « Va servir cette table-là 👆 » : prendre le plat prêt le plus proche de la passe,
-        /// le porter jusqu'à la table, l'y déposer, revenir.
+        /// Enfile une directive de la MÊME phrase (« prends la commande de Jean et de
+        /// Florence ») : un seul serveur les exécute en séquence, chacune partant à la fin
+        /// de la précédente (Finish). Seules les commandes multi-cibles passent par ici —
+        /// un ordre vocal isolé pendant l'occupation reste refusé (« Je termine cette
+        /// table »), la file n'est pas un droit de coupe.
         /// </summary>
-        public bool Serve(SemantizationCore table)
+        public void Enqueue(Func<bool> order) => _orders.Enqueue(order);
+
+        /// <summary>
+        /// « Va servir cette table-là 👆 » : prendre le plat prêt — celui de la recette
+        /// NOMMÉE s'il y en a une (« donne la salade César à Florence »), sinon le plus
+        /// proche de la passe — le porter jusqu'à la table, l'y déposer, revenir.
+        /// </summary>
+        public bool Serve(SemantizationCore table, string recipe = null)
         {
             if (table == null) return false;
 
@@ -192,7 +206,7 @@ namespace Sc4ve.Multimodality
             // non « je ne trouve pas de plat » — le second serait vrai mais hors sujet.
             if (!Accept(French ? "sert une table" : "serving a table")) return false;
 
-            ContainerContent dish = FindReadyDish();
+            ContainerContent dish = FindReadyDish(recipe);
             if (dish == null)
             {
                 // Un échec est une information, pas un bug (§8) : il s'énonce. Et il rend la
@@ -227,6 +241,10 @@ namespace Sc4ve.Multimodality
         /// </summary>
         public void Stop()
         {
+            // « Stop » emporte aussi la SUITE de la phrase : toute la liste, pas seulement
+            // la course en cours.
+            _orders.Clear();
+
             if (_task != null) { StopCoroutine(_task); _task = null; }
 
             if (_carried != null) Drop(transform.position + transform.forward * 0.4f);
@@ -563,20 +581,24 @@ namespace Sc4ve.Multimodality
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Le plat prêt le plus proche de la passe : un contenant NON VIDE, posé quelque part,
-        /// que personne ne porte déjà.
+        /// Le plat prêt à servir : un contenant NON VIDE, posé quelque part, que personne ne
+        /// porte déjà.
         ///
-        /// « Le plus proche de la passe » plutôt que « le premier trouvé » : la passe est
-        /// l'endroit où le joueur dépose ce qui est fini, donc c'est le seul critère qui
-        /// corresponde à une intention. À défaut de passe dans la scène, le plus proche du
-        /// serveur, ce qui reste défendable.
+        /// Le plat de la recette NOMMÉE d'abord (« donne la salade César à Florence ») :
+        /// parmi les plats prêts, celui qui porte l'habillage instancié pour cette recette —
+        /// DishDressing nomme son instance d'après elle, marqueur mécanique du même plat que
+        /// le graphe décrit, lisible de façon synchrone. À défaut (recette muette, plat fait
+        /// main sans habillage), « le plus proche de la passe » plutôt que « le premier
+        /// trouvé » : la passe est l'endroit où le joueur dépose ce qui est fini, donc le
+        /// seul critère qui corresponde à une intention. À défaut de passe dans la scène, le
+        /// plus proche du serveur, ce qui reste défendable.
         /// </summary>
-        private ContainerContent FindReadyDish()
+        private ContainerContent FindReadyDish(string recipe = null)
         {
             Transform pass = Pass();
             Vector3 reference = pass != null ? pass.position : transform.position;
 
-            return UnityEngine.Object
+            List<ContainerContent> ready = UnityEngine.Object
                 .FindObjectsByType<ContainerContent>(FindObjectsInactive.Exclude)
                 .Where(c => c != null && c.Content.Count > 0 && !IsCarriedBySomeone(c))
                 .Where(IsPlate)
@@ -586,7 +608,24 @@ namespace Sc4ve.Multimodality
                 // l'attraperait de toute façon — mais après un aller-retour pour rien.)
                 .Where(c => !CustomerOrder.HoldsRefused(c))
                 .OrderBy(c => Vector3.SqrMagnitude(c.transform.position - reference))
-                .FirstOrDefault();
+                .ToList();
+
+            if (recipe != null)
+            {
+                ContainerContent named = ready.FirstOrDefault(c => HasDressing(c, recipe));
+                if (named != null) return named;
+            }
+
+            return ready.FirstOrDefault();
+        }
+
+        /// <summary>Vrai si le contenant porte l'habillage instancié pour cette recette.</summary>
+        private static bool HasDressing(ContainerContent dish, string recipe)
+        {
+            foreach (Transform child in dish.transform)
+                if (child.name.StartsWith(recipe, StringComparison.Ordinal))
+                    return true;
+            return false;
         }
 
         /// <summary>
@@ -687,6 +726,13 @@ namespace Sc4ve.Multimodality
         {
             _task = null;
             SetActivity(Activity.Idle, "");
+
+            // La directive suivante de la même phrase part immédiatement. Si elle refuse
+            // (plus de plat prêt, table partie), elle l'a DIT — on passe à celle d'après
+            // plutôt que de laisser mourir le reste de la liste. Dequeue est destructif :
+            // un Finish réentrant (échec synchrone d'un ordre dépilé) ne rejoue rien.
+            while (_orders.Count > 0)
+                if (_orders.Dequeue()()) break;
         }
 
         /// <summary>
