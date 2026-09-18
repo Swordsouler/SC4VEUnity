@@ -182,19 +182,38 @@ namespace Sc4ve.Multimodality
         /// <summary>« Toi 👆, va là-bas 👆 ». Le seul ordre sans macro : il se déplace, c'est tout.</summary>
         public bool GoTo(Vector3 destination)
         {
-            if (!Accept(French ? "se déplace" : "moving")) return false;
+            if (Defer(() => GoTo(destination))) return true;
+            if (!Accept(French ? "me déplacer" : "moving")) return false;
             _task = StartCoroutine(GoToTask(destination));
             return true;
         }
 
         /// <summary>
-        /// Enfile une directive de la MÊME phrase (« prends la commande de Jean et de
-        /// Florence ») : un seul serveur les exécute en séquence, chacune partant à la fin
-        /// de la précédente (Finish). Seules les commandes multi-cibles passent par ici —
-        /// un ordre vocal isolé pendant l'occupation reste refusé (« Je termine cette
-        /// table »), la file n'est pas un droit de coupe.
+        /// Enfile une directive : celles d'une MÊME phrase (« prends la commande de Jean et
+        /// de Florence ») y passent par les commandes multi-cibles, et un ordre vocal isolé
+        /// reçu PENDANT l'occupation y passe par Defer — dans les deux cas, le serveur
+        /// exécute en séquence, chaque directive partant à la fin de la précédente (Finish).
         /// </summary>
         public void Enqueue(Func<bool> order) => _orders.Enqueue(order);
+
+        /// <summary>
+        /// Occupé ? L'ordre s'ENFILE au lieu d'être refusé — le carnet du serveur, même
+        /// motif que celui du cuisinier (« Je note, ce sera après ») : un agent qui refuse
+        /// du travail n'existe pas. La réponse nomme la tâche EN COURS, sans quoi le joueur
+        /// croit son ordre perdu ; en bulle — c'est un statut, pas un échec. Les libellés
+        /// d'activité sont à l'INFINITIF précisément pour cette phrase. L'ordre dépilé se
+        /// ré-évalue entier (Defer compris) : le monde aura changé entre-temps.
+        /// </summary>
+        private bool Defer(Func<bool> order)
+        {
+            if (!IsBusy) return false;
+
+            _orders.Enqueue(order);
+            Bubble(French
+                ? $"Je suis actuellement en train de {_taskLabel}, je m'en occupe après."
+                : $"I am currently {_taskLabel}, I will take care of it after.");
+            return true;
+        }
 
         /// <summary>
         /// « Va servir cette table-là 👆 » : prendre le plat prêt — celui de la recette
@@ -205,9 +224,12 @@ namespace Sc4ve.Multimodality
         {
             if (table == null) return false;
 
-            // Accept d'ABORD : un serveur occupé doit répondre « je termine cette table », et
-            // non « je ne trouve pas de plat » — le second serait vrai mais hors sujet.
-            if (!Accept(French ? "sert une table" : "serving a table")) return false;
+            // Occupé d'ABORD : l'ordre se note (« je m'en occupe après ») AVANT de chercher
+            // un plat — « je ne trouve pas de plat » serait vrai mais hors sujet, et le
+            // plat se cherchera au dépilage, quand le monde aura changé.
+            if (Defer(() => Serve(table, recipe))) return true;
+
+            if (!Accept(French ? "servir une table" : "serving a table")) return false;
 
             // Sans plat dicté par l'ordre, celui que LE CLIENT DE CETTE TABLE attend : le
             // graphe sait déjà qui veut quoi — « donne leurs assiettes aux clients » n'a
@@ -241,7 +263,8 @@ namespace Sc4ve.Multimodality
         public bool Clear(SemantizationCore table)
         {
             if (table == null) return false;
-            if (!Accept(French ? "débarrasse une table" : "clearing a table")) return false;
+            if (Defer(() => Clear(table))) return true;
+            if (!Accept(French ? "débarrasser une table" : "clearing a table")) return false;
 
             List<ContainerContent> dishes = DishesOn(table);
             ContainerContent dish = dishes.FirstOrDefault(d => d.Content.Count == 0);
@@ -275,6 +298,14 @@ namespace Sc4ve.Multimodality
         }
 
         /// <summary>
+        /// Vrai si une assiette — pleine ou vide — est posée sur cette table. Le flux de
+        /// clients (ServiceProgression) s'en sert : personne ne s'assoit à une table non
+        /// débarrassée.
+        /// </summary>
+        public static bool HasDishOn(SemantizationCore table)
+            => table != null && DishesOn(table).Count > 0;
+
+        /// <summary>
         /// « Va prendre la commande de cette table-là 👆 » : se rendre à la table et y rester le
         /// temps de l'échange. Le client ne parle qu'une fois le serveur arrivé — c'est ce qui
         /// donne son sens à la délégation (§4 du README). La parole du client viendra au lot 4.
@@ -282,7 +313,8 @@ namespace Sc4ve.Multimodality
         public bool TakeOrder(SemantizationCore table)
         {
             if (table == null) return false;
-            if (!Accept(French ? "prend une commande" : "taking an order")) return false;
+            if (Defer(() => TakeOrder(table))) return true;
+            if (!Accept(French ? "prendre une commande" : "taking an order")) return false;
             _task = StartCoroutine(TakeOrderTask(table));
             return true;
         }

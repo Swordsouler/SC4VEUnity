@@ -24,8 +24,9 @@ namespace Sc4ve.Multimodality
     /// l'intervalle d'un pas fixe jusqu'au plancher. En Time.time : le ralenti pendant la
     /// parole retient les arrivées comme il retient la patience. Salle pleine : l'arrivée
     /// GUETTE et part à l'instant où une table se libère — la pression ne retombe jamais.
-    /// Table libre = CustomerOrder.At(table) == null, le mécanisme existant (les modèles
-    /// endormis n'y comptent pas ; un client servi qui mange encore bloque la sienne).
+    /// Table libre = sans client (CustomerOrder.At — les modèles endormis n'y comptent
+    /// pas ; un client servi qui mange encore bloque la sienne) ET débarrassée
+    /// (Delegation.HasDishOn) : l'assiette sale du précédent retient l'arrivée.
     /// </summary>
     public class ServiceProgression : MonoBehaviour
     {
@@ -131,11 +132,15 @@ namespace Sc4ve.Multimodality
 
             if (Time.time < _nextArrivalAt) return;
 
-            // Une table LIBRE, au hasard. Le couple (famille, contrainte) est celui de la
-            // TABLE (écrit dans le builder, jamais tiré) : le tirage de la table est donc
-            // aussi celui de la contrainte, sans rien tirer d'autre.
+            // Une table LIBRE, au hasard — libre = sans client ET débarrassée : personne
+            // ne s'assoit devant l'assiette sale du précédent, l'arrivée attend le coup de
+            // « range l'assiette de cette table ». Le couple (famille, contrainte) est
+            // celui de la TABLE (écrit dans le builder, jamais tiré) : le tirage de la
+            // table est donc aussi celui de la contrainte.
             List<CustomerOrder> free = _templates
-                .Where(t => t != null && t.Table != null && CustomerOrder.At(t.Table) == null)
+                .Where(t => t != null && t.Table != null
+                            && CustomerOrder.At(t.Table) == null
+                            && !Delegation.HasDishOn(t.Table))
                 .ToList();
             if (free.Count == 0) return; // salle pleine : on guette, la prochaine table libérée est servie
 
