@@ -191,7 +191,7 @@ namespace Sc4ve.Multimodality
         {
             _recognizerMode = mode;
             PublishModeForJournal();
-            if (mode == RecognizerMode.RuleBased) EnsureRuleBasedRecognizer();
+            if (mode == RecognizerMode.RuleBased) _ = WarmUpAsync();
         }
 
         // La colonne « mode » du journal (MultimodalityMetrics, §10) : la variable qui rend
@@ -203,6 +203,44 @@ namespace Sc4ve.Multimodality
             MultimodalitySettings.RecognizerMode = _recognizerMode == RecognizerMode.RuleBased
                 ? "RuleBased"
                 : $"LLM-{_llmService}";
+        }
+
+        /// <summary>
+        /// Le choix de LANGUE de l'écran de départ (français / anglais). Tout le
+        /// vocabulaire est LOCALISÉ — libellés d'annotations et de recettes, déictiques,
+        /// prompt Whisper — donc changer de langue jette le préchauffage et le
+        /// reconnaisseur de l'ancienne, puis relance le tout pendant que le joueur lit la
+        /// question suivante de l'écran. La voix Piper suit (un modèle par langue, déjà
+        /// dans StreamingAssets) ; le chemin paresseux d'OnTranscriptionResult attend de
+        /// toute façon la fin du rechargement avant le premier énoncé.
+        /// </summary>
+        public void SetLanguage(Language language)
+        {
+            _language = language;
+            UserData.Language = language;
+
+            _initializationTask = null;
+            _ruleBasedRecognizer = null;
+            _speechToText?.ApplyLocale();
+            _tts?.SetLanguage(language);
+            _ = WarmUpAsync();
+        }
+
+        // Préchauffage partagé par les deux choix de l'écran de départ : vocabulaire
+        // d'abord (les deux attentes convergent sur la même tâche), reconnaisseur ensuite
+        // s'il est de mise — construit APRÈS le vocabulaire de la bonne langue.
+        private async Task WarmUpAsync()
+        {
+            try
+            {
+                await InitializeVocabulariesAsync();
+                if (_recognizerMode == RecognizerMode.RuleBased)
+                    EnsureRuleBasedRecognizer();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[Multimodality] Préchauffage des vocabulaires impossible : {e}");
+            }
         }
 
         /// <summary>

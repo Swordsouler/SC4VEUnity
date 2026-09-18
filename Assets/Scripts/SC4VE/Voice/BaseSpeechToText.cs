@@ -18,5 +18,11 @@ namespace Sc4ve.Voice
         /// pendant que le système parle (TTS), afin d'éviter une boucle de rétroaction.
         /// </summary>
         public virtual void SetListeningSuspended(bool suspended) { }
+
+        /// <summary>
+        /// Ré-applique la locale courante (UserData.Locale) au moteur de reconnaissance —
+        /// l'écran de départ peut changer la langue APRÈS le Start du composant.
+        /// </summary>
+        public virtual void ApplyLocale() { }
     }
 }

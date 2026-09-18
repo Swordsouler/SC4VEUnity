@@ -1,4 +1,5 @@
 using Sc4ve.Multimodality;
+using Sc4ve.Voice;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
@@ -48,7 +49,13 @@ namespace Sc4ve.Demonstration
         private static readonly Color ButtonColor = new(0.20f, 0.24f, 0.30f);
         private static readonly Color HoverColor  = new(0.30f, 0.40f, 0.55f);
 
+        // L'écran pose DEUX questions, dans cet ordre : la langue (avant elle, aucune
+        // langue n'existe — la question est bilingue), puis le mode, déjà affiché dans la
+        // langue choisie pendant que les vocabulaires se rechargent derrière.
+        private enum Step { Language, Mode }
+
         private MultimodalityController _controller;
+        private Step _step = Step.Language;
         private bool _placed;
 
         private void Start()
@@ -86,8 +93,6 @@ namespace Sc4ve.Demonstration
 
         private void Build()
         {
-            bool french = UserData.Locale == "fr";
-
             GameObject backdrop = GameObject.CreatePrimitive(PrimitiveType.Quad);
             backdrop.name = "Fond";
             backdrop.transform.SetParent(transform, false);
@@ -95,25 +100,50 @@ namespace Sc4ve.Demonstration
             backdrop.GetComponent<Renderer>().material.color = new Color(0.12f, 0.12f, 0.15f);
             Destroy(backdrop.GetComponent<Collider>());
 
+            if (_step == Step.Language) BuildLanguageStep();
+            else BuildModeStep();
+        }
+
+        private void BuildLanguageStep()
+        {
+            Label(transform, new Vector3(0f, 0.24f, -0.01f), "Français ou English ?",
+                characterSize: 0.008f);
+
+            LanguageButton(new Vector3(-0.28f, -0.06f, 0f), Language.French,
+                "<b>Français</b>\nLa démonstration parle\net comprend le français.");
+            LanguageButton(new Vector3(0.28f, -0.06f, 0f), Language.English,
+                "<b>English</b>\nThe demonstration speaks\nand understands English.");
+        }
+
+        private void BuildModeStep()
+        {
+            bool french = UserData.Locale == "fr";
+
             Label(transform, new Vector3(0f, 0.24f, -0.01f),
                 french ? "Comment dois-je vous comprendre ?" : "How should I understand you?",
                 characterSize: 0.008f);
 
             // Les formulations du §2, sans jargon : le joueur choisit un COMPROMIS annoncé
             // (« comprend moins bien »), pas un réglage de vitesse.
-            Button(new Vector3(-0.28f, -0.06f, 0f), RecognizerMode.RuleBased, french
+            ModeButton(new Vector3(-0.28f, -0.06f, 0f), RecognizerMode.RuleBased, french
                 ? "<b>Rapide</b>\nRéponse immédiate,\nmais comprend moins bien\nles phrases inhabituelles."
                 : "<b>Fast</b>\nInstant response,\nbut understands unusual\nsentences less well.");
 
-            Button(new Vector3(0.28f, -0.06f, 0f), RecognizerMode.LLM, french
+            ModeButton(new Vector3(0.28f, -0.06f, 0f), RecognizerMode.LLM, french
                 ? "<b>Plus lent</b>\nUne à trois secondes\nde réflexion, mais\ncomprend beaucoup mieux."
                 : "<b>Slower</b>\nOne to three seconds\nof thinking, but\nunderstands much better.");
         }
 
-        private void Button(Vector3 position, RecognizerMode mode, string text)
+        private void LanguageButton(Vector3 position, Language language, string text)
+            => PanelButton(position, language.ToString(), text, () => ChooseLanguage(language));
+
+        private void ModeButton(Vector3 position, RecognizerMode mode, string text)
+            => PanelButton(position, mode.ToString(), text, () => ChooseMode(mode));
+
+        private void PanelButton(Vector3 position, string buttonName, string text, System.Action onSelect)
         {
             GameObject face = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            face.name = mode.ToString();
+            face.name = buttonName;
             face.transform.SetParent(transform, false);
             face.transform.localPosition = position;
             face.transform.localScale = new Vector3(0.5f, 0.36f, 0.03f);
@@ -126,9 +156,24 @@ namespace Sc4ve.Demonstration
             Label(transform, position + new Vector3(0f, 0f, -0.025f), text, characterSize: 0.006f);
 
             var interactable = face.AddComponent<XRSimpleInteractable>();
-            interactable.selectEntered.AddListener(_ => Choose(mode));
+            interactable.selectEntered.AddListener(_ => onSelect());
             interactable.firstHoverEntered.AddListener(_ => surface.material.color = HoverColor);
             interactable.lastHoverExited.AddListener(_ => surface.material.color = ButtonColor);
+        }
+
+        /// <summary>
+        /// Le choix de langue recharge tout le vocabulaire (MultimodalityController) et
+        /// l'écran passe à la question du mode — déjà dans la langue choisie : le
+        /// rechargement s'achève pendant que le joueur la lit.
+        /// </summary>
+        private void ChooseLanguage(Language language)
+        {
+            _controller.SetLanguage(language);
+            Debug.Log($"[Écran de départ] Langue choisie : {language}.");
+
+            _step = Step.Mode;
+            foreach (Transform child in transform) Destroy(child.gameObject);
+            Build();
         }
 
         private static void Label(Transform parent, Vector3 localPosition, string text, float characterSize)
@@ -149,7 +194,7 @@ namespace Sc4ve.Demonstration
                 holder.GetComponent<MeshRenderer>().sharedMaterial = font.material;
         }
 
-        private void Choose(RecognizerMode mode)
+        private void ChooseMode(RecognizerMode mode)
         {
             _controller.SetRecognizerMode(mode);
             Debug.Log($"[Écran de départ] Mode choisi : {mode} — la partie commence.");

@@ -141,6 +141,24 @@ namespace Sc4ve.Voice
         }
 
         /// <summary>
+        /// Ré-applique la locale à Whisper : langue de reconnaissance et prompt d'amorce.
+        /// Appelé quand l'écran de départ change la langue — Start a réglé celle du
+        /// lancement, plus forcément la bonne. Même garde que Start pour les modèles
+        /// anglais-seuls (.en). Le prompt d'amorce repart du modèle générique ; SetGrammar
+        /// le raffinera avec le vocabulaire rechargé (mode à règles).
+        /// </summary>
+        public override void ApplyLocale()
+        {
+            if (_whisperManager == null) return;
+
+            bool englishOnly = _whisperManager.ModelPath != null && _whisperManager.ModelPath.Contains(".en");
+            if (!englishOnly && !string.IsNullOrEmpty(UserData.Locale))
+                _whisperManager.language = UserData.Locale;
+
+            _whisperManager.initialPrompt = CommandStylePrompt;
+        }
+
+        /// <summary>
         /// Définit le vocabulaire du domaine comme prompt initial pour guider Whisper.
         /// Remplace le mécanisme de grammaire de Vosk.
         /// </summary>
