@@ -944,7 +944,8 @@ namespace Sc4ve.Demonstration.EditorTools
         }
 
         /// <summary>
-        /// La jauge de patience et le prénom, au-dessus de la tête, face à la cuisine. Rend le PIVOT dont
+        /// La jauge de patience et le prénom, au-dessus de la tête, tournés vers la caméra
+        /// et dilatés avec la distance (FaceCamera). Rend le PIVOT dont
         /// CustomerOrder pilote l'échelle X (1 → 0, le remplissage fond vers la gauche).
         ///
         /// Le porte-jauge annule l'échelle du client : le modèle est mis à l'échelle pour
@@ -970,6 +971,10 @@ namespace Sc4ve.Demonstration.EditorTools
                                                     bounds.max.y + 0.15f,
                                                     bounds.center.z);
             holder.transform.rotation = Quaternion.identity;
+            // Billboard à taille apparente bornée : tout le bloc (fond, remplissage, prénom)
+            // pivote et se dilate d'un seul tenant — FaceCamera n'écrit que le porte-jauge,
+            // jamais le Pivot, dont l'échelle X appartient à CustomerOrder.
+            holder.AddComponent<FaceCamera>();
 
             GameObject back = GameObject.CreatePrimitive(PrimitiveType.Cube);
             back.name = "Fond";
@@ -996,11 +1001,9 @@ namespace Sc4ve.Demonstration.EditorTools
                 GetMaterial("JaugeRemplissage", new Color(0.35f, 0.65f, 0.30f));
             UnityEngine.Object.DestroyImmediate(fill.GetComponent<Collider>());
 
-            // Le prénom, juste au-dessus de la jauge. Même orientation FIXE qu'elle : un
-            // TextMesh se lit depuis le -z de son transform et le joueur regarde la salle
-            // depuis -z — l'identité suffit, pas de billboard. Dans le porte-jauge : l'échelle
-            // du client y est déjà annulée, et un TextMesh ne porte aucun collider — rien à
-            // détruire pour protéger le pointeur.
+            // Le prénom, juste au-dessus de la jauge, dans le porte-jauge : FaceCamera les
+            // oriente et les dilate ensemble, l'échelle du client y est déjà annulée, et un
+            // TextMesh ne porte aucun collider — rien à détruire pour protéger le pointeur.
             Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (font != null)
             {
@@ -1992,8 +1995,11 @@ namespace Sc4ve.Demonstration.EditorTools
             var label = new GameObject($"— {text}");
             label.transform.SetParent(parent, worldPositionStays: false);
             label.transform.position = position;
+            // Orientation de repos, pour l'inspection SANS Play ; en Play, FaceCamera prend
+            // la main et l'étiquette suit la caméra comme tous les textes flottants.
             label.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
             label.transform.localScale = Vector3.one;
+            label.AddComponent<FaceCamera>();
 
             var mesh = label.AddComponent<TextMesh>();
             mesh.text = text;

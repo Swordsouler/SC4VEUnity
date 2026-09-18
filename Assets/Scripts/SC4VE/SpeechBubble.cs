@@ -9,10 +9,9 @@ namespace Sc4ve.Multimodality
     /// agents qui commentaient chacun de leurs gestes rendaient le joueur muet pendant que
     /// le restaurant travaillait. La voix reste aux questions, aux échecs et aux clients.
     ///
-    /// Même orientation FIXE que la jauge de patience et les prénoms : un TextMesh se lit
-    /// depuis le -z de son transform et le joueur regarde la salle depuis -z. Le porteur
-    /// bouge et pivote (le serveur marche) : Update ré-impose l'orientation monde à chaque
-    /// image. Aucun collider — rien à protéger du pointeur.
+    /// Orientée et dilatée vers la caméra par FaceCamera, comme la jauge de patience et
+    /// les prénoms : le porteur bouge et pivote (le serveur marche), la bulle reste
+    /// lisible. Aucun collider — rien à protéger du pointeur.
     /// </summary>
     public class SpeechBubble : MonoBehaviour
     {
@@ -41,9 +40,6 @@ namespace Sc4ve.Multimodality
 
         private void Update()
         {
-            // Orientation MONDE constante : le porteur pivote (NavMeshAgent), la bulle non.
-            transform.rotation = Quaternion.identity;
-
             if (_text != null && _text.gameObject.activeSelf && Time.unscaledTime >= _hideAt)
                 _text.gameObject.SetActive(false);
         }
@@ -63,6 +59,7 @@ namespace Sc4ve.Multimodality
                                                     bounds.max.y + 0.25f,
                                                     bounds.center.z);
             holder.transform.rotation = Quaternion.identity;
+            holder.AddComponent<FaceCamera>();
 
             var bubble = holder.AddComponent<SpeechBubble>();
 
