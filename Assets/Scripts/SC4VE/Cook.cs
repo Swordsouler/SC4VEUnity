@@ -316,6 +316,10 @@ WHERE { ?type sven:appliesState ?state . }";
                 .Where(c => c.Content.Count == 0)
                 .Where(c => c.TryGetComponent(out SemanticAnnotator annotator)
                             && annotator.Annotations.Contains("sven:Plate"))
+                // Jamais une assiette restée sur une table : vide, elle appartient encore
+                // au service — elle ne redevient assiette de travail qu'une fois RANGÉE au
+                // plan de travail (« range l'assiette de cette table »).
+                .Where(c => !Delegation.IsOnATable(c))
                 .FirstOrDefault(c => c.GetComponentInParent<Delegation>() == null);
 
         /// <summary>

@@ -200,7 +200,7 @@ namespace Sc4ve.Multimodality
         /// Occupé ? L'ordre s'ENFILE au lieu d'être refusé — le carnet du serveur, même
         /// motif que celui du cuisinier (« Je note, ce sera après ») : un agent qui refuse
         /// du travail n'existe pas. La réponse nomme la tâche EN COURS, sans quoi le joueur
-        /// croit son ordre perdu ; en bulle — c'est un statut, pas un échec. Les libellés
+        /// croit son ordre perdu ; à VOIX HAUTE — cette réponse-là doit s'entendre. Les libellés
         /// d'activité sont à l'INFINITIF précisément pour cette phrase. L'ordre dépilé se
         /// ré-évalue entier (Defer compris) : le monde aura changé entre-temps.
         /// </summary>
@@ -209,7 +209,7 @@ namespace Sc4ve.Multimodality
             if (!IsBusy) return false;
 
             _orders.Enqueue(order);
-            Bubble(French
+            Say(French
                 ? $"Je suis actuellement en train de {_taskLabel}, je m'en occupe après."
                 : $"I am currently {_taskLabel}, I will take care of it after.");
             return true;
@@ -304,6 +304,25 @@ namespace Sc4ve.Multimodality
         /// </summary>
         public static bool HasDishOn(SemantizationCore table)
             => table != null && DishesOn(table).Count > 0;
+
+        /// <summary>
+        /// L'inverse : vrai si ce contenant est posé sur UNE table de la salle (même seuil
+        /// d'un mètre que DishesOn). Le cuisinier s'en sert : une assiette restée sur une
+        /// table non débarrassée appartient encore au service — elle ne redevient assiette
+        /// de travail qu'une fois rangée (« range l'assiette de cette table »).
+        /// </summary>
+        public static bool IsOnATable(ContainerContent dish)
+        {
+            if (dish == null) return false;
+
+            foreach (SemanticAnnotator annotator in
+                     UnityEngine.Object.FindObjectsByType<SemanticAnnotator>(FindObjectsInactive.Exclude))
+                if (annotator.Annotations.Contains("sven:Table") &&
+                    Vector3.SqrMagnitude(dish.transform.position - annotator.transform.position) < 1f)
+                    return true;
+
+            return false;
+        }
 
         /// <summary>
         /// « Va prendre la commande de cette table-là 👆 » : se rendre à la table et y rester le
