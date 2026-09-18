@@ -72,7 +72,7 @@ namespace Sc4ve.Demonstration
         /// de recaler sur un casque POSÉ (à hauteur de table), qui remonterait le joueur
         /// au plafond quand il l'enfile.
         /// </summary>
-        private static bool UserPresent()
+        internal static bool UserPresent()
         {
             InputDevice head = InputDevices.GetDeviceAtXRNode(XRNode.Head);
             if (!head.isValid) return true;
