@@ -13,6 +13,10 @@ namespace Sc4ve.Multimodality.Intent
         // (UnselectCommand) : DetectCommandType compare du plus long au plus court.
         // L'ontologie PRIME sur cet attribut (sc4ve.ttl) : les deux listes restent alignées.
         "range", "ranger", "rangez", "débarrasse", "débarrasser", "débarrassez",
+        // Whisper écrit souvent « débarasse » (un seul R) : la faute d'orthographe est un
+        // déclencheur à part entière, sans quoi le stem « debaras » ne rejoint jamais
+        // « debarras » et la commande du métier reste incomprise en jeu.
+        "débarasse", "débarasser", "débarassez",
         "vide", "vider", "videz", "nettoie", "nettoyer", "nettoyez",
         "clear", "clean", "tidy up", "bus the table")]
     [Serializable, CommandDescription(

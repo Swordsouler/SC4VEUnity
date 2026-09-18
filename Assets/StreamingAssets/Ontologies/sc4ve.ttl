@@ -890,8 +890,11 @@ sc4ve:ServeCommand sc4ve:trigger
 ###  rangement + préposition) — ici, pas de préposition (« range l'assiette de cette table »).
 ###  « clear » nu ne gêne pas « clear selection » (UnselectCommand) : du plus long au plus
 ###  court. L'ontologie PRIME sur l'attribut C# [RuleBasedTriggers] : listes alignées.
+# « débarasse » (un seul R) : l'orthographe fautive que Whisper produit souvent — un
+# déclencheur à part entière, pour que la commande du métier soit comprise telle qu'entendue.
 sc4ve:ClearTableCommand sc4ve:trigger
     "range"@fr , "ranger"@fr , "rangez"@fr , "débarrasse"@fr , "débarrasser"@fr , "débarrassez"@fr ,
+    "débarasse"@fr , "débarasser"@fr , "débarassez"@fr ,
     "vide"@fr , "vider"@fr , "videz"@fr , "nettoie"@fr , "nettoyer"@fr , "nettoyez"@fr ,
     "clear"@en , "clean"@en , "tidy up"@en , "bus the table"@en .
 
