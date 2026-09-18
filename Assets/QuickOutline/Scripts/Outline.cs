@@ -113,6 +113,13 @@ public class Outline : MonoBehaviour
     {
         foreach (var renderer in renderers)
         {
+            // Skip renderers destroyed since Awake (e.g. consumed dish dressing):
+            // sharedMaterials would throw from OnEnable, where Unity swallows the
+            // exception — callers cannot catch it.
+            if (renderer == null)
+            {
+                continue;
+            }
 
             // Append outline shaders
             var materials = renderer.sharedMaterials.ToList();
@@ -158,6 +165,11 @@ public class Outline : MonoBehaviour
     {
         foreach (var renderer in renderers)
         {
+            // Same guard as OnEnable: the cache may hold destroyed renderers.
+            if (renderer == null)
+            {
+                continue;
+            }
 
             // Remove outline shaders
             var materials = renderer.sharedMaterials.ToList();

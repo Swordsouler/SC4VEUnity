@@ -90,8 +90,34 @@ namespace Sc4ve.Demonstration
 
         private void OnHeard(string text)
         {
-            if (!string.IsNullOrWhiteSpace(text)) _lastHeard = text.Trim();
+            string sentence = ExtractSentence(text);
+            if (!string.IsNullOrWhiteSpace(sentence)) _lastHeard = sentence;
             _mic = MicState.Idle;
+        }
+
+        /// <summary>
+        /// Les moteurs n'émettent pas la phrase nue mais leur JSON — Whisper : {"text": …,
+        /// "result": [horodatages mot à mot]} ; Vosk : ses alternatives. La tablette ne veut
+        /// que la PHRASE : le champ « text » s'il existe, la première alternative sinon, et
+        /// le brut en dernier recours.
+        /// </summary>
+        private static string ExtractSentence(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+            raw = raw.Trim();
+            if (!raw.StartsWith("{")) return raw;
+
+            try
+            {
+                var parsed = Newtonsoft.Json.Linq.JObject.Parse(raw);
+                string text = (string)parsed["text"]
+                              ?? (string)parsed.SelectToken("alternatives[0].text");
+                return string.IsNullOrWhiteSpace(text) ? raw : text.Trim();
+            }
+            catch (Newtonsoft.Json.JsonException)
+            {
+                return raw;
+            }
         }
 
         private void Update()
