@@ -7,8 +7,9 @@ namespace Sc4ve.Demonstration
     /// Les touches, écrites SUR les manettes : une étiquette au-dessus de chaque contrôleur
     /// (billboard FaceCamera, comme les prénoms), qui dit ce que fait chaque bouton — le
     /// visiteur n'a pas à le deviner ni à retenir un briefing. Gauche : parler (X, en
-    /// MAINTIEN — le push-to-talk) et le menu pause. Droite : cliquer (gâchette) et saisir
-    /// (grip). Les textes suivent la langue choisie à l'écran de départ.
+    /// MAINTIEN — le push-to-talk) et le menu pause. Droite : cliquer (gâchette) — la
+    /// saisie à la main n'existe pas dans cette démo (GrabPolicy), le grip ne fait rien.
+    /// Les textes suivent la langue choisie à l'écran de départ.
     ///
     /// Même bootstrap que le menu pause (ServiceProgression comme marqueur du mini-jeu).
     /// Les contrôleurs sont cherchés par leur nom dans le rig — « Left/Right Controller »,
@@ -53,8 +54,8 @@ namespace Sc4ve.Demonstration
                     : "X (hold): talk\nMenu: pause";
             if (_right != null)
                 _right.text = french
-                    ? "Gâchette : cliquer\nGrip : saisir"
-                    : "Trigger: click\nGrip: grab";
+                    ? "Gâchette : cliquer"
+                    : "Trigger: click";
         }
 
         private static TextMesh Attach(string controllerName)
