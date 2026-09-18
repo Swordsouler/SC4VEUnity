@@ -32,6 +32,13 @@ namespace Sc4ve.Multimodality
             set => _listeningTimeScale = Mathf.Clamp(value, 0.1f, 1f);
         }
 
+        /// <summary>
+        /// Vrai pendant le menu pause, qui fige le temps (timeScale 0) : tant que c'est
+        /// levé, le ralenti d'écoute ne touche plus à l'horloge — sans cette garde, Update
+        /// ramènerait le temps vers sa cible dès la frame suivante et « dé-pauserait ».
+        /// </summary>
+        public static bool Paused;
+
         private float _defaultFixedDeltaTime;
         private float _target = 1f;
 
@@ -66,8 +73,13 @@ namespace Sc4ve.Multimodality
 
         private void StopListening() => _target = 1f;
 
+        /// <summary>Retour immédiat au temps normal, fixedDeltaTime compris — la reprise
+        /// du menu pause, qui peut interrompre un ralenti en cours de transition.</summary>
+        public void ResetToNormal() => Apply(1f);
+
         private void Update()
         {
+            if (Paused) return;
             if (Mathf.Approximately(Time.timeScale, _target)) return;
 
             float next = _transitionDuration <= 0f

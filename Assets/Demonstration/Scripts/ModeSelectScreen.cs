@@ -1,7 +1,6 @@
 using Sc4ve.Multimodality;
 using Sc4ve.Voice;
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 namespace Sc4ve.Demonstration
 {
@@ -12,10 +11,8 @@ namespace Sc4ve.Demonstration
     /// d'un défaut caché, et le jeu devient un instrument de comparaison — le choix part
     /// dans la colonne « mode » du journal, qui rend toutes les autres comparables.
     ///
-    /// Un panneau 3D à l'esthétique du reste (TextMesh, primitives), PAS un Canvas : rien
-    /// d'autre dans la démo n'utilise uGUI, et deux boutons ne justifient pas d'introduire
-    /// le raycaster d'interface XR. Les boutons sont des XRSimpleInteractable : le même
-    /// rayon qui saisit les pommes clique ici.
+    /// Un panneau 3D à l'esthétique du reste — la chair (fond, labels, boutons cliquables
+    /// au grip comme à la gâchette) vit dans XRPanel, partagée avec le menu pause.
     ///
     /// Créé à l'exécution (aucune reconstruction de scène) : le bootstrap ne s'active que
     /// dans le mini-jeu — ServiceProgression en est le marqueur — et TIENT le flux de
@@ -46,9 +43,6 @@ namespace Sc4ve.Demonstration
             new GameObject("Écran de départ").AddComponent<ModeSelectScreen>();
         }
 
-        private static readonly Color ButtonColor = new(0.20f, 0.24f, 0.30f);
-        private static readonly Color HoverColor  = new(0.30f, 0.40f, 0.55f);
-
         // L'écran pose DEUX questions, dans cet ordre : la langue (avant elle, aucune
         // langue n'existe — la question est bilingue), puis le mode, déjà affiché dans la
         // langue choisie pendant que les vocabulaires se rechargent derrière.
@@ -59,9 +53,7 @@ namespace Sc4ve.Demonstration
         private bool _placed;
         private bool _done;
 
-        // Le bouton actuellement survolé par le rayon (son action), et l'état précédent de
-        // la gâchette pour n'agir que sur le front montant.
-        private System.Action _hoveredAction;
+        // L'état précédent de la gâchette, pour n'agir que sur le front montant.
         private bool _triggerWasPressed;
 
         private void Start()
@@ -87,8 +79,8 @@ namespace Sc4ve.Demonstration
             // exact mais contre-intuitif : tout visiteur tire d'instinct sur la gâchette
             // devant un menu. Le rayon XRI fournit déjà le survol (le bouton s'éclaircit) ;
             // on n'écoute que le front montant de la gâchette droite pendant ce survol.
-            bool pressed = RightTriggerPressed();
-            if (pressed && !_triggerWasPressed) _hoveredAction?.Invoke();
+            bool pressed = XRPanel.RightTriggerPressed();
+            if (pressed && !_triggerWasPressed) XRPanel.HoveredAction?.Invoke();
             _triggerWasPressed = pressed;
         }
 
@@ -112,32 +104,9 @@ namespace Sc4ve.Demonstration
             _placed = true;
         }
 
-        /// <summary>
-        /// La gâchette de la manette droite, lue sur l'appareil InputSystem — vraie manette
-        /// comme manette SIMULÉE (XR Device Simulator, où elle est le clic gauche). Selon le
-        /// profil, le bouton s'appelle triggerPressed ou triggerButton ; à défaut, l'axe.
-        /// </summary>
-        private static bool RightTriggerPressed()
-        {
-            UnityEngine.InputSystem.XR.XRController right = UnityEngine.InputSystem.XR.XRController.rightHand;
-            if (right == null) return false;
-
-            var pressed = right.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("triggerPressed")
-                          ?? right.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("triggerButton");
-            if (pressed != null) return pressed.isPressed;
-
-            var trigger = right.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>("trigger");
-            return trigger != null && trigger.ReadValue() > 0.6f;
-        }
-
         private void Build()
         {
-            GameObject backdrop = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            backdrop.name = "Fond";
-            backdrop.transform.SetParent(transform, false);
-            backdrop.transform.localScale = new Vector3(1.14f, 0.66f, 1f);
-            backdrop.GetComponent<Renderer>().material.color = new Color(0.12f, 0.12f, 0.15f);
-            Destroy(backdrop.GetComponent<Collider>());
+            XRPanel.Backdrop(transform);
 
             if (_step == Step.Language) BuildLanguageStep();
             else BuildModeStep();
@@ -145,7 +114,7 @@ namespace Sc4ve.Demonstration
 
         private void BuildLanguageStep()
         {
-            Label(transform, new Vector3(0f, 0.24f, -0.01f), "Français ou English ?",
+            XRPanel.Label(transform, new Vector3(0f, 0.24f, -0.01f), "Français ou English ?",
                 characterSize: 0.008f);
 
             LanguageButton(new Vector3(-0.28f, -0.06f, 0f), Language.French,
@@ -158,7 +127,7 @@ namespace Sc4ve.Demonstration
         {
             bool french = UserData.Locale == "fr";
 
-            Label(transform, new Vector3(0f, 0.24f, -0.01f),
+            XRPanel.Label(transform, new Vector3(0f, 0.24f, -0.01f),
                 french ? "Comment dois-je vous comprendre ?" : "How should I understand you?",
                 characterSize: 0.008f);
 
@@ -174,39 +143,10 @@ namespace Sc4ve.Demonstration
         }
 
         private void LanguageButton(Vector3 position, Language language, string text)
-            => PanelButton(position, language.ToString(), text, () => ChooseLanguage(language));
+            => XRPanel.Button(transform, position, language.ToString(), text, () => ChooseLanguage(language));
 
         private void ModeButton(Vector3 position, RecognizerMode mode, string text)
-            => PanelButton(position, mode.ToString(), text, () => ChooseMode(mode));
-
-        private void PanelButton(Vector3 position, string buttonName, string text, System.Action onSelect)
-        {
-            GameObject face = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            face.name = buttonName;
-            face.transform.SetParent(transform, false);
-            face.transform.localPosition = position;
-            face.transform.localScale = new Vector3(0.5f, 0.36f, 0.03f);
-
-            Renderer surface = face.GetComponent<Renderer>();
-            surface.material.color = ButtonColor;
-
-            // Le TEXTE est frère du bouton, pas son enfant : l'échelle non uniforme du cube
-            // (0,5 × 0,36 × 0,03) écraserait les glyphes — le piège documenté par la jauge.
-            Label(transform, position + new Vector3(0f, 0f, -0.025f), text, characterSize: 0.006f);
-
-            var interactable = face.AddComponent<XRSimpleInteractable>();
-            interactable.selectEntered.AddListener(_ => onSelect());
-            interactable.firstHoverEntered.AddListener(_ =>
-            {
-                surface.material.color = HoverColor;
-                _hoveredAction = onSelect;
-            });
-            interactable.lastHoverExited.AddListener(_ =>
-            {
-                surface.material.color = ButtonColor;
-                if (_hoveredAction == onSelect) _hoveredAction = null;
-            });
-        }
+            => XRPanel.Button(transform, position, mode.ToString(), text, () => ChooseMode(mode));
 
         /// <summary>
         /// Le choix de langue recharge tout le vocabulaire (MultimodalityController) et
@@ -218,32 +158,13 @@ namespace Sc4ve.Demonstration
             // Grip ET gâchette peuvent tirer dans la même frame : une seule transition.
             if (_step != Step.Language) return;
             _step = Step.Mode;
-            _hoveredAction = null;
+            XRPanel.HoveredAction = null;
 
             _controller.SetLanguage(language);
             Debug.Log($"[Écran de départ] Langue choisie : {language}.");
 
             foreach (Transform child in transform) Destroy(child.gameObject);
             Build();
-        }
-
-        private static void Label(Transform parent, Vector3 localPosition, string text, float characterSize)
-        {
-            var holder = new GameObject("Texte");
-            holder.transform.SetParent(parent, false);
-            holder.transform.localPosition = localPosition;
-
-            var mesh = holder.AddComponent<TextMesh>();
-            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            mesh.text = text;
-            mesh.font = font;
-            mesh.fontSize = 72;
-            mesh.characterSize = characterSize;
-            mesh.anchor = TextAnchor.MiddleCenter;
-            mesh.alignment = TextAlignment.Center;
-            mesh.color = Color.white;
-            if (font != null)
-                holder.GetComponent<MeshRenderer>().sharedMaterial = font.material;
         }
 
         private void ChooseMode(RecognizerMode mode)
@@ -256,9 +177,11 @@ namespace Sc4ve.Demonstration
             Dismiss();
         }
 
-        /// <summary>Libère le flux de clients et disparaît — la partie commence.</summary>
+        /// <summary>Libère le flux de clients et disparaît — la partie commence. Le survol
+        /// partagé est rendu : ses listeners meurent avec le panneau, pas le champ.</summary>
         private void Dismiss()
         {
+            XRPanel.HoveredAction = null;
             ServiceProgression.WaitingForModeChoice = false;
             Destroy(gameObject);
         }
