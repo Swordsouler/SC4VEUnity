@@ -184,6 +184,7 @@ namespace Sc4ve.Demonstration
 
             var mesh = holder.AddComponent<TextMesh>();
             Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            mesh.text = text;
             mesh.font = font;
             mesh.fontSize = 72;
             mesh.characterSize = characterSize;
