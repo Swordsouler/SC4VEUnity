@@ -57,6 +57,12 @@ namespace Sc4ve.Demonstration
         private MultimodalityController _controller;
         private Step _step = Step.Language;
         private bool _placed;
+        private bool _done;
+
+        // Le bouton actuellement survolé par le rayon (son action), et l'état précédent de
+        // la gâchette pour n'agir que sur le front montant.
+        private System.Action _hoveredAction;
+        private bool _triggerWasPressed;
 
         private void Start()
         {
@@ -71,8 +77,23 @@ namespace Sc4ve.Demonstration
 
         private void Update()
         {
-            if (_placed) return;
+            if (!_placed)
+            {
+                TryPlace();
+                return;
+            }
 
+            // La GÂCHETTE clique aussi. Sur le rig Starter Assets, « Select » est le GRIP —
+            // exact mais contre-intuitif : tout visiteur tire d'instinct sur la gâchette
+            // devant un menu. Le rayon XRI fournit déjà le survol (le bouton s'éclaircit) ;
+            // on n'écoute que le front montant de la gâchette droite pendant ce survol.
+            bool pressed = RightTriggerPressed();
+            if (pressed && !_triggerWasPressed) _hoveredAction?.Invoke();
+            _triggerWasPressed = pressed;
+        }
+
+        private void TryPlace()
+        {
             Camera head = Camera.main;
             if (head == null) return;
             // Avant la prise de suivi, la caméra traîne au sol : on lui laisse 2 s pour
@@ -89,6 +110,24 @@ namespace Sc4ve.Demonstration
             // que la jauge, les prénoms et les bulles.
             transform.rotation = Quaternion.LookRotation(forward);
             _placed = true;
+        }
+
+        /// <summary>
+        /// La gâchette de la manette droite, lue sur l'appareil InputSystem — vraie manette
+        /// comme manette SIMULÉE (XR Device Simulator, où elle est le clic gauche). Selon le
+        /// profil, le bouton s'appelle triggerPressed ou triggerButton ; à défaut, l'axe.
+        /// </summary>
+        private static bool RightTriggerPressed()
+        {
+            UnityEngine.InputSystem.XR.XRController right = UnityEngine.InputSystem.XR.XRController.rightHand;
+            if (right == null) return false;
+
+            var pressed = right.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("triggerPressed")
+                          ?? right.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("triggerButton");
+            if (pressed != null) return pressed.isPressed;
+
+            var trigger = right.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>("trigger");
+            return trigger != null && trigger.ReadValue() > 0.6f;
         }
 
         private void Build()
@@ -157,8 +196,16 @@ namespace Sc4ve.Demonstration
 
             var interactable = face.AddComponent<XRSimpleInteractable>();
             interactable.selectEntered.AddListener(_ => onSelect());
-            interactable.firstHoverEntered.AddListener(_ => surface.material.color = HoverColor);
-            interactable.lastHoverExited.AddListener(_ => surface.material.color = ButtonColor);
+            interactable.firstHoverEntered.AddListener(_ =>
+            {
+                surface.material.color = HoverColor;
+                _hoveredAction = onSelect;
+            });
+            interactable.lastHoverExited.AddListener(_ =>
+            {
+                surface.material.color = ButtonColor;
+                if (_hoveredAction == onSelect) _hoveredAction = null;
+            });
         }
 
         /// <summary>
@@ -168,10 +215,14 @@ namespace Sc4ve.Demonstration
         /// </summary>
         private void ChooseLanguage(Language language)
         {
+            // Grip ET gâchette peuvent tirer dans la même frame : une seule transition.
+            if (_step != Step.Language) return;
+            _step = Step.Mode;
+            _hoveredAction = null;
+
             _controller.SetLanguage(language);
             Debug.Log($"[Écran de départ] Langue choisie : {language}.");
 
-            _step = Step.Mode;
             foreach (Transform child in transform) Destroy(child.gameObject);
             Build();
         }
@@ -197,6 +248,9 @@ namespace Sc4ve.Demonstration
 
         private void ChooseMode(RecognizerMode mode)
         {
+            if (_done) return;
+            _done = true;
+
             _controller.SetRecognizerMode(mode);
             Debug.Log($"[Écran de départ] Mode choisi : {mode} — la partie commence.");
             Dismiss();
