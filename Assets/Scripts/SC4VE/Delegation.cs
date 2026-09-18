@@ -946,7 +946,7 @@ namespace Sc4ve.Multimodality
         private void Say(string text)
         {
             Debug.Log($"[Serveur] {name} : « {text} »");
-            Command.Speak(text);
+            Command.Speak(text, this);
         }
 
         // ─────────────────────────────────────────────────────────────────────

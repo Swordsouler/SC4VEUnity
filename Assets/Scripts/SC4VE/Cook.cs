@@ -446,7 +446,7 @@ WHERE { ?type sven:appliesState ?state . }";
         private void Say(string text)
         {
             Debug.Log($"[Cuisinier] {name} : « {text} »");
-            Command.Speak(text);
+            Command.Speak(text, this);
         }
     }
 }

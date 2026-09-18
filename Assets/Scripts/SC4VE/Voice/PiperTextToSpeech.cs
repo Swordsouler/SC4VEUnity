@@ -32,7 +32,7 @@ namespace Sc4ve.Voice
 
         private AudioSource _audioSource;
         private bool _isSpeaking;
-        private readonly Queue<string> _queue = new();
+        private readonly Queue<(string Text, Action OnStart, Action OnEnd)> _queue = new();
 
         private void Awake()
         {
@@ -42,11 +42,18 @@ namespace Sc4ve.Voice
         /// <summary>
         /// Met le texte en file d'attente et démarre la synthèse si aucune n'est en cours.
         /// </summary>
-        public void Speak(string text)
+        public void Speak(string text) => Speak(text, null, null);
+
+        /// <summary>
+        /// Même chose, avec des rappels encadrant la LECTURE de cet énoncé-là — pas sa mise
+        /// en file : la synthèse prend du temps et les énoncés se jouent en séquence. C'est
+        /// ce qui permet d'animer la bouche du locuteur au moment où sa voix sort vraiment.
+        /// </summary>
+        public void Speak(string text, Action onStart, Action onEnd)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             UnityEngine.Debug.Log($"[Piper] Énoncé : \"{text}\"");
-            _queue.Enqueue(text);
+            _queue.Enqueue((text, onStart, onEnd));
             if (!_isSpeaking) _ = ProcessQueueAsync();
         }
 
@@ -71,8 +78,8 @@ namespace Sc4ve.Voice
             {
                 while (_queue.Count > 0)
                 {
-                    string text = _queue.Dequeue();
-                    await SpeakOnceAsync(text);
+                    (string text, Action onStart, Action onEnd) = _queue.Dequeue();
+                    await SpeakOnceAsync(text, onStart, onEnd);
                 }
             }
             finally
@@ -100,7 +107,7 @@ namespace Sc4ve.Voice
             return full;
         }
 
-        private async Task SpeakOnceAsync(string text)
+        private async Task SpeakOnceAsync(string text, Action onStart, Action onEnd)
         {
             string piperExe  = ResolveStreamingAssetsPath(_piperExePath, "Exécutable");
             string modelPath = ResolveStreamingAssetsPath(
@@ -117,6 +124,7 @@ namespace Sc4ve.Voice
                 if (clip == null) return;
 
                 OnSpeechStart?.Invoke();
+                onStart?.Invoke();
                 try
                 {
                     _audioSource.PlayOneShot(clip);
@@ -124,8 +132,10 @@ namespace Sc4ve.Voice
                 }
                 finally
                 {
-                    // OnSpeechEnd doit TOUJOURS suivre OnSpeechStart : l'écoute STT est suspendue
-                    // entre les deux (MultimodalityController) et resterait bloquée sinon.
+                    // Les deux fins doivent TOUJOURS suivre les deux débuts : l'écoute STT est
+                    // suspendue entre OnSpeechStart et OnSpeechEnd (MultimodalityController) et
+                    // resterait bloquée sinon — et une bouche sans onEnd resterait ouverte.
+                    onEnd?.Invoke();
                     OnSpeechEnd?.Invoke();
                     // AudioClip créé à chaque énoncé → libération explicite (fuite mémoire audio sinon).
                     //

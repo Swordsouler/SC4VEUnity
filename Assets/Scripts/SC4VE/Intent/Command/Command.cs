@@ -137,12 +137,25 @@ namespace Sc4ve.Multimodality.Intent
         /// Énonce un texte via la synthèse vocale (Piper) si un PiperTextToSpeech est présent
         /// dans la scène. Sans effet (avertissement) sinon. La langue est gérée par le composant.
         /// </summary>
-        public static void Speak(string text)
+        public static void Speak(string text) => Speak(text, null);
+
+        /// <summary>
+        /// Même chose, en nommant le LOCUTEUR : sa bouche (la pièce « Mouth » du personnage)
+        /// s'anime pendant la lecture de son énoncé — celle de la file Piper, pas l'instant
+        /// de l'ordre. Sans locuteur, c'est la voix « off » du système : rien ne remue.
+        /// </summary>
+        public static void Speak(string text, Component speaker)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             PiperTextToSpeech tts = UnityEngine.Object.FindAnyObjectByType<PiperTextToSpeech>();
-            if (tts != null) tts.Speak(text);
-            else Debug.LogWarning("[TTS] Aucun PiperTextToSpeech dans la scène — texte non énoncé.");
+            if (tts == null)
+            {
+                Debug.LogWarning("[TTS] Aucun PiperTextToSpeech dans la scène — texte non énoncé.");
+                return;
+            }
+
+            if (speaker == null) tts.Speak(text);
+            else tts.Speak(text, () => Mouth.Talk(speaker, true), () => Mouth.Talk(speaker, false));
         }
 
         // ─────────────────────────────────────────────────────────────────────

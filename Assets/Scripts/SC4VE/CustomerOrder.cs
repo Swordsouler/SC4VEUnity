@@ -627,7 +627,7 @@ namespace Sc4ve.Multimodality
         private void Say(string text)
         {
             Debug.Log($"[Client] {name} : « {text} »");
-            Intent.Command.Speak(text);
+            Intent.Command.Speak(text, this);
         }
 
         // ── Sémantisation ─────────────────────────────────────────────────────
