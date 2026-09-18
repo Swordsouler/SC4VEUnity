@@ -87,7 +87,6 @@ namespace Sc4ve.Demonstration.EditorTools
             BuildEnvironment(root);
             BuildKitchen(root);
             BuildDiningRoom(root);
-            BuildOrderBoard(root);
             BuildDishTemplates(root);
             bool rigCreated = EnsureXRRig();
             // Hors du bloc ci-dessus : la caméra parasite doit aussi disparaître des scènes
@@ -110,8 +109,8 @@ namespace Sc4ve.Demonstration.EditorTools
                     ? "Rig XR complet mis en place (contrôleurs + Pointer + PointOfView), " +
                       "locomotion désactivée.\n\n"
                     : "Rig XR déjà utilisable, laissé tel quel ; interactors SVEN vérifiés.\n\n") +
-                "4 clients installés (couples famille+contrainte fixes), tableau des " +
-                "commandes au-dessus de la passe, NavMesh cuit.\n\n" +
+                "4 clients installés (couples famille+contrainte fixes), commandes sur " +
+                "la tablette de la main gauche, NavMesh cuit.\n\n" +
                 "Pipeline vocal copié depuis « New Demo » s'il manquait " +
                 "(MultimodalityController + Whisper + Piper, mode RuleBased).\n\n" +
                 "Reste à faire à la main : installer les modèles dans StreamingAssets " +
@@ -1311,25 +1310,11 @@ namespace Sc4ve.Demonstration.EditorTools
         }
 
         /// <summary>
-        /// Le panneau de bons de commande, au-dessus de la passe, face à la cuisine (§5).
-        /// Ni collider, ni SemantizationCore : c'est du HUD — un collider intercepterait le
-        /// pointeur XR, une sémantisation ferait répondre « sélectionne le tableau ».
+        /// L'étalon des proportions du panneau de commandes — l'ancienne largeur du tableau
+        /// de la passe, RETIRÉ parce que redondant avec la tablette de la main gauche (il
+        /// obligeait en plus à se retourner vers la cuisine pour le lire). La constante
+        /// reste : la tablette en dérive toutes ses proportions (k = width / BoardWidth).
         /// </summary>
-        private static void BuildOrderBoard(Transform root)
-        {
-            // Au-dessus des comptoirs, à ~1 m du joueur : posé à (1,75, 1,95), il se
-            // retrouvait à 40 cm du visage quand le joueur (PlayerSpawn, z ≈ 2,35) se
-            // retournait — il remplissait tout le champ. Monté à 2,05 et reculé à 1,40,
-            // comme un écran de commandes au-dessus de la passe.
-            GameObject board = BuildBoardPanel(root, "Tableau des commandes", BoardWidth);
-            board.transform.position = new Vector3(0f, 2.05f, 1.40f);
-            // 180° : un TextMesh se lit depuis le -z de son transform, et le joueur est côté
-            // salle — il se retourne vers la cuisine pour le lire. Les -15° l'inclinent vers
-            // ses yeux (le tableau est au-dessus de la tête).
-            board.transform.rotation = Quaternion.Euler(-15f, 180f, 0f);
-        }
-
-        /// <summary>Largeur du panneau de la passe, dont toutes les autres proportions dérivent.</summary>
         private const float BoardWidth = 1.15f;
 
         /// <summary>
@@ -1346,15 +1331,10 @@ namespace Sc4ve.Demonstration.EditorTools
         private const string TabletName = "Tablette des commandes";
 
         /// <summary>
-        /// Fond sombre + TextMesh piloté par <see cref="OrderBoard"/>.
-        ///
-        /// UNE seule fabrique pour les deux exemplaires — celui de la passe et la tablette de
-        /// la main gauche — parce qu'ils doivent montrer la même chose : deux constructions
-        /// séparées divergeraient dès la première retouche, alors que le tableau est décrit
-        /// comme une projection unique de l'état des clients.
-        ///
-        /// Tout est proportionnel à <paramref name="width"/>. La tablette n'est donc pas un
-        /// second design mais le même panneau réduit, et elle tient le même nombre de lignes.
+        /// Fond sombre + TextMesh piloté par <see cref="OrderBoard"/>. Seule la TABLETTE de
+        /// la main gauche l'utilise aujourd'hui — le panneau de la passe, redondant avec
+        /// elle, a été retiré. Tout est proportionnel à <paramref name="width"/>, BoardWidth
+        /// restant l'étalon : la tablette est ce panneau réduit, mêmes lignes, même code.
         /// </summary>
         private static GameObject BuildBoardPanel(Transform parent, string name, float width)
         {
