@@ -86,6 +86,33 @@ namespace Sc4ve.Multimodality
                     template.gameObject.SetActive(false);
         }
 
+        /// <summary>
+        /// Levé par ResetGame : l'écran de départ (ModeSelectScreen, autre assembly — d'où
+        /// l'événement plutôt qu'un appel direct) se recrée pour le visiteur suivant.
+        /// </summary>
+        public static event System.Action GameReset;
+
+        /// <summary>
+        /// « Réinitialise la scène » entre deux visiteurs (ResetSceneCommand) : TOUS les
+        /// clients quittent la salle — clones attablés ET corps désactivés, donc le score
+        /// du tableau retombe à zéro —, la cadence repart du début, et l'écran de départ
+        /// revient : le prochain visiteur choisit SON mode.
+        /// </summary>
+        public void ResetGame()
+        {
+            foreach (CustomerOrder customer in FindObjectsByType<CustomerOrder>(FindObjectsInactive.Include))
+                if (customer != null && !_templates.Contains(customer))
+                    Destroy(customer.gameObject);
+
+            _interval = _startInterval;
+            _spawned = 0;
+            _nextArrivalAt = Time.time + _firstArrivalDelay;
+            WaitingForModeChoice = true;
+            GameReset?.Invoke();
+
+            Debug.Log("[Progression] Salle vidée, cadence remise à zéro — en attente du choix de mode.");
+        }
+
         private void Start()
         {
             _interval = _startInterval;

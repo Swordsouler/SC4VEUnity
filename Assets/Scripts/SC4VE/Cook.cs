@@ -329,6 +329,10 @@ WHERE { ?type sven:appliesState ?state . }";
             GameObject clone = Instantiate(original.gameObject,
                 original.transform.position, original.transform.rotation);
             clone.name = original.gameObject.name;
+            // Marquée : « réinitialise la scène » détruit les copies du garde-manger —
+            // seuls les ORIGINAUX se restaurent (OriginalStateStore), les copies
+            // s'accumuleraient de visiteur en visiteur.
+            clone.AddComponent<SpawnedByCook>();
             return clone.GetComponent<SemantizationCore>();
         }
 
@@ -410,6 +414,18 @@ WHERE { ?type sven:appliesState ?state . }";
             // Finish réentrant ne rejoue rien.
             while (_orders.Count > 0)
                 if (Prepare(_orders.Dequeue())) break;
+        }
+
+        /// <summary>
+        /// L'arrêt SILENCIEUX de « réinitialise la scène » : plat en cours abandonné,
+        /// carnet vidé, sans un mot — une remise à zéro n'est pas une conversation.
+        /// </summary>
+        public void ResetService()
+        {
+            StopAllCoroutines();
+            _busy = false;
+            _taskLabel = "";
+            _orders.Clear();
         }
 
         /// <summary>

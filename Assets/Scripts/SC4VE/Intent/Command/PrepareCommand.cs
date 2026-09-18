@@ -30,6 +30,12 @@ namespace Sc4ve.Multimodality.Intent
         /// </summary>
         public static string CurrentRecipe { get; private set; }
 
+        /// <summary>
+        /// « Réinitialise la scène » oublie la recette en cours : « est-ce que c'est
+        /// prêt ? » ne doit pas porter sur le plat d'un visiteur précédent.
+        /// </summary>
+        internal static void Forget() => CurrentRecipe = null;
+
         // Un seul rappel vocal par occasion : « prépare X et Y » arrive en DEUX commandes,
         // et chacune ferait parler le cuisinier — deux « regardez-moi » d'affilée pour un
         // seul énoncé. En temps réel : la règle concerne le joueur, pas le ralenti.

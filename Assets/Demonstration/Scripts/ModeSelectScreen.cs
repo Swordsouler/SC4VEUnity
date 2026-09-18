@@ -29,7 +29,19 @@ namespace Sc4ve.Demonstration
             if (FindAnyObjectByType<ServiceProgression>() == null) return;
             if (FindAnyObjectByType<MultimodalityController>() == null) return;
 
+            // « Réinitialise la scène » fait REVENIR l'écran : le visiteur suivant choisit
+            // son propre mode. Le -= pare au double abonnement quand le domain reload est
+            // désactivé (l'événement statique survivrait d'un Play à l'autre).
+            ServiceProgression.GameReset -= EnsureScreen;
+            ServiceProgression.GameReset += EnsureScreen;
+
             ServiceProgression.WaitingForModeChoice = true;
+            EnsureScreen();
+        }
+
+        private static void EnsureScreen()
+        {
+            if (FindAnyObjectByType<ModeSelectScreen>() != null) return;
             new GameObject("Écran de départ").AddComponent<ModeSelectScreen>();
         }
 

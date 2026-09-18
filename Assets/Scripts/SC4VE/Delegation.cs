@@ -295,8 +295,20 @@ namespace Sc4ve.Multimodality
         /// </summary>
         public void Stop()
         {
-            // « Stop » emporte aussi la SUITE de la phrase : toute la liste, pas seulement
-            // la course en cours.
+            bool wasBusy = IsBusy;
+            Halt();
+            Say(wasBusy
+                ? (French ? "J'arrête." : "Stopping.")
+                : (French ? "Je ne fais rien." : "I am not doing anything."));
+        }
+
+        /// <summary>
+        /// Le cœur SILENCIEUX de Stop — « réinitialise la scène » arrête les serveurs sans
+        /// les faire parler chacun leur tour. « Stop » emporte aussi la SUITE de la
+        /// phrase : toute la liste d'ordres, pas seulement la course en cours.
+        /// </summary>
+        public void Halt()
+        {
             _orders.Clear();
 
             if (_task != null) { StopCoroutine(_task); _task = null; }
@@ -304,11 +316,7 @@ namespace Sc4ve.Multimodality
             if (_carried != null) Drop(transform.position + transform.forward * 0.4f);
             if (_agent != null && _agent.isOnNavMesh) _agent.ResetPath();
 
-            bool wasBusy = IsBusy;
             SetActivity(Activity.Idle, "");
-            Say(wasBusy
-                ? (French ? "J'arrête." : "Stopping.")
-                : (French ? "Je ne fais rien." : "I am not doing anything."));
         }
 
         // ─────────────────────────────────────────────────────────────────────
