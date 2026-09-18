@@ -47,7 +47,8 @@ namespace Sc4ve.Demonstration
             if (_elapsed > WatchDuration) Destroy(gameObject);
         }
 
-        private static bool HeadsetRunning()
+        /// <summary>Un affichage XR réel tourne-t-il ? Partagé avec HeightGuard.</summary>
+        internal static bool HeadsetRunning()
         {
             var displays = new List<UnityEngine.XR.XRDisplaySubsystem>();
             SubsystemManager.GetSubsystems(displays);
