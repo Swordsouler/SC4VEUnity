@@ -24,5 +24,23 @@ namespace Sc4ve.Voice
         /// l'écran de départ peut changer la langue APRÈS le Start du composant.
         /// </summary>
         public virtual void ApplyLocale() { }
+
+        /// <summary>
+        /// L'appui « parler » du push-to-talk, commun aux moteurs : la touche F au clavier
+        /// (la SEULE lettre que le XR Device Simulator ne lie pas — T basculait la manette,
+        /// V recentrait les périphériques) ou le bouton PRIMAIRE de la manette gauche
+        /// (X sur une Quest) — en casque, le clavier est hors de portée. L'aide-manettes
+        /// (ControllerHints) affiche ce bouton au-dessus de la manette.
+        /// </summary>
+        protected static bool PushToTalkHeld()
+        {
+            UnityEngine.InputSystem.Keyboard keyboard = UnityEngine.InputSystem.Keyboard.current;
+            if (keyboard != null && keyboard.fKey.isPressed) return true;
+
+            UnityEngine.InputSystem.XR.XRController left = UnityEngine.InputSystem.XR.XRController.leftHand;
+            if (left == null) return false;
+            var primary = left.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton");
+            return primary != null && primary.isPressed;
+        }
     }
 }

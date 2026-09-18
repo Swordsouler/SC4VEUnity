@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using Whisper;
 
 namespace Sc4ve.Voice
@@ -17,7 +16,7 @@ namespace Sc4ve.Voice
         [BoxGroup("Settings"), SerializeField, Tooltip("Démarre l'écoute automatiquement au lancement.")]
         private bool _autoStart = true;
 
-        [BoxGroup("Settings"), SerializeField, Tooltip("Active le mode Push-to-Talk (touche F).")]
+        [BoxGroup("Settings"), SerializeField, Tooltip("Active le mode Push-to-Talk (touche F, ou bouton X de la manette gauche).")]
         private bool _pushToTalk = false;
 
         private DateTime _recognizerStartedAt;
@@ -80,11 +79,9 @@ namespace Sc4ve.Voice
         {
             if (!_pushToTalk) return;
 
-            // F : la SEULE lettre que le XR Device Simulator ne lie pas. Son inputactions
-            // couvre tout le reste du clavier — T basculait la manette gauche à chaque prise
-            // de parole, et V (essayé ensuite) est « Reset », qui recentre les périphériques
-            // simulés.
-            bool keyPressed = Keyboard.current != null && Keyboard.current.fKey.isPressed;
+            // F au clavier ou X sur la manette gauche (PushToTalkHeld) : en casque, le
+            // clavier est hors de portée — l'aide-manettes affiche le bouton.
+            bool keyPressed = PushToTalkHeld();
 
             if (keyPressed && !_pttKeyActive)
             {

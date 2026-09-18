@@ -8,7 +8,6 @@ using System.IO;
 using System.Threading.Tasks;
 using Unity.Profiling;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.Networking;
 using Vosk;
 
@@ -71,7 +70,7 @@ namespace Sc4ve.Voice
             set => _keyPhrases = value;
         }
 
-        [BoxGroup("Settings"), SerializeField, Tooltip("Enable push to talk with the 'T' key.")]
+        [BoxGroup("Settings"), SerializeField, Tooltip("Enable push to talk with the 'F' key, or the left controller's X button.")]
         private bool _pushToTalk = false;
         public bool PushToTalk
         {
@@ -342,9 +341,9 @@ namespace Sc4ve.Voice
 
             if (_pushToTalk)
             {
-                // F : la seule lettre libre du XR Device Simulator (T basculait la manette,
-                // V déclenchait « Reset ») — même touche que le push-to-talk Whisper.
-                bool pttKeyIsPressed = Keyboard.current != null && Keyboard.current.fKey.isPressed;
+                // F au clavier ou X sur la manette gauche — même appui que le push-to-talk
+                // Whisper (PushToTalkHeld).
+                bool pttKeyIsPressed = PushToTalkHeld();
 
                 // Key was just pressed
                 if (pttKeyIsPressed && !_pttKeyActive)
