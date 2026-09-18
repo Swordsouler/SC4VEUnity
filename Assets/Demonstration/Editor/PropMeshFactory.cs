@@ -380,7 +380,7 @@ namespace Sc4ve.Demonstration.EditorTools
                 triangles.AddRange(new[] { bottomCentre, a, c });
                 triangles.AddRange(new[] { topCentre, d, b });
             }
-            return IngredientMeshFactory.Faceted(vertices, triangles);
+            return IngredientMeshFactory.Smooth(vertices, triangles);
         }
 
         /// <summary>
@@ -431,7 +431,7 @@ namespace Sc4ve.Demonstration.EditorTools
                 triangles.AddRange(new[] { outerFloor, a, b });          // dessous, vers −Y
                 triangles.AddRange(new[] { innerFloor, b + 3, a + 3 });  // fond intérieur, vers +Y
             }
-            return IngredientMeshFactory.Faceted(vertices, triangles);
+            return IngredientMeshFactory.Smooth(vertices, triangles);
         }
 
         private static Mesh Box(Vector3 scale)
@@ -449,7 +449,7 @@ namespace Sc4ve.Demonstration.EditorTools
                 0, 1, 5, 0, 5, 4,  3, 7, 6, 3, 6, 2,
                 0, 4, 7, 0, 7, 3,  1, 2, 6, 1, 6, 5,
             };
-            return IngredientMeshFactory.Faceted(vertices, triangles);
+            return IngredientMeshFactory.Smooth(vertices, triangles);
         }
 
         #endregion

@@ -250,7 +250,9 @@ namespace Sc4ve.Demonstration.EditorTools
                 existing.Clear();
                 existing.vertices = mesh.vertices;
                 existing.triangles = mesh.triangles;
-                existing.RecalculateNormals();
+                // Les normales sont COPIÉES, pas recalculées : RecalculateNormals referait
+                // du facetté par face, en écrasant le lissage par angle de Smooth.
+                existing.normals = mesh.normals;
                 existing.RecalculateBounds();
                 EditorUtility.SetDirty(existing);
                 return existing;
@@ -304,7 +306,7 @@ namespace Sc4ve.Demonstration.EditorTools
                 vertices[i] = Vector3.Scale(shaped * displacement, scale) * 0.5f;
             }
 
-            return Faceted(vertices, triangles);
+            return Smooth(vertices, triangles);
         }
 
         /// <summary>
@@ -358,7 +360,7 @@ namespace Sc4ve.Demonstration.EditorTools
                 foreach (int index in sliceTriangles) triangles.Add(start + index);
             }
 
-            return Faceted(vertices, triangles);
+            return Smooth(vertices, triangles);
         }
 
         /// <summary>Dalle à bords adoucis : une icosphère très aplatie, plus crédible qu'un cube.</summary>
@@ -382,7 +384,7 @@ namespace Sc4ve.Demonstration.EditorTools
                 0, 3, 5, 0, 5, 2,
                 1, 2, 5, 1, 5, 4,
             };
-            return Faceted(vertices, triangles);
+            return Smooth(vertices, triangles);
         }
 
         /// <summary>
@@ -433,7 +435,7 @@ namespace Sc4ve.Demonstration.EditorTools
             triangles.AddRange(new[] { 0, 1, 2, 0, 2, 3 });
             triangles.AddRange(new[] { last, last + 3, last + 2, last, last + 2, last + 1 });
 
-            return Faceted(vertices, triangles);
+            return Smooth(vertices, triangles);
         }
 
         /// <summary>Cylindre à faible nombre de côtés — os, pédoncule.</summary>
@@ -467,7 +469,7 @@ namespace Sc4ve.Demonstration.EditorTools
                 triangles.AddRange(new[] { bottom, a, c });
                 triangles.AddRange(new[] { top, d, b });
             }
-            return Faceted(vertices, triangles);
+            return Smooth(vertices, triangles);
         }
 
         /// <summary>
@@ -501,7 +503,7 @@ namespace Sc4ve.Demonstration.EditorTools
                 triangles.AddRange(new[] { centreBottom, d, b });
                 triangles.AddRange(new[] { a, b, d, a, d, c });
             }
-            return Faceted(vertices, triangles);
+            return Smooth(vertices, triangles);
         }
 
         #endregion
@@ -565,22 +567,60 @@ namespace Sc4ve.Demonstration.EditorTools
         }
 
         /// <summary>
-        /// Duplique les sommets par triangle pour que chaque facette ait sa propre normale.
-        /// C'est ce dédoublement, et non le nombre de triangles, qui donne l'aspect facetté.
+        /// Construit le mesh avec des normales LISSÉES par position : chaque coin de triangle
+        /// reçoit la moyenne, pondérée par l'aire, des faces qui se rejoignent à sa position
+        /// ET dont l'orientation est à moins de 60° de la sienne. Les surfaces courbes
+        /// deviennent continues à l'éclairage, les arêtes franches (couvercles des cylindres,
+        /// prisme du fromage) restent nettes — c'est le lissage par angle des importeurs.
+        ///
+        /// Les sommets restent dupliqués par coin, comme au temps du rendu facetté : c'est ce
+        /// qui permet à une même position de porter une normale différente de chaque côté
+        /// d'une arête vive. La soudure se fait par position ARRONDIE (au dixième de
+        /// millimètre), pas par index : les formes assemblées par morceaux (Arc, Sliced) se
+        /// lissent donc aussi à leurs coutures exactes.
         /// </summary>
-        internal static Mesh Faceted(List<Vector3> vertices, List<int> triangles)
+        internal static Mesh Smooth(List<Vector3> vertices, List<int> triangles)
         {
-            var flatVertices = new Vector3[triangles.Count];
-            var flatTriangles = new int[triangles.Count];
-
+            var corners = new Vector3[triangles.Count];
+            var indices = new int[triangles.Count];
             for (int i = 0; i < triangles.Count; i++)
             {
-                flatVertices[i] = vertices[triangles[i]];
-                flatTriangles[i] = i;
+                corners[i] = vertices[triangles[i]];
+                indices[i] = i;
             }
 
-            var mesh = new Mesh { vertices = flatVertices, triangles = flatTriangles };
-            mesh.RecalculateNormals();
+            // Normale de chaque face, PAS normalisée : sa longueur vaut deux fois l'aire du
+            // triangle, ce qui pondère la moyenne — une grande face pèse plus qu'un éclat.
+            var faceNormals = new Vector3[triangles.Count / 3];
+            for (int f = 0; f < faceNormals.Length; f++)
+                faceNormals[f] = Vector3.Cross(corners[f * 3 + 1] - corners[f * 3],
+                                               corners[f * 3 + 2] - corners[f * 3]);
+
+            var byPosition = new Dictionary<Vector3Int, List<int>>();
+            for (int i = 0; i < corners.Length; i++)
+            {
+                var key = new Vector3Int(Mathf.RoundToInt(corners[i].x * 10000f),
+                                         Mathf.RoundToInt(corners[i].y * 10000f),
+                                         Mathf.RoundToInt(corners[i].z * 10000f));
+                if (!byPosition.TryGetValue(key, out List<int> shared))
+                    byPosition[key] = shared = new List<int>();
+                shared.Add(i);
+            }
+
+            float threshold = Mathf.Cos(60f * Mathf.Deg2Rad);
+            var normals = new Vector3[corners.Length];
+            foreach (List<int> shared in byPosition.Values)
+                foreach (int i in shared)
+                {
+                    Vector3 own = faceNormals[i / 3].normalized;
+                    Vector3 sum = Vector3.zero;
+                    foreach (int j in shared)
+                        if (Vector3.Dot(own, faceNormals[j / 3].normalized) >= threshold)
+                            sum += faceNormals[j / 3];
+                    normals[i] = sum.sqrMagnitude > 1e-12f ? sum.normalized : own;
+                }
+
+            var mesh = new Mesh { vertices = corners, triangles = indices, normals = normals };
             mesh.RecalculateBounds();
             return mesh;
         }
