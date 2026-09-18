@@ -132,16 +132,96 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         /// au même format que celui produit par le LLM, prêt à être passé à
         /// DeserializeCommand puis CommandToGraphOutputCommandAsync.
         /// Retourne null si aucune intention n'est reconnue.
+        ///
+        /// Les ORDRES EN CASCADE (« prends la commande de ce client et débarrasse cette
+        /// table ») sont découpés en clauses (SplitClauses), reconnues chacune pour son
+        /// compte : chaque commande garde les horodatages de SES mots, donc SES pointages,
+        /// et ResolveCommands les exécute dans l'ordre — le serveur occupé par la première
+        /// note les suivantes (Defer, le carnet du serveur).
         /// </summary>
         public string Recognize(Sentence sentence)
         {
-            List<Command> recognized = Build(sentence, null);
-            if (recognized == null) return null;
+            if (sentence == null || string.IsNullOrWhiteSpace(sentence.Text)) return null;
+
+            var recognized = new List<Command>();
+            foreach ((string clauseText, List<Word> clauseWords) in SplitClauses(sentence))
+            {
+                List<Command> built = Build(clauseText, clauseWords, null);
+                if (built != null) recognized.AddRange(built);
+            }
+            if (recognized.Count == 0) return null;
 
             string produced = JsonConvert.SerializeObject(recognized, Formatting.Indented);
             Debug.Log($"[RuleBased] JSON produit :\n{produced}");
             return produced;
         }
+
+        /// <summary>
+        /// Découpe la phrase en CLAUSES de commande sur les connecteurs (« et », « puis »,
+        /// « ensuite »). Un segment SANS verbe de commande n'ouvre pas de clause : il est
+        /// rendu, connecteur compris, à la clause précédente — « prends la commande de Jean
+        /// et de Florence » reste UNE commande à deux cibles (le « et » restitué garde
+        /// l'union des prénoms), et « prépare une salade de fruits et une salade César »
+        /// garde son chemin multi-recettes. Le test du verbe passe par DetectCommandType
+        /// SANS son repli « plat nommé sans verbe » : une recette seule n'ouvre jamais de
+        /// clause. Une seule clause au final : la phrase repart ENTIÈRE, texte original —
+        /// rien ne change pour les phrases simples.
+        /// </summary>
+        private IEnumerable<(string Text, List<Word> Words)> SplitClauses(Sentence sentence)
+        {
+            List<Word> words = sentence.Words ?? new List<Word>();
+            if (words.Count == 0)
+            {
+                // Phrase sans mots horodatés (texte synthétique) : rien à découper.
+                yield return (sentence.Text, words);
+                yield break;
+            }
+
+            var connectors = new HashSet<string> { "et", "puis", "ensuite", "and", "then" };
+
+            // Segments bruts entre connecteurs, chacun mémorisant SON connecteur d'ouverture.
+            // Un connecteur en tête de phrase (« Et débarrasse… ») reste un mot ordinaire.
+            var segments = new List<(Word Connector, List<Word> Words)> { (null, new List<Word>()) };
+            foreach (Word word in words)
+            {
+                string token = word.Text.ToLowerInvariant().Trim('.', ',', '!', '?', ';', ':');
+                if (connectors.Contains(token) && segments[^1].Words.Count > 0)
+                    segments.Add((word, new List<Word>()));
+                else
+                    segments[^1].Words.Add(word);
+            }
+
+            // Fusion : un segment sans verbe de commande retourne au précédent.
+            var clauses = new List<List<Word>> { segments[0].Words };
+            foreach ((Word connector, List<Word> segment) in segments.Skip(1))
+            {
+                if (segment.Count > 0 &&
+                    DetectCommandType(TextOf(segment).ToLowerInvariant(), allowRecipeFallback: false) != null)
+                {
+                    clauses.Add(segment);
+                }
+                else
+                {
+                    clauses[^1].Add(connector);
+                    clauses[^1].AddRange(segment);
+                }
+            }
+
+            if (clauses.Count == 1)
+            {
+                yield return (sentence.Text, words);
+                yield break;
+            }
+
+            Debug.Log($"[RuleBased] Cascade : {clauses.Count} clauses — " +
+                      string.Join(" | ", clauses.Select(c => $"« {TextOf(c)} »")));
+            foreach (List<Word> clause in clauses)
+                yield return (TextOf(clause), clause);
+        }
+
+        /// <summary>Le texte d'une clause, reconstruit de ses mots horodatés.</summary>
+        private static string TextOf(List<Word> clause)
+            => string.Join(" ", clause.Select(w => w.Text));
 
         /// <summary>
         /// Le corps de la reconnaissance, qui rend la ou LES commandes : une phrase de
@@ -155,14 +235,14 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         /// que tout le reste — annotations, pointage, limite — s'en extrait normalement.
         /// Null en usage courant : le type se détecte.
         /// </param>
-        private List<Command> Build(Sentence sentence, string forcedCommandType)
+        private List<Command> Build(string rawText, List<Word> words, string forcedCommandType)
         {
-            if (sentence == null || string.IsNullOrWhiteSpace(sentence.Text))
+            if (string.IsNullOrWhiteSpace(rawText))
                 return null;
 
-            string text = sentence.Text.ToLowerInvariant().Trim();
+            string text = rawText.ToLowerInvariant().Trim();
             text = CorrectHomophones(text);
-            List<Word> words = sentence.Words ?? new List<Word>();
+            words ??= new List<Word>();
 
             // Référence explicite à la sélection courante : « les objets (actuellement)
             // sélectionnés », « la sélection ». Le participe « sélectionné(e)(s) » (accent
@@ -188,11 +268,11 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                                  ?? DetectCommandType(commandText);
             if (commandType == null)
             {
-                Debug.LogWarning($"[RuleBased] Aucune commande reconnue pour : \"{sentence.Text}\"");
+                Debug.LogWarning($"[RuleBased] Aucune commande reconnue pour : \"{rawText}\"");
                 return null;
             }
 
-            Debug.Log($"[RuleBased] Commande détectée : {commandType} | phrase : \"{sentence.Text}\"");
+            Debug.Log($"[RuleBased] Commande détectée : {commandType} | phrase : \"{rawText}\"");
 
             // 2. Extraction des entités
             //
@@ -389,7 +469,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // y a été laissée par Execute, et la réponse doit s'y AJOUTER, pas la remplacer.
             if (!filled && pending.ExpectsTargetAnswer)
             {
-                Command answer = Build(sentence, pending.Type)?.FirstOrDefault();
+                Command answer = Build(sentence.Text, sentence.Words, pending.Type)?.FirstOrDefault();
                 List<SelectionParameter> selections =
                     answer?.Parameters?.OfType<SelectionParameter>().ToList() ?? new List<SelectionParameter>();
 
@@ -511,7 +591,12 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             return "AddToSelectionCommand";
         }
 
-        private string DetectCommandType(string text)
+        /// <param name="allowRecipeFallback">
+        /// Faux pour le TEST DE COUPE des clauses (SplitClauses) : un plat nommé sans verbe
+        /// n'ouvre pas de clause — « et une salade César » prolonge la préparation en cours,
+        /// il ne la suit pas.
+        /// </param>
+        private string DetectCommandType(string text, bool allowRecipeFallback = true)
         {
             // Normalisation des accents pour la comparaison
             string normalizedText = FrenchStemmer.NormalizeAccents(text);
@@ -617,7 +702,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // « est-ce que c'est une salade de fruits ? » interroge sur un plat, elle n'en
             // commande pas.
             bool question = text.Contains("?") || Regex.IsMatch(normalizedText, @"\best[ -]ce\b");
-            if (!question && FindRecipe(text, out _) != null)
+            if (allowRecipeFallback && !question && FindRecipe(text, out _) != null)
             {
                 // « C'est la salade César » : Whisper entend « Sers » /sɛʁ/ et écrit son
                 // homophone « C'est » — le verbe de service disparaît de la transcription,
