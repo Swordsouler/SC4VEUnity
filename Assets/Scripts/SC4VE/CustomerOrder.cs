@@ -63,10 +63,13 @@ namespace Sc4ve.Multimodality
             public static Verdict Undecided(string sentence) => new(Outcome.Undecided, sentence);
         }
 
-        [SerializeField, Tooltip("Secondes de patience, en temps de JEU : le ralenti pendant " +
-                                 "la parole (§2) ralentit l'attente avec le reste du monde.")]
-        [Range(30f, 600f)]
-        private float _patience = 180f;
+        /// <summary>
+        /// Secondes de patience, en temps de JEU : le ralenti pendant la parole (§2) ralentit
+        /// l'attente avec le reste du monde. Une constante et non un champ sérialisé : la
+        /// valeur d'un champ était figée dans les modèles de clients à la construction de la
+        /// scène, si bien qu'un changement ici ne valait qu'après reconstruction.
+        /// </summary>
+        private const float Patience = 60f;
 
         // SÉRIALISÉS, et c'est vital : Bind() les remplit À L'ÉDITION, depuis
         // DemoSceneBuilder. Un champ privé non sérialisé rempli dans l'éditeur est effacé au
@@ -132,14 +135,14 @@ namespace Sc4ve.Multimodality
         public string WantedRecipe => _acceptable.Count > 0 ? _acceptable[0] : null;
 
         /// <summary>1 → 0. Figée dès que l'état vaut Served ou Gone.</summary>
-        public float PatienceRatio => _patience > 0f ? Mathf.Clamp01(_remaining / _patience) : 0f;
+        public float PatienceRatio => Mathf.Clamp01(_remaining / Patience);
 
         /// <summary>
         /// Secondes de JEU entre l'arrivée du client et l'assiette acceptée : la patience
         /// consommée, figée au service. L'écran de fin en fait la moyenne (« temps moyen
         /// par client ») ; sans objet tant que State ne vaut pas Served.
         /// </summary>
-        public float ServiceTime => _patience - _remaining;
+        public float ServiceTime => Patience - _remaining;
 
         /// <summary>
         /// Plats refusés par CE client (contrainte, plat déjà passé, non-conformité, assiette
@@ -202,7 +205,7 @@ namespace Sc4ve.Multimodality
         /// </summary>
         private void Start()
         {
-            _remaining = _patience;
+            _remaining = Patience;
 
             if (_table == null)
                 Debug.LogError($"[Client] {name} : aucune table liée (Bind non appelé ?) — " +
