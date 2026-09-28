@@ -135,6 +135,13 @@ namespace Sc4ve.Multimodality
         public float PatienceRatio => _patience > 0f ? Mathf.Clamp01(_remaining / _patience) : 0f;
 
         /// <summary>
+        /// Secondes de JEU entre l'arrivée du client et l'assiette acceptée : la patience
+        /// consommée, figée au service. L'écran de fin en fait la moyenne (« temps moyen
+        /// par client ») ; sans objet tant que State ne vaut pas Served.
+        /// </summary>
+        public float ServiceTime => _patience - _remaining;
+
+        /// <summary>
         /// Plats refusés par CE client (contrainte, plat déjà passé, non-conformité, assiette
         /// vide). Porté par le client et LU par le tableau : le score du lot 5 reste une
         /// projection d'états du monde, jamais un compteur tenu ailleurs.
@@ -347,14 +354,19 @@ namespace Sc4ve.Multimodality
             // départ : il a déjà eu son « bon appétit ».
             if (_stage == Stage.Served)
             {
-                if (Time.time - _servedAt >= _eatingDuration)
+                // La barre ne se fige pas au service : elle décompte le REPAS, en bleu. Elle
+                // dit toujours la même chose — le temps avant que le client ne parte — et
+                // annonce au joueur quand la table sera à débarrasser.
+                float eaten = Time.time - _servedAt;
+                UpdateGauge(1f - eaten / _eatingDuration, MealColor);
+                if (eaten >= _eatingDuration)
                     Depart(French ? "repart satisfait — la table est libre"
                                   : "leaves satisfied — the table is free");
                 return;
             }
 
             _remaining -= Time.deltaTime;
-            UpdateGauge();
+            UpdateGauge(PatienceRatio, UnityEngine.Color.Lerp(ImpatientColor, PatientColor, PatienceRatio));
 
             if (_remaining > 0f) return;
 
@@ -399,19 +411,21 @@ namespace Sc4ve.Multimodality
             _servedDish = null;
         }
 
-        private void UpdateGauge()
+        private static readonly UnityEngine.Color PatientColor   = new(0.35f, 0.65f, 0.30f);
+        private static readonly UnityEngine.Color ImpatientColor = new(0.75f, 0.22f, 0.18f);
+        private static readonly UnityEngine.Color MealColor      = new(0.30f, 0.55f, 0.85f);
+
+        /// <summary>La barre au-dessus de la tête : remplie à <paramref name="ratio"/>, fondant vers la gauche.</summary>
+        private void UpdateGauge(float ratio, UnityEngine.Color color)
         {
             if (_gaugeFill == null) return;
 
-            float ratio = PatienceRatio;
             Vector3 scale = _gaugeFill.localScale;
-            scale.x = ratio;
+            scale.x = Mathf.Clamp01(ratio);
             _gaugeFill.localScale = scale;
 
             Renderer fill = _gaugeFill.GetComponentInChildren<Renderer>();
-            if (fill != null)
-                fill.material.color = UnityEngine.Color.Lerp(new UnityEngine.Color(0.75f, 0.22f, 0.18f),
-                                                 new UnityEngine.Color(0.35f, 0.65f, 0.30f), ratio);
+            if (fill != null) fill.material.color = color;
         }
 
         // ── Parole : internal, et c'est la garantie du critère 1 ──────────────
@@ -533,7 +547,6 @@ namespace Sc4ve.Multimodality
                     _stage = Stage.Served;
                     _servedAt = Time.time;
                     _servedDish = dish;
-                    UpdateGauge();
                     string dishLabel = await OntologyLabels.GetAsync(report.Recipe, UserData.Locale);
                     Debug.Log($"[Client] {name} : accepte — {report}.");
                     // Le client ne parle pas à l'acceptation : une seule voix par événement,

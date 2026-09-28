@@ -66,9 +66,36 @@ namespace Sc4ve.Multimodality
         [Range(3f, 60f)]
         private float _minInterval = 6f;
 
+        [SerializeField, Tooltip("La partie s'arrête quand ce nombre de clients est parti sans être servi.")]
+        [Range(1, 10)]
+        private int _maxDepartures = 3;
+
         private float _interval;
         private float _nextArrivalAt;
         private int _spawned;
+
+        /// <summary>
+        /// Les clients de CETTE partie, les clones et jamais les modèles : c'est parmi eux
+        /// que se comptent les départs. Un client parti est désactivé, jamais détruit — son
+        /// état Gone reste lisible ici jusqu'à la réinitialisation.
+        /// </summary>
+        private readonly List<CustomerOrder> _customers = new();
+
+        /// <summary>Les « vies » de la partie : la tablette affiche partis N/max.</summary>
+        public int MaxDepartures => _maxDepartures;
+
+        /// <summary>
+        /// Vrai du départ qui atteint la limite jusqu'à la réinitialisation : plus aucune
+        /// arrivée, et l'écran de fin fige le temps. Statique, comme WaitingForModeChoice :
+        /// le menu pause (autre assembly) le lit pour ne pas relancer une partie finie.
+        /// </summary>
+        public static bool IsGameOver { get; private set; }
+
+        /// <summary>
+        /// Levé UNE fois, quand un client part sans être servi et que la limite est
+        /// atteinte : l'écran de fin (autre assembly, d'où l'événement) s'ouvre.
+        /// </summary>
+        public static event System.Action GameOver;
 
         /// <summary>
         /// Vrai tant que l'écran de départ attend le choix du mode (ModeSelectScreen) : la
@@ -105,9 +132,11 @@ namespace Sc4ve.Multimodality
                 if (customer != null && !_templates.Contains(customer))
                     Destroy(customer.gameObject);
 
+            _customers.Clear();
             _interval = _startInterval;
             _spawned = 0;
             _nextArrivalAt = Time.time + _firstArrivalDelay;
+            IsGameOver = false;
             WaitingForModeChoice = true;
             GameReset?.Invoke();
 
@@ -118,6 +147,8 @@ namespace Sc4ve.Multimodality
         {
             _interval = _startInterval;
             _nextArrivalAt = Time.time + _firstArrivalDelay;
+            // Statique : sans domain reload, la fin d'une partie survivrait au Play suivant.
+            IsGameOver = false;
         }
 
         private void Update()
@@ -127,6 +158,18 @@ namespace Sc4ve.Multimodality
                 // La partie n'a pas commencé : on ré-arme, pour que le premier client
                 // arrive _firstArrivalDelay après le CHOIX, pas pendant l'écran.
                 _nextArrivalAt = Time.time + _firstArrivalDelay;
+                return;
+            }
+
+            if (IsGameOver) return;
+
+            // Seul un départ SANS service coûte une vie : le client servi qui repart après
+            // son repas est une réussite.
+            if (Departures() >= _maxDepartures)
+            {
+                IsGameOver = true;
+                Debug.Log($"[Progression] {_maxDepartures} clients partis sans être servis — fin de partie.");
+                GameOver?.Invoke();
                 return;
             }
 
@@ -172,7 +215,18 @@ namespace Sc4ve.Multimodality
             if (label != null) label.text = clone.name;
 
             clone.SetActive(true);
+            _customers.Add(clone.GetComponent<CustomerOrder>());
             Debug.Log($"[Progression] {clone.name} s'installe.");
+        }
+
+        /// <summary>Clients de cette partie partis sans être servis.</summary>
+        private int Departures()
+        {
+            int gone = 0;
+            foreach (CustomerOrder customer in _customers)
+                if (customer != null && customer.State == CustomerOrder.Stage.Gone)
+                    gone++;
+            return gone;
         }
 
         /// <summary>

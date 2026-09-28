@@ -92,16 +92,7 @@ namespace Sc4ve.Demonstration
             // monter à hauteur d'yeux, puis on place quoi qu'il arrive (simulateur…).
             if (Time.timeSinceLevelLoad < 2f && head.transform.position.y < 0.5f) return;
 
-            Vector3 forward = head.transform.forward;
-            forward.y = 0f;
-            if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
-            forward.Normalize();
-
-            transform.position = head.transform.position + forward * 1.35f + Vector3.down * 0.15f;
-            // +z du panneau = dos au joueur : un TextMesh se lit depuis son -z, même règle
-            // que la jauge, les prénoms et les bulles.
-            transform.rotation = Quaternion.LookRotation(forward);
-            _placed = true;
+            _placed = XRPanel.PlaceBeforeHead(transform);
         }
 
         private void Build()

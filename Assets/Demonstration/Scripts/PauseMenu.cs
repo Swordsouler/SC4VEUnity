@@ -14,9 +14,8 @@ namespace Sc4ve.Demonstration
     /// Même chair que l'écran de départ (XRPanel), même bootstrap (ServiceProgression
     /// comme marqueur du mini-jeu). Le porteur PERSISTE et écoute le bouton ; le panneau
     /// n'existe qu'ouvert, replacé devant la tête à chaque ouverture. Pendant l'écran de
-    /// départ, le bouton est ignoré : rien à mettre en pause, et les deux panneaux se
-    /// superposeraient. Le gel passe par timeScale 0 AVEC ListeningTimeScale.Paused levé,
-    /// sans quoi le ralenti d'écoute ramènerait le temps vers 1 dès la frame suivante.
+    /// départ et l'écran de fin, le bouton est ignoré : rien à mettre en pause, et deux
+    /// panneaux se superposeraient. Le gel passe par ListeningTimeScale.Freeze.
     /// </summary>
     public class PauseMenu : MonoBehaviour
     {
@@ -77,17 +76,17 @@ namespace Sc4ve.Demonstration
         private void Toggle()
         {
             if (_open) { Close(); return; }
-            if (ServiceProgression.WaitingForModeChoice) return;
+            // À l'écran de fin, « Reprendre » relancerait le temps d'une partie terminée.
+            if (ServiceProgression.WaitingForModeChoice || ServiceProgression.IsGameOver) return;
             Open();
         }
 
         private void Open()
         {
             _open = true;
-            Place();
+            XRPanel.PlaceBeforeHead(transform);
             Build();
-            ListeningTimeScale.Paused = true;
-            Time.timeScale = 0f;
+            ListeningTimeScale.Freeze();
             Debug.Log("[Menu pause] Ouvert — le temps est figé.");
         }
 
@@ -97,10 +96,7 @@ namespace Sc4ve.Demonstration
             XRPanel.HoveredAction = null;
             foreach (Transform child in transform) Destroy(child.gameObject);
 
-            ListeningTimeScale.Paused = false;
-            ListeningTimeScale listening = FindAnyObjectByType<ListeningTimeScale>();
-            if (listening != null) listening.ResetToNormal();
-            else Time.timeScale = 1f;
+            ListeningTimeScale.Unfreeze();
             Debug.Log("[Menu pause] Fermé — le temps reprend.");
         }
 
@@ -116,22 +112,6 @@ namespace Sc4ve.Demonstration
             Close();
             Debug.Log("[Menu pause] Réinitialisation demandée au bouton.");
             new ResetSceneCommand().Execute();
-        }
-
-        /// <summary>Devant la tête, à la même distance que l'écran de départ — mais SANS
-        /// attente de suivi : en pleine partie, le casque est déjà pris en main.</summary>
-        private void Place()
-        {
-            Camera head = Camera.main;
-            if (head == null) return;
-
-            Vector3 forward = head.transform.forward;
-            forward.y = 0f;
-            if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
-            forward.Normalize();
-
-            transform.position = head.transform.position + forward * 1.35f + Vector3.down * 0.15f;
-            transform.rotation = Quaternion.LookRotation(forward);
         }
 
         private void Build()

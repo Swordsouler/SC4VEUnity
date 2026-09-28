@@ -995,8 +995,11 @@ namespace Sc4ve.Demonstration.EditorTools
             GameObject fill = GameObject.CreatePrimitive(PrimitiveType.Cube);
             fill.name = "Remplissage";
             fill.transform.SetParent(pivot.transform, worldPositionStays: false);
-            fill.transform.localPosition = new Vector3(0.24f, 0f, 0f);
-            fill.transform.localScale = new Vector3(0.48f, 0.06f, 0.015f);
+            // DEVANT le fond, côté lecteur (-z, la face que FaceCamera présente à la caméra).
+            // Centré comme lui, le remplissage était ENFERMÉ dans le cube du fond (±0,0075
+            // dans ±0,01) : invisible de partout, la jauge n'était qu'une barre noire.
+            fill.transform.localPosition = new Vector3(0.24f, 0f, -0.0125f);
+            fill.transform.localScale = new Vector3(0.48f, 0.06f, 0.005f);
             fill.GetComponent<Renderer>().sharedMaterial =
                 GetMaterial("JaugeRemplissage", new Color(0.35f, 0.65f, 0.30f));
             UnityEngine.Object.DestroyImmediate(fill.GetComponent<Collider>());

@@ -73,9 +73,27 @@ namespace Sc4ve.Multimodality
 
         private void StopListening() => _target = 1f;
 
-        /// <summary>Retour immédiat au temps normal, fixedDeltaTime compris — la reprise
-        /// du menu pause, qui peut interrompre un ralenti en cours de transition.</summary>
-        public void ResetToNormal() => Apply(1f);
+        /// <summary>
+        /// Fige le temps de jeu (menu pause, écran de fin) : timeScale 0 ET Paused levé,
+        /// sans quoi Update ramènerait le temps vers sa cible dès la frame suivante.
+        /// </summary>
+        public static void Freeze()
+        {
+            Paused = true;
+            Time.timeScale = 0f;
+        }
+
+        /// <summary>
+        /// Le temps repart, fixedDeltaTime compris : un ralenti interrompu en pleine
+        /// transition ne reprend pas où il s'était arrêté.
+        /// </summary>
+        public static void Unfreeze()
+        {
+            Paused = false;
+            ListeningTimeScale listening = FindAnyObjectByType<ListeningTimeScale>();
+            if (listening != null) listening.Apply(1f);
+            else Time.timeScale = 1f;
+        }
 
         private void Update()
         {

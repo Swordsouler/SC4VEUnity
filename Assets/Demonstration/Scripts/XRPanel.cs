@@ -42,6 +42,27 @@ namespace Sc4ve.Demonstration
             return trigger != null && trigger.ReadValue() > 0.6f;
         }
 
+        /// <summary>
+        /// Pose le panneau devant la tête, légèrement sous le regard, face au joueur — la
+        /// même place pour tous les panneaux. Faux tant qu'aucune caméra n'est là.
+        /// </summary>
+        internal static bool PlaceBeforeHead(Transform panel)
+        {
+            Camera head = Camera.main;
+            if (head == null) return false;
+
+            Vector3 forward = head.transform.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
+            forward.Normalize();
+
+            panel.position = head.transform.position + forward * 1.35f + Vector3.down * 0.15f;
+            // +z du panneau = dos au joueur : un TextMesh se lit depuis son -z, même règle
+            // que la jauge, les prénoms et les bulles.
+            panel.rotation = Quaternion.LookRotation(forward);
+            return true;
+        }
+
         /// <summary>Le fond sombre du panneau, sans collider — il ne doit pas voler le rayon.</summary>
         internal static void Backdrop(Transform parent)
         {

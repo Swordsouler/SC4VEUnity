@@ -45,6 +45,7 @@ namespace Sc4ve.Demonstration
         private TextMesh _text;
         private float _nextRefresh;
 
+        private ServiceProgression _progression;
         private VoiceProcessor _voice;
         private BaseSpeechToText _recognizer;
         private MicState _mic;
@@ -54,6 +55,7 @@ namespace Sc4ve.Demonstration
         private void Start()
         {
             _text = GetComponent<TextMesh>();
+            _progression = FindAnyObjectByType<ServiceProgression>();
 
             _voice = FindAnyObjectByType<VoiceProcessor>();
             if (_voice != null)
@@ -132,7 +134,9 @@ namespace Sc4ve.Demonstration
         {
             bool french = UserData.Locale == "fr";
             var lines = new StringBuilder(MicLine(french));
-            lines.Append('\n').Append(french ? "COMMANDES" : "ORDERS");
+            lines.Append('\n').Append(ServiceProgression.IsGameOver
+                ? (french ? "PARTIE TERMINÉE" : "GAME OVER")
+                : (french ? "COMMANDES" : "ORDERS"));
 
             // TOUS, inactifs compris, pour le SCORE : un client parti emporte son corps
             // mais pas son histoire — Served/Gone, refus et patience restent figés sur lui.
@@ -171,7 +175,8 @@ namespace Sc4ve.Demonstration
                 if (line != null) lines.Append('\n').Append(line);
             }
 
-            lines.Append('\n').Append(ScoreLine(everyone, french));
+            lines.Append('\n').Append(ScoreLine(everyone, french,
+                _progression != null ? _progression.MaxDepartures : 0));
             return lines.ToString();
         }
 
@@ -211,20 +216,22 @@ namespace Sc4ve.Demonstration
         /// Le score VISIBLE du lot 5, dérivé de TOUS les CustomerOrder, partis compris : un
         /// client quitte la salle DÉSACTIVÉ, jamais détruit, précisément pour que son état
         /// figé (Served/Gone, refus) reste lisible ici — le tableau reste une projection,
-        /// le score n'a aucun état à lui. Plus de dénominateur : le flux est sans fin,
-        /// « 3 servis » se suffit. (La satisfaction — patience restante au moment du
-        /// service, figée sur chaque client servi — reste calculable depuis ces mêmes
-        /// états ; elle n'est volontairement PLUS AFFICHÉE, à la demande.)
+        /// le score n'a aucun état à lui. Seuls les partis ont un dénominateur : ce sont
+        /// les « vies » de la partie, qui s'arrête à la limite (ServiceProgression). (La
+        /// satisfaction — patience restante au moment du service, figée sur chaque client
+        /// servi — reste calculable depuis ces mêmes états ; elle n'est volontairement PLUS
+        /// AFFICHÉE, à la demande.)
         /// </summary>
-        private static string ScoreLine(CustomerOrder[] everyone, bool french)
+        private static string ScoreLine(CustomerOrder[] everyone, bool french, int maxDepartures)
         {
             int served   = everyone.Count(c => c.State == CustomerOrder.Stage.Served);
             int gone     = everyone.Count(c => c.State == CustomerOrder.Stage.Gone);
             int refusals = everyone.Sum(c => c.Refusals);
+            string left  = maxDepartures > 0 ? $"{gone}/{maxDepartures}" : $"{gone}";
 
             return french
-                ? $"— servis {served} · refus {refusals} · partis {gone}"
-                : $"— served {served} · refusals {refusals} · left {gone}";
+                ? $"— servis {served} · refus {refusals} · partis {left}"
+                : $"— served {served} · refusals {refusals} · left {left}";
         }
 
         private static string Row(CustomerOrder customer, bool french)
