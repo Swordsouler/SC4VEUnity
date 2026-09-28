@@ -98,6 +98,10 @@ namespace Sc4ve.Demonstration.EditorTools
             EnsureDeviceSimulator();
             BakeNavMesh(root);
 
+            // L'empreinte des sources qui ont produit cette scène : comparée au lancement,
+            // elle signale une scène que le constructeur a dépassée (SceneBuildStamp).
+            root.gameObject.AddComponent<SceneBuildStamp>().Stamp(SceneBuildStamp.BuilderHash());
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.Refresh();
