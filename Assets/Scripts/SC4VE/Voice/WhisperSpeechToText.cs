@@ -16,7 +16,7 @@ namespace Sc4ve.Voice
         [BoxGroup("Settings"), SerializeField, Tooltip("Démarre l'écoute automatiquement au lancement.")]
         private bool _autoStart = true;
 
-        [BoxGroup("Settings"), SerializeField, Tooltip("Active le mode Push-to-Talk (touche F, ou bouton X de la manette gauche).")]
+        [BoxGroup("Settings"), SerializeField, Tooltip("Active le mode Push-to-Talk (touche F, ou n'importe quel bouton de la manette gauche sauf Menu).")]
         private bool _pushToTalk = false;
 
         private DateTime _recognizerStartedAt;
@@ -79,8 +79,8 @@ namespace Sc4ve.Voice
         {
             if (!_pushToTalk) return;
 
-            // F au clavier ou X sur la manette gauche (PushToTalkHeld) : en casque, le
-            // clavier est hors de portée — l'aide-manettes affiche le bouton.
+            // F au clavier ou un bouton de la manette gauche (PushToTalkHeld) : en casque,
+            // le clavier est hors de portée — l'aide-manettes l'affiche.
             bool keyPressed = PushToTalkHeld();
 
             if (keyPressed && !_pttKeyActive)

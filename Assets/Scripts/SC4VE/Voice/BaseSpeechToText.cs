@@ -26,11 +26,26 @@ namespace Sc4ve.Voice
         public virtual void ApplyLocale() { }
 
         /// <summary>
+        /// Les boutons de la manette gauche qui font parler : TOUS, sauf Menu, réservé au menu
+        /// pause. Les noms couvrent les deux familles de dispositions (profils OpenXR et
+        /// dispositions XR génériques). Une liste plutôt que « tout bouton de la manette » :
+        /// une manette XR expose aussi comme boutons isTracked (toujours vrai) et ses capteurs
+        /// tactiles (pouce simplement posé), qui ouvriraient le micro sans le moindre appui.
+        /// </summary>
+        private static readonly string[] TalkButtons =
+        {
+            "primaryButton", "secondaryButton",        // X, Y
+            "triggerPressed", "triggerButton",         // gâchette
+            "gripPressed", "gripButton",               // grip
+            "thumbstickClicked", "primary2DAxisClick", // clic du joystick
+        };
+
+        /// <summary>
         /// L'appui « parler » du push-to-talk, commun aux moteurs : la touche F au clavier
         /// (la SEULE lettre que le XR Device Simulator ne lie pas — T basculait la manette,
-        /// V recentrait les périphériques) ou le bouton PRIMAIRE de la manette gauche
-        /// (X sur une Quest) — en casque, le clavier est hors de portée. L'aide-manettes
-        /// (ControllerHints) affiche ce bouton au-dessus de la manette.
+        /// V recentrait les périphériques) ou n'importe quel bouton de la manette gauche
+        /// (TalkButtons) — en casque, le clavier est hors de portée, et le visiteur n'a pas
+        /// à chercher LE bon bouton. L'aide-manettes (ControllerHints) l'affiche.
         /// </summary>
         protected static bool PushToTalkHeld()
         {
@@ -39,8 +54,12 @@ namespace Sc4ve.Voice
 
             UnityEngine.InputSystem.XR.XRController left = UnityEngine.InputSystem.XR.XRController.leftHand;
             if (left == null) return false;
-            var primary = left.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton");
-            return primary != null && primary.isPressed;
+            foreach (string name in TalkButtons)
+            {
+                var button = left.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>(name);
+                if (button != null && button.isPressed) return true;
+            }
+            return false;
         }
     }
 }

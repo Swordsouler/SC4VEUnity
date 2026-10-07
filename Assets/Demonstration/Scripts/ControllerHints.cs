@@ -6,8 +6,8 @@ namespace Sc4ve.Demonstration
     /// <summary>
     /// Les touches, écrites SUR les manettes : une étiquette au-dessus de chaque contrôleur
     /// (billboard FaceCamera, comme les prénoms), qui dit ce que fait chaque bouton — le
-    /// visiteur n'a pas à le deviner ni à retenir un briefing. Gauche : parler (X, en
-    /// MAINTIEN — le push-to-talk) et le menu pause. Droite : cliquer (gâchette) — la
+    /// visiteur n'a pas à le deviner ni à retenir un briefing. Gauche : parler (n'importe
+    /// quel bouton, en MAINTIEN — le push-to-talk) et le menu pause. Droite : cliquer (gâchette) — la
     /// saisie à la main n'existe pas dans cette démo (GrabPolicy), le grip ne fait rien.
     /// Les textes suivent la langue choisie à l'écran de départ.
     ///
@@ -50,8 +50,8 @@ namespace Sc4ve.Demonstration
             bool french = _locale != "en";
             if (_left != null)
                 _left.text = french
-                    ? "X (maintenir) : parler\nMenu : pause"
-                    : "X (hold): talk\nMenu: pause";
+                    ? "Maintenir un bouton : parler\nMenu : pause"
+                    : "Hold any button: talk\nMenu: pause";
             if (_right != null)
                 _right.text = french
                     ? "Gâchette : cliquer"
