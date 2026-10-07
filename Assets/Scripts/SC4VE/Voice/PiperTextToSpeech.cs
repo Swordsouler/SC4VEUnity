@@ -168,10 +168,19 @@ namespace Sc4ve.Voice
                 return false;
             }
 
+            // Piper lancé DEPUIS son dossier, modèle et données eSpeak en chemins RELATIFS :
+            // il plante sans un mot (0xC0000409) dès qu'un chemin qu'il traite lui-même
+            // contient un caractère accentué — le projet sous « P:\Thèse\ » rendait toute
+            // synthèse muette. Le chemin de l'exécutable, lui, passe par Windows et ne gêne
+            // pas ; la sortie reste absolue, dans le dossier temporaire.
+            string piperDir = Path.GetDirectoryName(piperExe);
             var psi = new ProcessStartInfo
             {
                 FileName               = piperExe,
-                Arguments              = $"--model \"{modelPath}\" --output_file \"{outputFile}\"",
+                WorkingDirectory       = piperDir,
+                Arguments              = $"--model \"{Path.GetRelativePath(piperDir, modelPath)}\" " +
+                                         "--espeak_data \"espeak-ng-data\" " +
+                                         $"--output_file \"{outputFile}\"",
                 UseShellExecute        = false,
                 RedirectStandardInput  = true,
                 RedirectStandardError  = true,
