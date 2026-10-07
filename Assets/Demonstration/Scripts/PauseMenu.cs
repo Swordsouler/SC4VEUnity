@@ -31,6 +31,9 @@ namespace Sc4ve.Demonstration
         private bool _menuWasPressed;
         private bool _triggerWasPressed;
 
+        /// <summary>Vrai tant que le menu est ouvert — l'aide-manettes n'affiche la gâchette qu'en menu.</summary>
+        internal bool IsOpen => _open;
+
         private void OnEnable()
         {
             // « Réinitialise la scène » PENDANT la pause (le micro écoute toujours) : le

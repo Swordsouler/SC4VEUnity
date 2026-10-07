@@ -4,11 +4,12 @@ using UnityEngine;
 namespace Sc4ve.Demonstration
 {
     /// <summary>
-    /// Les touches, écrites SUR les manettes : une étiquette au-dessus de chaque contrôleur
+    /// Les touches, écrites SUR les manettes : une étiquette sous chaque contrôleur
     /// (billboard FaceCamera, comme les prénoms), qui dit ce que fait chaque bouton — le
     /// visiteur n'a pas à le deviner ni à retenir un briefing. Gauche : parler (n'importe
-    /// quel bouton, en MAINTIEN — le push-to-talk) et le menu pause. Droite : cliquer (gâchette) — la
-    /// saisie à la main n'existe pas dans cette démo (GrabPolicy), le grip ne fait rien.
+    /// quel bouton, en MAINTIEN — le push-to-talk) et le menu pause. Droite : cliquer (gâchette),
+    /// affichée seulement quand un panneau est ouvert — la gâchette ne sert qu'à eux, la
+    /// saisie à la main n'existe pas dans cette démo (GrabPolicy).
     /// Les textes suivent la langue choisie à l'écran de départ.
     ///
     /// Même bootstrap que le menu pause (ServiceProgression comme marqueur du mini-jeu).
@@ -29,6 +30,7 @@ namespace Sc4ve.Demonstration
         private TextMesh _left;
         private TextMesh _right;
         private string _locale;
+        private PauseMenu _pause;
 
         private void Update()
         {
@@ -43,6 +45,16 @@ namespace Sc4ve.Demonstration
                 _locale = UserData.Locale;
                 Write();
             }
+
+            if (_right != null) _right.gameObject.SetActive(InMenu());
+        }
+
+        /// <summary>Un panneau est-il ouvert : écran de départ, menu pause ou écran de fin ?</summary>
+        private bool InMenu()
+        {
+            if (_pause == null) _pause = FindAnyObjectByType<PauseMenu>();
+            return ServiceProgression.WaitingForModeChoice || ServiceProgression.IsGameOver
+                   || (_pause != null && _pause.IsOpen);
         }
 
         private void Write()
@@ -65,9 +77,10 @@ namespace Sc4ve.Demonstration
 
             var holder = new GameObject("Aide");
             holder.transform.SetParent(controller.transform, false);
-            // Au-dessus de la manette — assez haut pour ne pas mordre la tablette, qui
-            // occupe déjà le poignet gauche.
-            holder.transform.localPosition = new Vector3(0f, 0.11f, 0f);
+            // SOUS la manette, le texte poussant vers le bas : au-dessus, il passait devant la
+            // tablette, collée à la main gauche et inclinée vers le visage — elle descend à
+            // peine 3 cm sous la main, d'où les 7 cm de marge.
+            holder.transform.localPosition = new Vector3(0f, -0.07f, 0f);
             holder.AddComponent<FaceCamera>();
 
             var mesh = holder.AddComponent<TextMesh>();
@@ -75,7 +88,7 @@ namespace Sc4ve.Demonstration
             mesh.font = font;
             mesh.fontSize = 72;
             mesh.characterSize = 0.0032f;
-            mesh.anchor = TextAnchor.LowerCenter;
+            mesh.anchor = TextAnchor.UpperCenter;
             mesh.alignment = TextAlignment.Center;
             mesh.color = Color.white;
             if (font != null)
