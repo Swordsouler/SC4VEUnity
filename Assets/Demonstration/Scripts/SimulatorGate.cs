@@ -11,8 +11,13 @@ namespace Sc4ve.Demonstration
     /// sol »), et les manettes lues par l'aide et les menus pouvaient être les simulées.
     /// Sa désactivation retire ses appareils (OnDisable) : le rig retrouve le casque.
     ///
-    /// Le subsystem d'affichage peut mettre quelques instants à démarrer : on guette
-    /// pendant cinq secondes, puis on conclut au bureau — le simulateur reste, comme avant.
+    /// La garde guette toute la session, sans délai limite : avec un Quest 3S en Link, la
+    /// session XR a démarré plus de cinq secondes après la scène (la fenêtre d'origine,
+    /// mesurée en temps d'image, fond aussi pendant les à-coups du chargement). Le
+    /// simulateur était resté actif, avec deux manettes gauches et deux droites : le rayon
+    /// et la gâchette ne cliquaient plus l'écran de départ, et l'appui sur X, lu tantôt
+    /// sur la vraie manette tantôt sur la simulée, se hachait en appuis trop brefs pour
+    /// capter le moindre son. Sans casque, la garde reste simplement en veille.
     /// </summary>
     public class SimulatorGate : MonoBehaviour
     {
@@ -25,34 +30,28 @@ namespace Sc4ve.Demonstration
             new GameObject("Garde-simulateur").AddComponent<SimulatorGate>();
         }
 
-        private const float WatchDuration = 5f;
-        private float _elapsed;
-
         private void Update()
         {
-            _elapsed += Time.unscaledDeltaTime;
+            if (!HeadsetRunning()) return;
 
-            if (HeadsetRunning())
+            GameObject simulator = GameObject.Find("XR Device Simulator");
+            if (simulator != null)
             {
-                GameObject simulator = GameObject.Find("XR Device Simulator");
-                if (simulator != null)
-                {
-                    simulator.SetActive(false);
-                    Debug.Log("[Garde-simulateur] Casque réel détecté : XR Device Simulator désactivé.");
-                }
-                Destroy(gameObject);
-                return;
+                simulator.SetActive(false);
+                Debug.Log($"[Garde-simulateur] Casque réel détecté à {Time.realtimeSinceStartup:0.0} s : " +
+                          "XR Device Simulator désactivé.");
             }
-
-            if (_elapsed > WatchDuration) Destroy(gameObject);
+            Destroy(gameObject);
         }
 
-        /// <summary>Un affichage XR réel tourne-t-il ? Partagé avec HeightGuard.</summary>
+        // Réutilisée : la garde et HeightGuard/TrackingGuard interrogent à chaque image.
+        private static readonly List<UnityEngine.XR.XRDisplaySubsystem> Displays = new();
+
+        /// <summary>Un affichage XR réel tourne-t-il ? Partagé avec HeightGuard et TrackingGuard.</summary>
         internal static bool HeadsetRunning()
         {
-            var displays = new List<UnityEngine.XR.XRDisplaySubsystem>();
-            SubsystemManager.GetSubsystems(displays);
-            foreach (UnityEngine.XR.XRDisplaySubsystem display in displays)
+            SubsystemManager.GetSubsystems(Displays);
+            foreach (UnityEngine.XR.XRDisplaySubsystem display in Displays)
                 if (display.running) return true;
             return false;
         }
