@@ -660,6 +660,30 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void SeulLePlatSansVerbe_EstUneSupposition_PourLeModeHybride()
+        {
+            // Le mode hybride soumet au LLM les phrases où le plat SEUL a dicté la préparation
+            // — le verbe manque peut-être aux déclencheurs, comme « donne » avant d'y entrer.
+            // Pas celles qu'un verbe dit, ni le « c'est » de Whisper pour « sers », que les
+            // règles corrigent et que le LLM ignore. Le drapeau repart de zéro à chaque phrase.
+            _recognizer = MakeRecognizer(Language.French,
+                recipes: new List<RecipeVocabulary.Recipe>
+                {
+                    new RecipeVocabulary.Recipe("sven:CaesarSalad", "Salade César", isConcrete: true),
+                },
+                objectNames: new List<string> { "Florence" });
+
+            RecognizeSingle<PrepareCommand>("Livre la salade César à Florence.");
+            Assert.IsTrue(_recognizer.GuessedFromDish, "« livre » n'est pas un déclencheur : préparation devinée.");
+
+            RecognizeSingle<PrepareCommand>("Prépare une salade César.");
+            Assert.IsFalse(_recognizer.GuessedFromDish, "Un verbe de préparation n'est pas une supposition.");
+
+            RecognizeSingle<ServeCommand>("C'est à la salade César à Florence.");
+            Assert.IsFalse(_recognizer.GuessedFromDish, "Le « c'est » de Whisper est une correction, pas une supposition.");
+        }
+
+        [Test]
         public void DeuxPrenoms_SUnissent_SansDesambiguisation()
         {
             // « Prends la commande de Jean et de Florence » : deux prénoms ne désignent

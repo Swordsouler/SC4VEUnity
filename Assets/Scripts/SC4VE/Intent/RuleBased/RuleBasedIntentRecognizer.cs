@@ -128,6 +128,14 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         // ─────────────────────────────────────────────────────────────────────
 
         /// <summary>
+        /// Vrai si le dernier Recognize a DEVINÉ un ordre de préparation d'après un plat
+        /// nommé, faute de verbe reconnu (le repli de DetectCommandType) : le mode hybride
+        /// consulte alors le LLM. Le repli « c'est + plat → service » n'en est pas : il
+        /// corrige une confusion MESURÉE de Whisper (« Sers » → « C'est »), que le LLM ignore.
+        /// </summary>
+        public bool GuessedFromDish { get; private set; }
+
+        /// <summary>
         /// Reconnaît l'intention d'une phrase et retourne un JSON de commandes
         /// au même format que celui produit par le LLM, prêt à être passé à
         /// DeserializeCommand puis CommandToGraphOutputCommandAsync.
@@ -141,6 +149,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         /// </summary>
         public string Recognize(Sentence sentence)
         {
+            GuessedFromDish = false;
             if (sentence == null || string.IsNullOrWhiteSpace(sentence.Text)) return null;
 
             var recognized = new List<Command>();
@@ -715,6 +724,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 if (Regex.IsMatch(normalizedText, @"\bc\s?['’]?\s?est\b", RegexOptions.IgnoreCase))
                     return "ServeCommand";
 
+                GuessedFromDish = true;
                 return "PrepareCommand";
             }
 

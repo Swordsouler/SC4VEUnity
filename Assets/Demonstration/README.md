@@ -180,7 +180,7 @@ thèse. Ça n'est pas un détail de communication, ça contraint la conception :
 | **Les serveurs portent réellement les plats**, un seul à la fois | acté |
 | **La commande client se prend** avec `TakeOrderCommand` ; le client ne parle pas spontanément | acté |
 | **Le joueur ne se déplace pas** : pas de téléportation, pas de locomotion au joystick. Il peut marcher physiquement pour mieux voir | acté |
-| **Le mode de reconnaissance est choisi par le joueur au lancement** (RuleBased / LLM) | acté |
+| **Le mode de reconnaissance est choisi par le joueur au lancement** (RuleBased / Hybride / LLM) | acté |
 
 ### Le ralenti pendant la parole — implémenté
 
@@ -212,13 +212,14 @@ cinétose — c'est ce qui rend le procédé acceptable en VR.
 
 ### Le choix du mode, écran de départ
 
-`MultimodalityController.Mode` est déjà une énumération d'Inspector (`LLM` / `RuleBased`) : la
+`MultimodalityController.Mode` est déjà une énumération d'Inspector (`LLM` / `RuleBased` / `Hybrid`) : la
 rendre choisissable au lancement ne coûte qu'un écran de départ qui écrit ce champ avant le
 démarrage de la partie. Formulation à l'écran, sans jargon :
 
 | | Annoncé au joueur |
 |---|---|
 | **RuleBased** | *Rapide* — réponse immédiate, mais comprend moins bien les phrases inhabituelles |
+| **Hybrid** | *Hybride* — réponse immédiate, et réflexion seulement pour les phrases inhabituelles |
 | **LLM** | *Plus lent* — une à trois secondes de réflexion, mais comprend beaucoup mieux |
 
 Ce choix a trois effets, dans l'ordre d'importance :
@@ -228,7 +229,7 @@ Ce choix a trois effets, dans l'ordre d'importance :
    que le joueur a accepté en choisissant le mode rapide. Le mode RuleBased couvre le
    sous-ensemble à un seul déictique, et « toi 👆 va servir cette table-là 👆 » devient une
    raison de passer en mode LLM.
-2. **Il fait du jeu un instrument de comparaison.** Deux populations de joueurs, deux modes,
+2. **Il fait du jeu un instrument de comparaison.** Trois populations de joueurs, trois modes,
    les mêmes métriques du §10 — la comparaison latence/qualité d'interprétation se collecte
    toute seule. À condition de journaliser le mode choisi avec chaque énoncé.
 3. **Il rend la démonstration robuste.** Si le serveur LLM local ne répond pas le jour de la
@@ -238,6 +239,27 @@ Une réserve à assumer : les deux modes ne couvriront pas exactement le même e
 d'énoncés. Il faut donc que **l'écran de départ le dise** (« comprend moins bien ») plutôt que
 de laisser le joueur croire à un simple réglage de vitesse, et que l'échec de compréhension en
 RuleBased produise une clarification parlée, jamais un silence.
+
+#### Le mode hybride
+
+Les règles d'abord ; le LLM en relais (`MultimodalityController.AskLlmInHybridAsync`) dans deux
+cas seulement :
+
+- **les règles n'ont reconnu aucune commande**, et la phrase ne complète aucune clarification
+  en attente. Le LLM passe AVANT la question sur un paramètre isolé : « peins-la en vert » n'a
+  aucun verbe connu des règles, mais rien d'ambigu ;
+- **les règles ont deviné une préparation d'après un plat nommé sans verbe**
+  (`RuleBasedIntentRecognizer.GuessedFromDish`) : juste quand Whisper a mangé le verbe, fausse
+  quand le verbe manque aux déclencheurs (« donne la salade César à Florence » refaisait le
+  plat avant que « donne » n'y entre). Le repli « c'est + plat → service » n'est PAS soumis :
+  il corrige une confusion mesurée de Whisper (« Sers » → « C'est ») que le LLM ignore.
+
+Le LLM a dix secondes, et n'est retenu que s'il rend des commandes connues ; sinon les règles
+gardent la main — leur supposition, leur clarification ou leur « je n'ai pas compris ». Sans
+réseau, l'hybride retombe donc sur les règles. Clarifications, désambiguïsations et « aucun
+objet correspondant » restent aux règles : ce ne sont pas des échecs de compréhension. Avec
+Vosk, la grammaire close remplacerait les verbes inconnus avant que le LLM ne les voie :
+l'hybride suppose Whisper.
 
 Conséquence majeure du point « agents = `SemantizationCore` » : **aucun nouveau type de
 paramètre n'est nécessaire pour désigner un serveur.** Le `SelectionParameter` existant sait
@@ -1057,9 +1079,13 @@ Le second est exactement ce qu'on mesurerait dans une étude utilisateur, mais c
 que les gens jouent, sans consigne et sans biais de tâche artificielle.
 
 Le mode est la variable la plus précieuse : journalisé avec chaque énoncé, il fait de l'écran
-de départ (§2) un plan d'expérience — deux populations, deux modes, les mêmes métriques,
+de départ (§2) un plan d'expérience — trois populations, trois modes, les mêmes métriques,
 et la comparaison latence contre qualité d'interprétation se collecte d'elle-même. Sans cette
 colonne, tout le reste du journal est ininterprétable.
+
+La colonne `engine` dit qui a tranché chaque énoncé : `rules`, `llm`, ou — en mode hybride,
+quand le LLM consulté n'a rien rendu d'utilisable — `llm-failed` / `llm-timeout`. Sans elle,
+les latences du mode hybride seraient bimodales et illisibles.
 
 **À prévoir dès le lot 0** : le journal coûte presque rien à poser au début et beaucoup à
 rétro-adapter.

@@ -30,7 +30,10 @@ namespace Sc4ve.Multimodality
     public enum RecognizerMode
     {
         LLM,
-        RuleBased
+        RuleBased,
+        // Ajouté EN DERNIER : Unity sérialise l'énumération par sa valeur, les scènes
+        // existantes gardent leur mode.
+        Hybrid
     }
 
     public class MultimodalityController : MonoBehaviour
@@ -50,10 +53,10 @@ namespace Sc4ve.Multimodality
          Tooltip("Journalise modalité / issue / durée par commande, et écrit un CSV (persistentDataPath/sven_metrics.csv).")]
         private bool _metricsEnabled = true;
 
-        [BoxGroup("Recognizer Settings"), SerializeField, Tooltip("LLM : utilise un modèle de langage (OpenAI ou local). RuleBased : utilise uniquement des algorithmes, sans LLM.")]
+        [BoxGroup("Recognizer Settings"), SerializeField, Tooltip("LLM : utilise un modèle de langage (OpenAI ou local). RuleBased : utilise uniquement des algorithmes, sans LLM. Hybrid : RuleBased d'abord, le LLM seulement quand les règles ne reconnaissent aucun verbe de commande.")]
         private RecognizerMode _recognizerMode = RecognizerMode.LLM;
 
-        [BoxGroup("Recognizer Settings"), ShowIf("_recognizerMode", RecognizerMode.RuleBased), SerializeField,
+        [BoxGroup("Recognizer Settings"), ShowIf("UsesRules"), SerializeField,
          Tooltip("Délai (ms) ajouté après la fin de phrase pour le timestamp de destination d'un MoveCommand. " +
                  "Compense le fait que le pointeur n'est pas encore stabilisé au moment où 'ici'/'là' est prononcé.")]
         private int _movePointDelayMs = 300;
@@ -70,7 +73,9 @@ namespace Sc4ve.Multimodality
         [BoxGroup("LLM Settings"), ShowIf("IsLlmModeLocal"), SerializeField, Tooltip("Clé API optionnelle envoyée en « Authorization: Bearer » au serveur LLM local — requise si celui-ci est derrière un proxy authentifié (cf. README § Serveur). Laisser vide pour un serveur sans authentification, ou pour utiliser la variable d'environnement LOCAL_LLM_API_KEY (recommandé : ce champ est sérialisé dans la scène, donc committé avec elle).")]
         private string _localLlmApiKey;
 
-        private bool IsLlmMode     => _recognizerMode == RecognizerMode.LLM;
+        // L'hybride compose les deux : il lit les réglages des règles ET ceux du LLM.
+        private bool UsesRules     => _recognizerMode != RecognizerMode.LLM;
+        private bool IsLlmMode     => _recognizerMode != RecognizerMode.RuleBased;
         private bool IsLlmModeOpenAI => IsLlmMode && _llmService == LlmService.OpenAI;
         private bool IsLlmModeLocal  => IsLlmMode && _llmService == LlmService.Local;
 
@@ -95,6 +100,12 @@ namespace Sc4ve.Multimodality
                 : Environment.GetEnvironmentVariable("LOCAL_LLM_API_KEY");
 
         private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(60) };
+
+        // Temps de réflexion accordé au LLM en mode hybride (voir AskLlmInHybridAsync). Le
+        // chemin OpenAI peut enchaîner deux appels, modèle rapide puis précis : une à six
+        // secondes d'ordinaire.
+        private const int HybridLlmTimeoutMs = 10000;
+
         private RuleBasedIntentRecognizer _ruleBasedRecognizer;
 
         // Commande en attente d'une clarification (paramètre manquant) : la phrase suivante
@@ -183,15 +194,15 @@ namespace Sc4ve.Multimodality
         /// <summary>
         /// Le choix de l'écran de départ (ModeSelectScreen, §2 du README de démonstration) :
         /// écrit le mode AVANT le premier énoncé — il se relit à chaque phrase — et le
-        /// republie pour le journal. Vers RuleBased, le reconnaisseur se construit tout de
-        /// suite : le chemin paresseux d'OnTranscriptionResult resterait un filet, mais
+        /// republie pour le journal. Vers RuleBased ou Hybrid, le reconnaisseur se construit
+        /// tout de suite : le chemin paresseux d'OnTranscriptionResult resterait un filet, mais
         /// autant payer la construction pendant l'écran que sur la première phrase du joueur.
         /// </summary>
         public void SetRecognizerMode(RecognizerMode mode)
         {
             _recognizerMode = mode;
             PublishModeForJournal();
-            if (mode == RecognizerMode.RuleBased) _ = WarmUpAsync();
+            if (UsesRules) _ = WarmUpAsync();
         }
 
         // La colonne « mode » du journal (MultimodalityMetrics, §10) : la variable qui rend
@@ -200,9 +211,12 @@ namespace Sc4ve.Multimodality
         // les mêmes latences.
         private void PublishModeForJournal()
         {
-            MultimodalitySettings.RecognizerMode = _recognizerMode == RecognizerMode.RuleBased
-                ? "RuleBased"
-                : $"LLM-{_llmService}";
+            MultimodalitySettings.RecognizerMode = _recognizerMode switch
+            {
+                RecognizerMode.RuleBased => "RuleBased",
+                RecognizerMode.Hybrid    => $"Hybrid-{_llmService}",
+                _                        => $"LLM-{_llmService}"
+            };
         }
 
         /// <summary>
@@ -234,7 +248,7 @@ namespace Sc4ve.Multimodality
             try
             {
                 await InitializeVocabulariesAsync();
-                if (_recognizerMode == RecognizerMode.RuleBased)
+                if (UsesRules)
                     EnsureRuleBasedRecognizer();
             }
             catch (Exception e)
@@ -268,7 +282,7 @@ namespace Sc4ve.Multimodality
             try
             {
                 await InitializeVocabulariesAsync();
-                if (_recognizerMode == RecognizerMode.RuleBased)
+                if (UsesRules)
                     EnsureRuleBasedRecognizer();
             }
             catch (Exception e)
@@ -333,9 +347,10 @@ namespace Sc4ve.Multimodality
 
                     string commandJson;
 
-                    if (_recognizerMode == RecognizerMode.RuleBased)
+                    if (UsesRules)
                     {
                         Debug.Log($"[RuleBased] Analyse de la phrase : \"{phrase.Text}\"");
+                        MultimodalityMetrics.Engine = "rules";
                         await InitializeVocabulariesAsync();
                         EnsureRuleBasedRecognizer();
                         commandJson = _ruleBasedRecognizer.Recognize(phrase);
@@ -344,6 +359,12 @@ namespace Sc4ve.Multimodality
                             // Réponse à une clarification en attente (ex: « en bleu » après « colorie cette banane »).
                             if (_pendingCommand != null)
                                 commandJson = _ruleBasedRecognizer.CompletePending(phrase, _pendingCommand);
+
+                            // Hybride : là où les règles abandonnent, le LLM tente sa chance —
+                            // AVANT la question sur le paramètre isolé : « peins-la en vert » n'a
+                            // aucun verbe connu des règles, mais n'a rien d'ambigu pour le LLM.
+                            if (string.IsNullOrWhiteSpace(commandJson) && _recognizerMode == RecognizerMode.Hybrid)
+                                commandJson = await AskLlmInHybridAsync(phrase, "n'ont reconnu aucune commande");
 
                             if (string.IsNullOrWhiteSpace(commandJson))
                             {
@@ -358,10 +379,20 @@ namespace Sc4ve.Multimodality
                                 continue;
                             }
                         }
+                        // Hybride : un plat nommé SANS verbe reconnu n'est qu'une supposition
+                        // (« prépare-le »), juste quand Whisper a mangé le verbe, fausse quand le
+                        // verbe manque aux déclencheurs (« livre la soupe à Jean »). Le LLM
+                        // tranche ; s'il ne rend rien d'utilisable, la supposition tient.
+                        else if (_recognizerMode == RecognizerMode.Hybrid && _ruleBasedRecognizer.GuessedFromDish)
+                        {
+                            commandJson = await AskLlmInHybridAsync(phrase, "ont deviné le verbe d'après le plat")
+                                          ?? commandJson;
+                        }
                     }
                     else
                     {
                         Debug.Log($"[LLM] Sending sentence for analysis: \"{phrase.Text}\"");
+                        MultimodalityMetrics.Engine = "llm";
                         commandJson = await GetValidatedCommandJsonFromLlmAsync(phrase);
                         if (string.IsNullOrWhiteSpace(commandJson))
                         {
@@ -392,6 +423,41 @@ namespace Sc4ve.Multimodality
                     MultimodalityMetrics.Complete(null, "error", 0);
                 }
             }
+        }
+
+        /// <summary>
+        /// Le relais du mode Hybrid : la phrase part au LLM par le même chemin que le mode
+        /// LLM (validation et bascule vers le modèle précis comprises), mais pour un temps
+        /// BORNÉ — les règles ont déjà une réponse (supposition, clarification ou « je n'ai
+        /// pas compris »), le joueur ne doit pas attendre la minute du HttpClient pour
+        /// l'entendre. Ne rend que des commandes CONNUES : une UnknownCommand du LLM ne vaut
+        /// pas mieux que la réponse des règles. Null sinon, et les règles gardent la main.
+        /// Le moteur qui a tranché part au journal.
+        /// </summary>
+        private async Task<string> AskLlmInHybridAsync(Sentence phrase, string reason)
+        {
+            Debug.Log($"[Hybrid] Les règles {reason} — le LLM prend le relais : \"{phrase.Text}\"");
+
+            Task<string> llm = GetValidatedCommandJsonFromLlmAsync(phrase);
+            if (await Task.WhenAny(llm, Task.Delay(HybridLlmTimeoutMs)) != llm)
+            {
+                Debug.LogWarning($"[Hybrid] Pas de réponse du LLM en {HybridLlmTimeoutMs / 1000} s — les règles gardent la main.");
+                MultimodalityMetrics.Engine = "llm-timeout";
+                return null;
+            }
+
+            string json = await llm;
+            List<Command> commands = string.IsNullOrWhiteSpace(json) ? null : DeserializeCommand(json);
+            if (commands == null || commands.Count == 0 || commands.Any(c => c is UnknownCommand))
+            {
+                Debug.LogWarning("[Hybrid] Le LLM n'a produit aucune commande connue — les règles gardent la main.");
+                MultimodalityMetrics.Engine = "llm-failed";
+                return null;
+            }
+
+            Debug.Log($"[Hybrid] Commande du LLM retenue : {json}");
+            MultimodalityMetrics.Engine = "llm";
+            return json;
         }
 
         /// <summary>

@@ -19,6 +19,15 @@ namespace Sc4ve.Multimodality
     {
         public static bool Enabled = true;
 
+        /// <summary>
+        /// Le moteur qui a tranché l'énoncé courant : « rules », « llm », ou — en mode
+        /// hybride, quand le LLM consulté n'a rien rendu d'utilisable et que les règles
+        /// gardent la main — « llm-failed » / « llm-timeout ». Remis à zéro par Begin, posé
+        /// par MultimodalityController. Sans lui, les latences du mode hybride se lisent
+        /// mal : bimodales, selon que le LLM a été consulté ou non.
+        /// </summary>
+        public static string Engine;
+
         private static DateTime _start;
         private static string _phrase;
         private static bool _active;
@@ -31,6 +40,7 @@ namespace Sc4ve.Multimodality
             _start  = DateTime.Now;
             _phrase = phrase ?? "";
             _active = true;
+            Engine  = null;
         }
 
         /// <summary>
@@ -48,7 +58,8 @@ namespace Sc4ve.Multimodality
             bool   pointing  = MultimodalitySettings.PointingEnabled;
 
             Debug.Log($"[Metrics] {cmd} | modalité={modality} | issue={outcome} | " +
-                      $"{affectedCount} obj | {ms:F0} ms | pointage={(pointing ? "on" : "off")}");
+                      $"{affectedCount} obj | {ms:F0} ms | pointage={(pointing ? "on" : "off")} | " +
+                      $"moteur={Engine ?? "—"}");
 
             WriteCsv(cmd, modality, outcome, affectedCount, ms, pointing);
         }
@@ -68,7 +79,7 @@ namespace Sc4ve.Multimodality
             try
             {
                 const string header =
-                    "timestamp;locale;phrase;command;modality;outcome;affected;duration_ms;pointing_enabled;mode";
+                    "timestamp;locale;phrase;command;modality;outcome;affected;duration_ms;pointing_enabled;mode;engine";
                 _csvPath ??= Path.Combine(Application.persistentDataPath, "sven_metrics.csv");
 
                 // Un journal n'est exploitable que si TOUTES ses lignes suivent le schéma de
@@ -91,7 +102,7 @@ namespace Sc4ve.Multimodality
                 }
                 string safePhrase = _phrase.Replace("\"", "'").Replace("\n", " ").Replace("\r", " ");
                 File.AppendAllText(_csvPath,
-                    $"{DateTime.Now:o};{UserData.Locale};\"{safePhrase}\";{cmd};{modality};{outcome};{count};{ms:F0};{pointing};{MultimodalitySettings.RecognizerMode}\n");
+                    $"{DateTime.Now:o};{UserData.Locale};\"{safePhrase}\";{cmd};{modality};{outcome};{count};{ms:F0};{pointing};{MultimodalitySettings.RecognizerMode};{Engine ?? "—"}\n");
             }
             catch (Exception e)
             {

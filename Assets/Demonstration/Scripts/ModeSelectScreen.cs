@@ -97,7 +97,8 @@ namespace Sc4ve.Demonstration
 
         private void Build()
         {
-            XRPanel.Backdrop(transform);
+            // Trois modes côte à côte : le fond s'élargit d'un bouton, aux mêmes marges.
+            XRPanel.Backdrop(transform, _step == Step.Mode ? 1.70f : 1.14f);
 
             if (_step == Step.Language) BuildLanguageStep();
             else BuildModeStep();
@@ -123,12 +124,17 @@ namespace Sc4ve.Demonstration
                 characterSize: 0.008f);
 
             // Les formulations du §2, sans jargon : le joueur choisit un COMPROMIS annoncé
-            // (« comprend moins bien »), pas un réglage de vitesse.
-            ModeButton(new Vector3(-0.28f, -0.06f, 0f), RecognizerMode.RuleBased, french
+            // (« comprend moins bien »), pas un réglage de vitesse. L'hybride au milieu, entre
+            // les deux modes qu'il combine.
+            ModeButton(new Vector3(-0.56f, -0.06f, 0f), RecognizerMode.RuleBased, french
                 ? "<b>Rapide</b>\nRéponse immédiate,\nmais comprend moins bien\nles phrases inhabituelles."
                 : "<b>Fast</b>\nInstant response,\nbut understands unusual\nsentences less well.");
 
-            ModeButton(new Vector3(0.28f, -0.06f, 0f), RecognizerMode.LLM, french
+            ModeButton(new Vector3(0f, -0.06f, 0f), RecognizerMode.Hybrid, french
+                ? "<b>Hybride</b>\nRéponse immédiate, et\nréflexion seulement pour\nles phrases inhabituelles."
+                : "<b>Hybrid</b>\nInstant response, with\nthinking time only for\nunusual sentences.");
+
+            ModeButton(new Vector3(0.56f, -0.06f, 0f), RecognizerMode.LLM, french
                 ? "<b>Plus lent</b>\nUne à trois secondes\nde réflexion, mais\ncomprend beaucoup mieux."
                 : "<b>Slower</b>\nOne to three seconds\nof thinking, but\nunderstands much better.");
         }

@@ -63,13 +63,14 @@ namespace Sc4ve.Demonstration
             return true;
         }
 
-        /// <summary>Le fond sombre du panneau, sans collider — il ne doit pas voler le rayon.</summary>
-        internal static void Backdrop(Transform parent)
+        /// <summary>Le fond sombre du panneau, sans collider — il ne doit pas voler le rayon.
+        /// 1,14 m de large pour deux boutons et leurs marges ; trois en demandent 1,70.</summary>
+        internal static void Backdrop(Transform parent, float width = 1.14f)
         {
             GameObject backdrop = GameObject.CreatePrimitive(PrimitiveType.Quad);
             backdrop.name = "Fond";
             backdrop.transform.SetParent(parent, false);
-            backdrop.transform.localScale = new Vector3(1.14f, 0.66f, 1f);
+            backdrop.transform.localScale = new Vector3(width, 0.66f, 1f);
             backdrop.GetComponent<Renderer>().material.color = new Color(0.12f, 0.12f, 0.15f);
             Object.Destroy(backdrop.GetComponent<Collider>());
         }
