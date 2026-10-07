@@ -598,6 +598,48 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void ElisionSoudee_DEmma_RetrouveEmma()
+        {
+            // Vu en démo : « Va chercher la commande d'Emma » sort « On va chercher la
+            // commande déma. » — l'apostrophe tombe, le « d » colle au prénom. Le prénom à
+            // initiale vocalique tolère ce « d » accolé.
+            _recognizer = MakeRecognizer(Language.French, objectNames: new List<string> { "Emma" });
+            TakeOrderCommand command =
+                RecognizeSingle<TakeOrderCommand>("On va chercher la commande déma.");
+            List<Condition> conditions = AllConditions(command);
+            Assert.AreEqual(1, conditions.Count);
+            Assert.IsTrue(conditions[0].IsName);
+            Assert.AreEqual("Emma", conditions[0].Value);
+        }
+
+        [Test]
+        public void PrenomAccentue_SeTrouveAvecOuSansAccent()
+        {
+            // Le motif se cherche dans le texte sans accents : « Chloé » y était introuvable.
+            // La valeur émise reste le nom CANONIQUE, accent compris.
+            _recognizer = MakeRecognizer(Language.French, objectNames: new List<string> { "Chloé" });
+            foreach (string phrase in new[] { "Sers Chloé", "Sers Chloe" })
+            {
+                List<Condition> conditions = AllConditions(RecognizeSingle<ServeCommand>(phrase));
+                Assert.AreEqual(1, conditions.Count, phrase);
+                Assert.IsTrue(conditions[0].IsName, phrase);
+                Assert.AreEqual("Chloé", conditions[0].Value, phrase);
+            }
+        }
+
+        [Test]
+        public void ArticleDuDeclencheur_NEstPasUnPronom()
+        {
+            // « Va chercher LA commande » sans cible : le « la » appartient au déclencheur,
+            // ce n'est pas celui de « prends-la ». Sans cible ni coréférence, la commande
+            // réclame elle-même ce qui manque, au lieu d'un « aucun objet correspondant ».
+            _recognizer = MakeNamedRecognizer();
+            TakeOrderCommand command = RecognizeSingle<TakeOrderCommand>("Va chercher la commande");
+            Assert.IsFalse(AllConditions(command).Any(c => c.IsCoreference),
+                "Le « la » de « la commande » ne doit pas produire de coréférence.");
+        }
+
+        [Test]
         public void NameAndAnnotation_IntersectWithNameFirst()
         {
             // « le client Jean » : prénom ET type — intersection (AND), le prénom en tête.

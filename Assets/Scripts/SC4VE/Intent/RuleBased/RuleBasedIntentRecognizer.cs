@@ -316,7 +316,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // force la coréférence vers la sélection courante.
             bool hasCoreference = referencesSelection
                 || (names.Count == 0 && annotations.Count == 0 && deictics.Count == 0 &&
-                    HasCoreference(text));
+                    HasCoreference(WithoutTriggerPhrase(text, commandType)));
 
             // Pour un AJOUT à la sélection, « la sélection » est la destination, pas la cible.
             // La coréférence forcée ci-dessus ferait ignorer les annotations
@@ -844,7 +844,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
 
             foreach (string objectName in _objectNames)
             {
-                var pattern = new Regex($@"\b{DoubledLetterTolerantPattern(objectName)}\b",
+                var pattern = new Regex($@"\b{NamePattern(objectName)}\b",
                     RegexOptions.IgnoreCase);
                 Match match = pattern.Match(FrenchStemmer.NormalizeAccents(remaining));
                 if (!match.Success) continue;
@@ -906,6 +906,36 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 }
             }
             return result;
+        }
+
+        /// <summary>
+        /// Le texte privé du déclencheur MULTI-MOTS de la commande : ses articles ne sont pas
+        /// des pronoms. « Va chercher la commande » sans cible reconnue lisait le « la » de
+        /// « la commande » comme celui de « prends-la » — coréférence vers un objet antérieur,
+        /// et « aucun objet correspondant » au lieu de la question qui réclame la cible
+        /// (« Quelle table ? »). Comparaison mot à mot, accents normalisés (Whisper ne les
+        /// met pas toujours) ; le plus long des déclencheurs présents part, une seule fois.
+        /// </summary>
+        private static string WithoutTriggerPhrase(string text, string commandType)
+        {
+            string[] tokens = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string Fold(string token) =>
+                FrenchStemmer.NormalizeAccents(token.Trim('.', ',', '!', '?', ';', ':').ToLowerInvariant());
+
+            IEnumerable<string> triggers = CommandVocabulary.TriggerMappings
+                .Where(m => m.CommandType == commandType)
+                .SelectMany(m => m.Triggers)
+                .Where(t => t.Contains(' '))
+                .OrderByDescending(t => t.Length);
+
+            foreach (string trigger in triggers)
+            {
+                string[] phrase = trigger.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(Fold).ToArray();
+                for (int i = 0; i + phrase.Length <= tokens.Length; i++)
+                    if (phrase.Select((word, k) => Fold(tokens[i + k]) == word).All(same => same))
+                        return string.Join(" ", tokens.Take(i).Concat(tokens.Skip(i + phrase.Length)));
+            }
+            return text;
         }
 
         private bool HasCoreference(string text)
@@ -1079,18 +1109,47 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         /// (« Florianne » ↔ « Floriane ») : les doublons du prénom sont d'abord fusionnés,
         /// puis chaque lettre émet « x{1,2} ». Réservé aux prénoms — le vocabulaire
         /// ontologique a une graphie de référence, cette tolérance y sur-couvrirait.
+        /// Chaque lettre accepte aussi ses variantes accentuées : le motif se cherche dans
+        /// le texte SANS accents, où « Chloé » restait introuvable (« é » ne valait pas
+        /// « e »), et se consomme dans le texte d'origine, où Whisper en met (« déma »).
         /// </summary>
         private static string DoubledLetterTolerantPattern(string name)
         {
             var pattern = new System.Text.StringBuilder();
             char previous = '\0';
-            foreach (char letter in name)
+            foreach (char letter in FrenchStemmer.NormalizeAccents(name.ToLowerInvariant()))
             {
-                if (char.ToLowerInvariant(letter) == previous) continue;
-                previous = char.ToLowerInvariant(letter);
-                pattern.Append(Regex.Escape(letter.ToString())).Append("{1,2}");
+                if (letter == previous) continue;
+                previous = letter;
+                pattern.Append(AccentVariants.TryGetValue(letter, out string variants)
+                        ? $"[{variants}]"
+                        : Regex.Escape(letter.ToString()))
+                    .Append("{1,2}");
             }
             return pattern.ToString();
+        }
+
+        private static readonly Dictionary<char, string> AccentVariants = new()
+        {
+            { 'a', "aàâä" }, { 'c', "cç" }, { 'e', "eéèêë" }, { 'i', "iîï" },
+            { 'o', "oôö" },  { 'u', "uùûü" }, { 'y', "yÿ" },
+        };
+
+        /// <summary>
+        /// Le motif d'un prénom (DoubledLetterTolerantPattern), tolérant de plus à l'ÉLISION
+        /// SOUDÉE : Whisper entend « la commande d'Emma » et écrit « la commande déma » —
+        /// l'apostrophe tombe, le « d » colle au prénom, et Emma n'était plus trouvée. En
+        /// français, devant une initiale vocalique, un « d » accolé est donc accepté ; devant
+        /// un h muet, le h tombe avec lui (« d'Hugo » → « dugo »).
+        /// </summary>
+        private static string NamePattern(string name)
+        {
+            string pattern = DoubledLetterTolerantPattern(name);
+            string folded = FrenchStemmer.NormalizeAccents(name.ToLowerInvariant());
+            if (!IsFrench || folded.Length < 2) return pattern;
+            if ("aeiou".IndexOf(folded[0]) >= 0) return $"d?{pattern}";
+            if (folded[0] == 'h') return $"(?:{pattern}|d{DoubledLetterTolerantPattern(folded.Substring(1))})";
+            return pattern;
         }
 
         /// <summary>
