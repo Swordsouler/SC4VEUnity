@@ -214,13 +214,14 @@ cinétose — c'est ce qui rend le procédé acceptable en VR.
 
 `MultimodalityController.Mode` est déjà une énumération d'Inspector (`LLM` / `RuleBased` / `Hybrid`) : la
 rendre choisissable au lancement ne coûte qu'un écran de départ qui écrit ce champ avant le
-démarrage de la partie. Formulation à l'écran, sans jargon :
+démarrage de la partie. À l'écran, sous la question « Quel mode d'analyse d'intention ? », le
+nom du mode en titre et son compromis en dessous :
 
 | | Annoncé au joueur |
 |---|---|
-| **RuleBased** | *Rapide* — réponse immédiate, mais comprend moins bien les phrases inhabituelles |
+| **RuleBased** | *Rule-based* — réponse immédiate, mais comprend moins bien les phrases inhabituelles |
 | **Hybrid** | *Hybride* — réponse immédiate, et réflexion seulement pour les phrases inhabituelles |
-| **LLM** | *Plus lent* — une à trois secondes de réflexion, mais comprend beaucoup mieux |
+| **LLM** | *LLM* — une à trois secondes de réflexion, mais comprend beaucoup mieux |
 
 Ce choix a trois effets, dans l'ordre d'importance :
 

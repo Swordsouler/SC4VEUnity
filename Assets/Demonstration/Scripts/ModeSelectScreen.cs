@@ -120,23 +120,23 @@ namespace Sc4ve.Demonstration
             bool french = UserData.Locale == "fr";
 
             XRPanel.Label(transform, new Vector3(0f, 0.24f, -0.01f),
-                french ? "Comment dois-je vous comprendre ?" : "How should I understand you?",
+                french ? "Quel mode d'analyse d'intention ?" : "Which intent analysis mode?",
                 characterSize: 0.008f);
 
-            // Les formulations du §2, sans jargon : le joueur choisit un COMPROMIS annoncé
-            // (« comprend moins bien »), pas un réglage de vitesse. L'hybride au milieu, entre
-            // les deux modes qu'il combine.
+            // Le nom du mode en titre, celui du journal et des présentations ; dessous, le
+            // COMPROMIS annoncé (§2 : « comprend moins bien »), pas un réglage de vitesse.
+            // L'hybride au milieu, entre les deux modes qu'il combine.
             ModeButton(new Vector3(-0.56f, -0.06f, 0f), RecognizerMode.RuleBased, french
-                ? "<b>Rapide</b>\nRéponse immédiate,\nmais comprend moins bien\nles phrases inhabituelles."
-                : "<b>Fast</b>\nInstant response,\nbut understands unusual\nsentences less well.");
+                ? "<b>Rule-based</b>\nRéponse immédiate,\nmais comprend moins bien\nles phrases inhabituelles."
+                : "<b>Rule-based</b>\nInstant response,\nbut understands unusual\nsentences less well.");
 
             ModeButton(new Vector3(0f, -0.06f, 0f), RecognizerMode.Hybrid, french
                 ? "<b>Hybride</b>\nRéponse immédiate, et\nréflexion seulement pour\nles phrases inhabituelles."
                 : "<b>Hybrid</b>\nInstant response, with\nthinking time only for\nunusual sentences.");
 
             ModeButton(new Vector3(0.56f, -0.06f, 0f), RecognizerMode.LLM, french
-                ? "<b>Plus lent</b>\nUne à trois secondes\nde réflexion, mais\ncomprend beaucoup mieux."
-                : "<b>Slower</b>\nOne to three seconds\nof thinking, but\nunderstands much better.");
+                ? "<b>LLM</b>\nUne à trois secondes\nde réflexion, mais\ncomprend beaucoup mieux."
+                : "<b>LLM</b>\nOne to three seconds\nof thinking, but\nunderstands much better.");
         }
 
         private void LanguageButton(Vector3 position, Language language, string text)
