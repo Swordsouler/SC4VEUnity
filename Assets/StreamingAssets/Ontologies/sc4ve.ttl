@@ -904,8 +904,9 @@ sc4ve:ClearTableCommand sc4ve:trigger
 ###  et rien d'autre dans le jeu ne se « cherche ».
 sc4ve:TakeOrderCommand sc4ve:trigger
     "prends la commande"@fr , "prend la commande"@fr , "prenez la commande"@fr ,
-    "prendre la commande"@fr , "va prendre la commande"@fr ,
-    "va chercher la commande"@fr , "cherche la commande"@fr , "chercher la commande"@fr ,
+    "prendre la commande"@fr , "va prendre la commande"@fr , "allez prendre la commande"@fr ,
+    "va chercher la commande"@fr , "allez chercher la commande"@fr ,
+    "cherche la commande"@fr , "cherchez la commande"@fr , "chercher la commande"@fr ,
     "take the order"@en , "go take the order"@en ,
     "go get the order"@en , "get the order"@en .
 

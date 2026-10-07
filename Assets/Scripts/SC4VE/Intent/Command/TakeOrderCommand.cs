@@ -8,11 +8,14 @@ namespace Sc4ve.Multimodality.Intent
         // « prend la commande » SANS s : Whisper transcrit volontiers l'impératif « prends »
         // en 3e personne. Sans cette forme, aucun déclencheur multi-mots ne matchait et le
         // stem « prend » (= prendre) routait vers GrabCommand — qui tentait de saisir la table.
+        // Les formes au VOUVOIEMENT aussi : Whisper les transcrit volontiers (« Cherchez la
+        // commande Marie »), et un déclencheur multi-mots ne passe pas par le stem.
         "prends la commande", "prend la commande", "prenez la commande",
-        "prendre la commande", "va prendre la commande",
+        "prendre la commande", "va prendre la commande", "allez prendre la commande",
         // « chercher » plutôt que « prendre » : on va chercher une commande comme on va la
         // prendre, et rien d'autre dans le jeu ne se « cherche ».
-        "va chercher la commande", "cherche la commande", "chercher la commande",
+        "va chercher la commande", "allez chercher la commande",
+        "cherche la commande", "cherchez la commande", "chercher la commande",
         "take the order", "go take the order", "go get the order", "get the order")]
     [Serializable, CommandDescription(
         "Envoie un serveur prendre la commande d'une table (« va prendre la commande de cette " +
