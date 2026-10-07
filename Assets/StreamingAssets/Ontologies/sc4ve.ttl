@@ -882,8 +882,8 @@ sc4ve:GoToCommand sc4ve:trigger
 ###  rester alignées. « amène » reste à MoveCommand (« amène ça ici »).
 sc4ve:ServeCommand sc4ve:trigger
     "va servir"@fr , "sers"@fr , "servir"@fr , "donne"@fr , "donner"@fr , "donnez"@fr ,
-    "apporte"@fr , "apporter"@fr , "porte à"@fr ,
-    "go serve"@en , "serve"@en , "give"@en , "bring"@en .
+    "apporte"@fr , "apporter"@fr , "porte à"@fr , "envoie"@fr , "envoyer"@fr , "envoyez"@fr ,
+    "go serve"@en , "serve"@en , "give"@en , "bring"@en , "send"@en .
 
 ###  « range » NU est disponible : « range … dans/sur … » est intercepté AVANT la boucle des
 ###  déclencheurs par la pré-vérification PutInCommand de DetectCommandType (verbe de

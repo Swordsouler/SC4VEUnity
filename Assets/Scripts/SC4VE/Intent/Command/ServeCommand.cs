@@ -7,11 +7,12 @@ namespace Sc4ve.Multimodality.Intent
     [RuleBasedTriggers(
         // « donne » et « apporte » : les formulations naturelles du service, entendues en
         // démo (« Donne la salade César à Florence ») — sans elles, la phrase partait dans
-        // le repli plat-nommé et faisait REFAIRE le plat au lieu de le servir. « amène »
-        // reste à MoveCommand (« amène ça ici 👆 »).
+        // le repli plat-nommé et faisait REFAIRE le plat au lieu de le servir. Même cas pour
+        // « envoie » (« Envoie le sandwich au saumon à Marie »). « amène » reste à
+        // MoveCommand (« amène ça ici 👆 »).
         "va servir", "sers", "servir", "donne", "donner", "donnez",
-        "apporte", "apporter", "porte à",
-        "go serve", "serve", "give", "bring")]
+        "apporte", "apporter", "porte à", "envoie", "envoyer", "envoyez",
+        "go serve", "serve", "give", "bring", "send")]
     [Serializable, CommandDescription(
         "Envoie un serveur porter un plat prêt jusqu'à une table (« toi, va servir cette " +
         "table-là »). Le serveur prend l'assiette pleine la plus proche de la passe, la porte " +
