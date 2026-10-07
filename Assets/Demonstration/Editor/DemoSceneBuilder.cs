@@ -14,6 +14,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
@@ -1632,31 +1633,60 @@ namespace Sc4ve.Demonstration.EditorTools
         /// déjà en pur bureau.
         ///
         /// Désactivé par défaut parce qu'ACTIF AVEC un casque branché, il se disputerait les
-        /// entrées avec les vraies manettes. Posé hors de la racine générée, comme le rig :
-        /// l'état choisi (activé ou non) survit aux reconstructions.
+        /// entrées avec les vraies manettes — SimulatorGate le coupe désormais de lui-même
+        /// quand un casque démarre. Posé hors de la racine générée, comme le rig : l'état
+        /// choisi (activé ou non) survit aux reconstructions.
         /// </summary>
         private static void EnsureDeviceSimulator()
         {
-            if (GameObject.Find("XR Device Simulator") != null) return;
             // GameObject.Find ignore les objets INACTIFS — c'est le cas normal du simulateur.
-            foreach (Transform root in EditorSceneManager.GetActiveScene().GetRootGameObjects()
-                         .Select(go => go.transform))
-                if (root.name == "XR Device Simulator") return;
+            GameObject simulator = EditorSceneManager.GetActiveScene().GetRootGameObjects()
+                                       .FirstOrDefault(go => go.name == "XR Device Simulator")
+                                   ?? GameObject.Find("XR Device Simulator");
 
-            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SimulatorPrefabPath);
-            if (prefab == null)
+            if (simulator == null)
             {
-                Debug.LogWarning($"[DemoSceneBuilder] Simulateur introuvable : {SimulatorPrefabPath} " +
-                                 "— importer l'échantillon « XR Device Simulator » du XR " +
-                                 "Interaction Toolkit pour tester sans casque.");
-                return;
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SimulatorPrefabPath);
+                if (prefab == null)
+                {
+                    Debug.LogWarning($"[DemoSceneBuilder] Simulateur introuvable : {SimulatorPrefabPath} " +
+                                     "— importer l'échantillon « XR Device Simulator » du XR " +
+                                     "Interaction Toolkit pour tester sans casque.");
+                    return;
+                }
+
+                simulator = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                simulator.SetActive(false);
+                Debug.Log("[DemoSceneBuilder] Simulateur XR posé, DÉSACTIVÉ. Pour tester sans " +
+                          "casque : activer l'objet « XR Device Simulator » dans la hiérarchie, " +
+                          "puis Play. En casque, SimulatorGate le coupe de lui-même.");
             }
 
-            var simulator = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-            simulator.SetActive(false);
-            Debug.Log("[DemoSceneBuilder] Simulateur XR posé, DÉSACTIVÉ. Pour tester sans " +
-                      "casque : activer l'objet « XR Device Simulator » dans la hiérarchie, " +
-                      "puis Play. Le désactiver avant de rejouer avec le casque.");
+            KeepRealHeadset(simulator);
+        }
+
+        /// <summary>
+        /// Le simulateur ne doit JAMAIS retirer le vrai casque. « Remove Other HMD Devices »,
+        /// coché dans le prefab d'XRI, supprime de l'Input System tout casque réel tant que
+        /// le simulateur est actif — et ne le rend pas quand SimulatorGate le coupe : la
+        /// caméra n'avait plus de casque à suivre, d'où la tête « dans le sol » puis figée
+        /// et le relais de TrackingGuard. Décoché, le casque reste ; sans casque, rien ne
+        /// change. Appliqué aussi à un simulateur DÉJÀ posé : il survit aux reconstructions.
+        /// </summary>
+        private static void KeepRealHeadset(GameObject simulator)
+        {
+            foreach (SimulatedDeviceLifecycleManager manager in
+                     simulator.GetComponentsInChildren<SimulatedDeviceLifecycleManager>(includeInactive: true))
+            {
+                if (!manager.removeOtherHMDDevices) continue;
+
+                manager.removeOtherHMDDevices = false;
+                // Instance de prefab : sans cet enregistrement, l'override serait perdu à la
+                // prochaine réimportation du prefab.
+                PrefabUtility.RecordPrefabInstancePropertyModifications(manager);
+                Debug.Log("[DemoSceneBuilder] Simulateur : « Remove Other HMD Devices » décoché — " +
+                          "le vrai casque reste visible de la caméra.");
+            }
         }
 
         /// <summary>
