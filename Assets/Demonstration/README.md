@@ -242,7 +242,7 @@ RuleBased produise une clarification parlée, jamais un silence.
 
 #### Le mode hybride
 
-Les règles d'abord ; le LLM en relais (`MultimodalityController.AskLlmInHybridAsync`) dans deux
+Les règles d'abord ; le LLM en relais (`MultimodalityController.AskLlmInHybridAsync`) dans trois
 cas seulement :
 
 - **les règles n'ont reconnu aucune commande**, et la phrase ne complète aucune clarification
@@ -252,7 +252,12 @@ cas seulement :
   (`RuleBasedIntentRecognizer.GuessedFromDish`) : juste quand Whisper a mangé le verbe, fausse
   quand le verbe manque aux déclencheurs (« donne la salade César à Florence » refaisait le
   plat avant que « donne » n'y entre). Le repli « c'est + plat → service » n'est PAS soumis :
-  il corrige une confusion mesurée de Whisper (« Sers » → « C'est ») que le LLM ignore.
+  il corrige une confusion mesurée de Whisper (« Sers » → « C'est ») que le LLM ignore ;
+- **la commande n'a pas de cible explicite alors qu'un mot de la phrase échappe au vocabulaire
+  du domaine** (`RuleBasedIntentRecognizer.MissedTarget`) : sélection vide, ou réduite à une
+  coréférence devinée d'un « la » qui peut aussi être un article. La cible a sans doute été
+  dite, mais pas comprise (« va chercher la commande de la dame »). Les mots neutres
+  (« toi », « s'il te plaît ») ne comptent pas.
 
 Le LLM a dix secondes, et n'est retenu que s'il rend des commandes connues ; sinon les règles
 gardent la main — leur supposition, leur clarification ou leur « je n'ai pas compris ». Sans
@@ -260,6 +265,12 @@ réseau, l'hybride retombe donc sur les règles. Clarifications, désambiguïsat
 objet correspondant » restent aux règles : ce ne sont pas des échecs de compréhension. Avec
 Vosk, la grammaire close remplacerait les verbes inconnus avant que le LLM ne les voie :
 l'hybride suppose Whisper.
+
+Le LLM du jeu connaît les prénoms des clients (filtre `Name`, section ajoutée au prompt par
+`LlmIntentService.BuildSystemPrompt` ; le prompt du benchmark, qui ne les reçoit pas, reste
+inchangé). Mais un prénom écorché reste l'affaire des règles : essayé avec Qwen3.5-4B, « la
+commande déma » (d'Emma) faisait viser Florence — c'est pourquoi les règles tolèrent l'élision
+soudée, les lettres doublées et les accents, et que le relais n'est sollicité qu'à défaut.
 
 Conséquence majeure du point « agents = `SemantizationCore` » : **aucun nouveau type de
 paramètre n'est nécessaire pour désigner un serveur.** Le `SelectionParameter` existant sait

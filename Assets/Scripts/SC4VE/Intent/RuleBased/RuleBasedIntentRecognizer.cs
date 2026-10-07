@@ -99,7 +99,8 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             string cameraName,
             int movePointDelayMs = 300,
             List<RecipeVocabulary.Recipe> recipes = null,
-            List<string> objectNames = null)
+            List<string> objectNames = null,
+            IEnumerable<string> knownWords = null)
         {
             // Du libellé le plus long au plus court, comme les recettes et les déclencheurs :
             // « Pomme de terre » doit être essayé avant « Pomme », sans quoi « mets la pomme de
@@ -121,7 +122,30 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             _objectNames = (objectNames ?? new List<string>())
                 .OrderByDescending(n => n.Length)
                 .ToList();
+            if (knownWords != null)
+            {
+                _knownWords = new HashSet<string>(knownWords.SelectMany(WordsOf));
+                _knownStems = new HashSet<string>(_knownWords.Select(Stem));
+            }
         }
+
+        // Le vocabulaire du domaine, mot à mot et par stem (voir MissedTarget). Null quand
+        // l'appelant ne le fournit pas : rien n'est alors jamais tenu pour inexpliqué.
+        private readonly HashSet<string> _knownWords;
+        private readonly HashSet<string> _knownStems;
+
+        // Mots qui ne désignent jamais rien — interpellation, politesse, chevilles, lettres
+        // d'élision — et que le vocabulaire du domaine ignore : ils ne doivent pas faire
+        // croire qu'une cible a échappé aux règles (« toi, va là-bas, s'il te plaît »).
+        private static readonly HashSet<string> NeutralWords = new()
+        {
+            "d", "l", "j", "m", "n", "s", "t", "c", "qu",
+            "je", "tu", "il", "on", "nous", "vous", "toi", "moi", "te", "y",
+            "plait", "merci", "stp", "svp", "alors", "bon", "bien", "ok", "okay", "euh",
+            "maintenant", "vite", "aussi", "encore", "suite",
+            "i", "you", "we", "me", "please", "thanks", "thank", "now", "so", "well",
+            "um", "uh", "hey", "also", "again", "just", "right", "away",
+        };
 
         // ─────────────────────────────────────────────────────────────────────
         // Point d'entrée principal
@@ -134,6 +158,14 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         /// corrige une confusion MESURÉE de Whisper (« Sers » → « C'est »), que le LLM ignore.
         /// </summary>
         public bool GuessedFromDish { get; private set; }
+
+        /// <summary>
+        /// Vrai si le dernier Recognize a produit une commande sans cible explicite
+        /// (HasWeakTarget) alors qu'un mot de la même clause n'appartient pas au vocabulaire
+        /// du domaine : la cible a sans doute été dite, mais pas comprise (« va chercher la
+        /// commande de la dame »). Le mode hybride consulte alors le LLM.
+        /// </summary>
+        public bool MissedTarget { get; private set; }
 
         /// <summary>
         /// Reconnaît l'intention d'une phrase et retourne un JSON de commandes
@@ -150,6 +182,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         public string Recognize(Sentence sentence)
         {
             GuessedFromDish = false;
+            MissedTarget = false;
             if (sentence == null || string.IsNullOrWhiteSpace(sentence.Text)) return null;
 
             var recognized = new List<Command>();
@@ -157,6 +190,9 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             {
                 List<Command> built = Build(clauseText, clauseWords, null);
                 if (built != null) recognized.AddRange(built);
+
+                if (built != null && built.Any(HasWeakTarget) && HasUnexplainedWord(clauseText))
+                    MissedTarget = true;
             }
             if (recognized.Count == 0) return null;
 
@@ -231,6 +267,31 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         /// <summary>Le texte d'une clause, reconstruit de ses mots horodatés.</summary>
         private static string TextOf(List<Word> clause)
             => string.Join(" ", clause.Select(w => w.Text));
+
+        /// <summary>Les mots d'un texte, normalisés : minuscules, sans accents, coupés aux
+        /// apostrophes, traits d'union et ponctuations.</summary>
+        private static IEnumerable<string> WordsOf(string text)
+            => Regex.Split(FrenchStemmer.NormalizeAccents(text.ToLowerInvariant()), @"[^\p{L}\p{N}]+")
+                .Where(word => word.Length > 0);
+
+        /// <summary>
+        /// La commande n'a-t-elle qu'une cible FAIBLE : une sélection vide (repli sur la
+        /// sélection courante, ou question qui la réclame), ou réduite à une coréférence —
+        /// devinée d'un « la » qui peut aussi bien être un article (« la commande de la dame »).
+        /// </summary>
+        private static bool HasWeakTarget(Command command)
+            => command.Parameters != null && command.Parameters.OfType<SelectionParameter>().Any(sp =>
+                sp.Filters == null || sp.Filters.All(f => f.IsOperator || f.Condition == null || f.Condition.IsCoreference));
+
+        /// <summary>
+        /// Un mot de la clause échappe-t-il au vocabulaire du domaine ? Connu tel quel ou par
+        /// son stem (« coloriez » ~ « colorie »), neutre, ou nombre : il est expliqué. Sans
+        /// vocabulaire fourni au constructeur, rien n'est jamais inexpliqué.
+        /// </summary>
+        private bool HasUnexplainedWord(string text)
+            => _knownWords != null && WordsOf(text).Any(word =>
+                !_knownWords.Contains(word) && !NeutralWords.Contains(word) &&
+                !word.All(char.IsDigit) && !_knownStems.Contains(Stem(word)));
 
         /// <summary>
         /// Le corps de la reconnaissance, qui rend la ou LES commandes : une phrase de

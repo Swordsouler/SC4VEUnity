@@ -640,6 +640,31 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void CibleManquee_AvecUnMotInexplique_PasseAuLlmEnHybride()
+        {
+            // Le mode hybride consulte le LLM quand une commande reste sans cible explicite
+            // alors qu'un mot de la phrase échappe au vocabulaire : la cible a sans doute été
+            // dite, mais pas comprise. Sans mot inexpliqué, la commande réclame sa cible
+            // elle-même ; un mot neutre (« toi ») ne compte pas ; une cible trouvée non plus.
+            _recognizer = new RuleBasedIntentRecognizer(
+                new List<string> { "Table" }, new List<string> { "Rouge" },
+                new List<string> { "ce", "cette", "ça" }, "Pointeur", "Caméra",
+                knownWords: new[] { "va", "chercher", "prends", "la", "le", "commande", "de", "table" });
+
+            RecognizeSingle<TakeOrderCommand>("Va chercher la commande de la dame");
+            Assert.IsTrue(_recognizer.MissedTarget, "« dame » n'est ni un prénom ni une annotation.");
+
+            RecognizeSingle<TakeOrderCommand>("Prends la commande");
+            Assert.IsFalse(_recognizer.MissedTarget, "Aucun mot inexpliqué.");
+
+            RecognizeSingle<TakeOrderCommand>("Toi, prends la commande");
+            Assert.IsFalse(_recognizer.MissedTarget, "« toi » est un mot neutre.");
+
+            RecognizeSingle<TakeOrderCommand>("Prends la commande de cette table");
+            Assert.IsFalse(_recognizer.MissedTarget, "Cible trouvée : rien à rattraper.");
+        }
+
+        [Test]
         public void NameAndAnnotation_IntersectWithNameFirst()
         {
             // « le client Jean » : prénom ET type — intersection (AND), le prénom en tête.

@@ -448,6 +448,12 @@ JSON Attendu:
         /// Compile le prompt système : normalise les accolades doublées ({{ }}) héritées d'un
         /// ancien string.Format, puis substitue les vocabulaires — mêmes remplacements que
         /// l'ancienne compilation dans MultimodalityController.
+        /// <paramref name="objectNames"/> : les prénoms des objets nommables (les clients du
+        /// mini-jeu). Fournis, ils ajoutent la section du filtre 'Name' — sans elle, le LLM
+        /// ne pouvait désigner personne par son prénom (« Sers Florence »). Omis, le prompt
+        /// reste celui que mesure le benchmark d'extraction. Pas de consigne « prends le
+        /// prénom connu le plus proche » : essayée avec Qwen3.5-4B, elle ne rattrapait aucun
+        /// prénom écorché et faisait viser Florence pour « la commande déma » (d'Emma).
         /// </summary>
         public static string BuildSystemPrompt(
             string annotationTypes,
@@ -455,9 +461,10 @@ JSON Attendu:
             string cameraTerm,
             string pointerTerm,
             string pointerDeictics,
-            string availableCommands)
+            string availableCommands,
+            string objectNames = null)
         {
-            return SystemPromptTemplate
+            string prompt = SystemPromptTemplate
                 // Les exemples JSON du template utilisent des accolades doublées ({{ }}),
                 // vestige d'un ancien usage de string.Format. On les normalise en accolades
                 // simples (JSON valide) AVANT d'injecter les vocabulaires, pour ne jamais
@@ -470,6 +477,17 @@ JSON Attendu:
                 .Replace("{pointerTerm}", pointerTerm)
                 .Replace("{pointerDeicticsString}", pointerDeictics)
                 .Replace("{availableCommandsString}", availableCommands);
+
+            if (string.IsNullOrWhiteSpace(objectNames)) return prompt;
+
+            const string nextSection = "--- VOCABULAIRE DE COULEUR CONNU ---";
+            return prompt.Replace(nextSection,
+                "--- PRÉNOMS CONNUS (filtre 'Name') ---\n" +
+                "Un objet peut aussi être désigné par son PRÉNOM (les clients). Un prénom prononcé " +
+                "produit un filtre { \"type\": \"Name\", \"value\": \"<prénom>\", \"timestamp\": \"<EndedAt du prénom>\" }, " +
+                "jamais un filtre 'Annotation'. La 'value' DOIT être l'un des prénoms suivants, recopié " +
+                "à l'identique. Prénoms : " + objectNames + "\n\n" +
+                nextSection);
         }
 
         /// <summary>
@@ -568,6 +586,13 @@ JSON Attendu:
             // locaux. StripMarkdownJson gère le cas où le modèle emballe quand même en markdown.
             if (jsonObjectFormat)
                 requestObject["response_format"] = new JObject { ["type"] = "json_object" };
+
+            // Serveur local : pas de réflexion. Sous LM Studio, Qwen3.5 réfléchit par défaut —
+            // mesuré : 200 jetons de raisonnement avant la moindre réponse, contenu vide si
+            // max_tokens s'épuise, des secondes de latence — et le benchmark de la thèse a
+            // mesuré les modèles locaux sans. « none » la coupe (aucun jeton de raisonnement).
+            if (!string.IsNullOrWhiteSpace(endpointBaseUrl))
+                requestObject["reasoning_effort"] = "none";
 
             string url = string.IsNullOrWhiteSpace(endpointBaseUrl)
                 ? "https://api.openai.com/v1/chat/completions"

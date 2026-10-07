@@ -153,6 +153,8 @@ namespace Sc4ve.Multimodality
 
         /// <summary>Catalogue des recettes, lu dans l'ontologie au démarrage (voir RecipeVocabulary).</summary>
         private List<RecipeVocabulary.Recipe> _recipes = new();
+        /// <summary>Prénoms des objets nommables (les clients), relevés au démarrage — voir DoInitializeVocabulariesAsync.</summary>
+        private List<string> _objectNames = new();
         private string _availableColorsString;
         private string _cameraNamesString;
         private string _pointerNamesString;
@@ -162,9 +164,6 @@ namespace Sc4ve.Multimodality
         // Évite de reconstruire la chaîne à chaque appel LLM et permet à OpenAI
         // de mettre le prompt en cache (économie ~50 % du coût des tokens prompt).
         private string _cachedSystemPrompt;
-        // Version allégée sans la section EXEMPLES (~3 500 tokens en moins).
-        // Utilisée pour les serveurs locaux dont le n_ctx est limité (4 096 par défaut).
-        private string _cachedSystemPromptLocal;
 
         private PiperTextToSpeech _tts;
         private Action _ttsSpeechStartHandler;
@@ -379,14 +378,19 @@ namespace Sc4ve.Multimodality
                                 continue;
                             }
                         }
-                        // Hybride : un plat nommé SANS verbe reconnu n'est qu'une supposition
-                        // (« prépare-le »), juste quand Whisper a mangé le verbe, fausse quand le
-                        // verbe manque aux déclencheurs (« livre la soupe à Jean »). Le LLM
-                        // tranche ; s'il ne rend rien d'utilisable, la supposition tient.
-                        else if (_recognizerMode == RecognizerMode.Hybrid && _ruleBasedRecognizer.GuessedFromDish)
+                        // Hybride : deux suppositions des règles passent au LLM. Un plat nommé
+                        // SANS verbe reconnu (« prépare-le »), juste quand Whisper a mangé le
+                        // verbe, fausse quand le verbe manque aux déclencheurs (« livre la soupe
+                        // à Jean ») ; et une commande SANS cible quand un mot de la phrase n'a
+                        // servi à rien (« va chercher la commande de la dame »). Le LLM tranche ;
+                        // s'il ne rend rien d'utilisable, la réponse des règles tient.
+                        else if (_recognizerMode == RecognizerMode.Hybrid &&
+                                 (_ruleBasedRecognizer.GuessedFromDish || _ruleBasedRecognizer.MissedTarget))
                         {
-                            commandJson = await AskLlmInHybridAsync(phrase, "ont deviné le verbe d'après le plat")
-                                          ?? commandJson;
+                            string reason = _ruleBasedRecognizer.GuessedFromDish
+                                ? "ont deviné le verbe d'après le plat"
+                                : "n'ont pas trouvé la cible";
+                            commandJson = await AskLlmInHybridAsync(phrase, reason) ?? commandJson;
                         }
                     }
                     else
@@ -616,6 +620,19 @@ namespace Sc4ve.Multimodality
             // Exigences de paramètres + messages de clarification (bilingues) depuis l'ontologie.
             await ClarificationVocabulary.InitializeAsync();
 
+            // Le prénom d'un client est le nom de son GameObject : exactement le littéral
+            // que SemantizationCore écrit en rdfs:label, celui que le filtre « Name » de la
+            // sélection compare tel quel. Relevés une fois, au lancement, depuis le BASSIN
+            // de ServiceProgression : les clients naissent en cours de partie avec un prénom
+            // tiré au sort, et chaque prénom doit être compris AVANT que son porteur
+            // n'existe — la sélection, elle, ne trouve que les présents (un absent n'est pas,
+            // ou plus, sémantisé). L'union avec la scène garde les scènes sans progression
+            // fonctionnelles. Règles ET LLM les reçoivent.
+            _objectNames = ServiceProgression.NamePool
+                .Union(FindObjectsByType<CustomerOrder>(FindObjectsInactive.Include)
+                    .Select(c => c.name))
+                .ToList();
+
             // Compilation du prompt système définitif (fait une seule fois par session).
             // Le résultat est identique entre tous les appels → OpenAI peut le mettre en
             // cache côté serveur (prompt caching automatique pour les prompts > 1024 tokens).
@@ -625,14 +642,10 @@ namespace Sc4ve.Multimodality
                 _cameraNamesString,
                 _pointerNamesString,
                 _pointerDeicticsString,
-                _availableCommandsString);
+                _availableCommandsString,
+                objectNames: string.Join(", ", _objectNames));
 
-            // Version locale : on retire la section EXEMPLES pour réduire la taille du prompt
-            // (~6 500 → ~3 000 tokens) et permettre de fonctionner avec n_ctx = 4 096.
-            _cachedSystemPromptLocal = LlmIntentService.TrimExamplesSection(_cachedSystemPrompt);
-
-            Debug.Log($"[LLM] Vocabularies cached. Prompt: {_cachedSystemPrompt.Length} chars (full), " +
-                      $"{_cachedSystemPromptLocal.Length} chars (local/no-examples).");
+            Debug.Log($"[LLM] Vocabularies cached. Prompt: {_cachedSystemPrompt.Length} chars.");
         }
 
         /// <summary>
@@ -658,18 +671,10 @@ namespace Sc4ve.Multimodality
                 .Select(d => d.Trim('\''))
                 .ToList();
 
-            // Le prénom d'un client est le nom de son GameObject : exactement le littéral
-            // que SemantizationCore écrit en rdfs:label, celui que le filtre « Name » de la
-            // sélection compare tel quel. Relevés une fois, au lancement, depuis le BASSIN
-            // de ServiceProgression : les clients naissent en cours de partie avec un prénom
-            // tiré au sort, et chaque prénom doit être compris AVANT que son porteur
-            // n'existe — la sélection, elle, ne trouve que les présents (un absent n'est pas,
-            // ou plus, sémantisé). L'union avec la scène garde les scènes sans progression
-            // fonctionnelles.
-            List<string> objectNames = ServiceProgression.NamePool
-                .Union(FindObjectsByType<CustomerOrder>(FindObjectsInactive.Include)
-                    .Select(c => c.name))
-                .ToList();
+            // Le vocabulaire du domaine sert deux fois : grammaire de Vosk, et mots CONNUS des
+            // règles — un mot hors de cette liste, dans une phrase dont la cible manque, est
+            // un relais du mode hybride (RuleBasedIntentRecognizer.MissedTarget).
+            List<string> vocabulary = BuildVoskGrammar(annotationTypes, availableColors, pointerDeictics, _recipes, _objectNames);
 
             _ruleBasedRecognizer = new RuleBasedIntentRecognizer(
                 annotationTypes,
@@ -679,15 +684,16 @@ namespace Sc4ve.Multimodality
                 _cameraNamesString,
                 _movePointDelayMs,
                 _recipes,
-                objectNames);
+                _objectNames,
+                vocabulary);
 
             Debug.Log($"[RuleBased] Reconnaisseur initialisé — {annotationTypes.Count} annotations, " +
                       $"{availableColors.Count} couleurs, {pointerDeictics.Count} déictiques, " +
-                      $"{objectNames.Count} prénoms.");
+                      $"{_objectNames.Count} prénoms.");
 
             // Injecter le vocabulaire du domaine dans Vosk pour améliorer la précision STT.
             if (_speechToText != null)
-                _speechToText.SetGrammar(BuildVoskGrammar(annotationTypes, availableColors, pointerDeictics, _recipes, objectNames));
+                _speechToText.SetGrammar(vocabulary);
         }
 
         /// <summary>
@@ -785,9 +791,12 @@ namespace Sc4ve.Multimodality
         {
             await InitializeVocabulariesAsync();
 
-            string finalSystemPrompt = _llmService == LlmService.Local
-                ? _cachedSystemPromptLocal
-                : _cachedSystemPrompt;
+            // Le prompt COMPLET, serveur local compris : le benchmark de la thèse l'a mesuré
+            // meilleur que l'allégé pour les quatre modèles locaux, sur les paramètres et les
+            // clarifications (Qwen3.5-4B : 100 % des commandes et 3/3 clarifications, contre
+            // 97 % et 2/3). Le serveur local doit donc offrir un contexte d'au moins 16 k
+            // (LM Studio : lms load … -c 16384).
+            string finalSystemPrompt = _cachedSystemPrompt;
 
             string userContent = JsonConvert.SerializeObject(new { sentence.Text, sentence.Words });
             Debug.Log(userContent + "\n\n" + finalSystemPrompt);

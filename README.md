@@ -266,32 +266,39 @@ Aucune clé API requise, tout reste hors-ligne.
 
 #### Choix du modèle
 
-| Modèle | VRAM (Q4_K_M) | Vitesse (RTX 4090) | Fiabilité JSON | Recommandation |
-|--------|--------------|-------------------|----------------|----------------|
-| **Qwen3-4B-Instruct** | ~3 Go | ~120 tok/s | ⭐⭐⭐⭐⭐ | **Premier choix** |
-| **Phi-4-mini-instruct** | ~3 Go | ~110 tok/s | ⭐⭐⭐⭐⭐ | Très bon alternatif |
-| **Llama-3.2-3B-Instruct** | ~2,5 Go | ~150 tok/s | ⭐⭐⭐⭐ | Si VRAM limitée |
-| Mistral-7B-Instruct-v0.3 | ~5 Go | ~70 tok/s | ⭐⭐⭐⭐ | Plus lent |
-| Mistral-Nemo-12B | ~8 Go | ~35 tok/s | ⭐⭐⭐⭐⭐ | Si VRAM suffisante |
+Mesuré par le benchmark d'extraction de la thèse (35 cas, prompt complet ; détail dans
+`BenchmarkResults/intent_extraction_summary.csv`) :
 
-Tous les modèles ci-dessus sont à télécharger au format **GGUF Q4_K_M**.
+| Modèle (GGUF Q4_K_M) | Commande | Paramètres exacts | Hors instants | Clarif. | Latence médiane |
+|---|---|---|---|---|---|
+| **Qwen3.5-4B** — **premier choix** | **100 %** | **51 %** | 82 % | **3/3** | 1 782 ms |
+| Qwen3.5-9B | 94 % | 44 % | 92 % | 2/3 | 3 783 ms |
+| Ministral-3-8B | 94 % | 36 % | 79 % | 3/3 | 5 483 ms |
+| Ministral-3-3B | 91 % | 33 % | 64 % | 2/3 | 1 448 ms |
 
-> **Note latence :** En mode local, les exemples sont automatiquement retirés du prompt (~3 000 tokens au lieu de ~6 500). Le premier appel inclut le prefill (~1-2 s). Les appels suivants réutilisent le KV cache → latence effective ~0,5-1 s avec Qwen3-4B sur RTX 4090.
+> **Prompt complet, même en local** (~10 000 tokens avec la liste des prénoms) : le benchmark
+> l'a mesuré meilleur que le prompt allégé pour les quatre modèles locaux, sur les paramètres
+> hors instants et les clarifications. Le premier appel paie
+> le prefill (~5-7 s sur RTX 5070 Laptop) ; les suivants réutilisent le cache du prompt
+> (~1-3 s). **Le jeu coupe la réflexion** des modèles qui en ont une (Qwen3.5 réfléchit par
+> défaut) en envoyant `reasoning_effort: "none"` aux serveurs locaux — vérifié sous LM Studio,
+> pas sous Ollama.
 
 #### Configuration LM Studio (recommandé)
 
-1. Télécharger [LM Studio](https://lmstudio.ai/)
-2. Rechercher et charger `Qwen3-4B-Instruct` (format GGUF Q4_K_M)
-3. Réglages du modèle :
+Avec la CLI `lms` (installée avec LM Studio, dans `%USERPROFILE%\.lmstudio\bin`) :
 
-   | Paramètre | Valeur |
-   |-----------|--------|
-   | **Context length** | `8192` minimum (le prompt système seul fait ~6 500 tokens avec les exemples) |
-   | **GPU layers** | `MAX` (tout sur GPU, pas de CPU offload) |
-   | **Flash Attention** | `ON` |
-   | **Keep model loaded** | `ON` (évite le rechargement entre les phrases) |
+```bash
+lms get https://huggingface.co/lmstudio-community/Qwen3.5-4B-GGUF/blob/main/Qwen3.5-4B-Q4_K_M.gguf
+lms load qwen3.5-4b -c 16384 --gpu max
+lms server start --port 1234
+```
 
-4. Démarrer le serveur local dans LM Studio (onglet **Local Server**) → URL par défaut : `http://localhost:1234/v1`
+- **Context length `16384` minimum** : prompt complet (~10 000 tokens) + réponse (`max_tokens` 2 048).
+  Le contexte par défaut d'un modèle fraîchement téléchargé ne contient pas le prompt.
+- Le jeu envoie le nom de modèle `local-model` : LM Studio le route vers le seul modèle chargé.
+- Après un redémarrage, relancer `lms load` et `lms server start` (ou depuis l'interface,
+  onglet **Developer**).
 
 #### Configuration Inspector Unity
 
