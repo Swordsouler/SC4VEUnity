@@ -11,6 +11,7 @@ namespace Sc4ve.Multimodality.Intent
         // DetectCommandType compare du plus long au plus court.
         "répète la commande", "répéter la commande", "redis la commande",
         "rappelle la commande", "quelle est la commande", "c'est quoi la commande",
+        "répétez la commande", "redites la commande", "rappelez la commande",
         "repeat the order", "say the order again", "what is the order")]
     [Serializable, CommandDescription(
         "Réénonce à voix haute la commande DÉJÀ prise à une table, sans envoyer de serveur " +

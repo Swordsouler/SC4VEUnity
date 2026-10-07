@@ -723,6 +723,7 @@ sc4ve:ResetTransformCommand sc4ve:trigger
 
 sc4ve:ResetSceneCommand sc4ve:trigger
     "réinitialise la scène"@fr , "remet la scène"@fr , "reset la scène"@fr , "tout réinitialiser"@fr , "remet tout"@fr , "restaure la scène"@fr ,
+    "réinitialisez la scène"@fr , "remettez la scène"@fr , "remettez tout"@fr , "restaurez la scène"@fr ,
     "reset the scene"@en , "reset scene"@en , "reset everything"@en , "restore the scene"@en .
 
 sc4ve:CountCommand sc4ve:trigger
@@ -873,6 +874,7 @@ sc4ve:CheckCommand sc4ve:trigger
 
 sc4ve:GoToCommand sc4ve:trigger
     "va là"@fr , "va là-bas"@fr , "va ici"@fr , "rejoins"@fr , "rejoindre"@fr ,
+    "allez là"@fr , "allez là-bas"@fr , "allez ici"@fr , "rejoignez"@fr ,
     "go there"@en , "go here"@en , "go to"@en .
 
 ###  « donne » et « apporte » : les formulations naturelles du service, entendues en démo
@@ -918,6 +920,7 @@ sc4ve:TakeOrderCommand sc4ve:trigger
 sc4ve:RepeatOrderCommand sc4ve:trigger
     "répète la commande"@fr , "répéter la commande"@fr , "redis la commande"@fr ,
     "rappelle la commande"@fr , "quelle est la commande"@fr , "c'est quoi la commande"@fr ,
+    "répétez la commande"@fr , "redites la commande"@fr , "rappelez la commande"@fr ,
     "repeat the order"@en , "say the order again"@en , "what is the order"@en .
 
 sc4ve:StopCommand sc4ve:trigger

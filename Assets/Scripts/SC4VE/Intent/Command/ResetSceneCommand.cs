@@ -7,7 +7,9 @@ using UnityEngine;
 namespace Sc4ve.Multimodality.Intent
 {
     [RuleBasedTriggers("réinitialise la scène", "remet la scène", "reset la scène",
-                       "tout réinitialiser", "remet tout", "restaure la scène")]
+                       "tout réinitialiser", "remet tout", "restaure la scène",
+                       "réinitialisez la scène", "remettez la scène", "remettez tout",
+                       "restaurez la scène")]
     [Serializable, CommandDescription(
         "Remet tous les objets à leur état initial ; dans le mini-jeu, vide aussi la " +
         "salle, remet le score et rappelle l'écran de départ (« réinitialise la scène », " +
