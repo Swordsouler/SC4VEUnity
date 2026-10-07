@@ -873,8 +873,8 @@ sc4ve:CheckCommand sc4ve:trigger
     "is it ready"@en , "is it correct"@en , "check"@en .
 
 sc4ve:GoToCommand sc4ve:trigger
-    "va là"@fr , "va là-bas"@fr , "va ici"@fr , "rejoins"@fr , "rejoindre"@fr ,
-    "allez là"@fr , "allez là-bas"@fr , "allez ici"@fr , "rejoignez"@fr ,
+    "va là"@fr , "va là-bas"@fr , "va ici"@fr , "va à"@fr , "rejoins"@fr , "rejoindre"@fr ,
+    "allez là"@fr , "allez là-bas"@fr , "allez ici"@fr , "allez à"@fr , "rejoignez"@fr ,
     "go there"@en , "go here"@en , "go to"@en .
 
 ###  « donne » et « apporte » : les formulations naturelles du service, entendues en démo

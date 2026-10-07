@@ -8,7 +8,7 @@ namespace Sc4ve.Multimodality.Intent
 {
     [RuleBasedTriggers(
         "va là", "va là-bas", "va ici", "va à", "rejoins", "rejoindre",
-        "allez là", "allez là-bas", "allez ici", "rejoignez",
+        "allez là", "allez là-bas", "allez ici", "allez à", "rejoignez",
         "go there", "go here", "go to")]
     [Serializable, CommandDescription(
         "Envoie un serveur à un endroit désigné par pointage (« toi, va là-bas »). " +
