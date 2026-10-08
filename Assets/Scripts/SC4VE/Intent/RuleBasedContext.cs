@@ -199,6 +199,43 @@ namespace Sc4ve.Multimodality.Intent
         }
 
         /// <summary>
+        /// La sélection des commandes de DÉLÉGATION (servir, prendre la commande, débarrasser),
+        /// dont les rôles se lisent dans les objets (DelegationRoles), pas dans les mots.
+        /// Désignée au pointage, la cible est TOUT ce que vise le pointeur en FIN de phrase :
+        /// - tout, et non « l'objet pointé qui est une table » : le cône du pointeur touche
+        ///   aussi l'assiette posée dessus ou le client assis à côté (DelegationRoles retrouve
+        ///   la table parmi eux, ou par son client), et « l'assiette de cette table » exigeait
+        ///   un objet à la fois assiette ET table ;
+        /// - en fin de phrase, et non au premier mot : on amène le rayon EN parlant. Vu en jeu :
+        ///   deux « débarrasse cette table » sans rien de pointé au premier mot, Table A n'étant
+        ///   atteinte que 50 à 260 ms plus tard. Le premier mot reste l'instant des déplacements
+        ///   (« mets ça ici »), dont la source se pointe AVANT de parler.
+        /// Toutes les cibles, donc sans désambiguïsation. Un prénom, ou l'absence de pointage,
+        /// gardent la sélection standard.
+        /// </summary>
+        public SelectionParameter BuildPointedTargetSelection()
+        {
+            if (Deictics == null || Deictics.Count == 0 || Names?.Count > 0 || Words == null || Words.Count == 0)
+                return BuildSelectionParameter(fallbackToSelection: true);
+
+            return new SelectionParameter
+            {
+                Type = "SelectionParameter",
+                Filters = new List<FilterElement>
+                {
+                    new()
+                    {
+                        IsOperator = false,
+                        Condition  = new Condition { Type = "Event", Value = Deictics[0].Value, Timestamp = Words[^1].EndedAt }
+                    }
+                },
+                Limit = -1,
+                FallbackToSelection = true,
+                SingularIntent = false
+            };
+        }
+
+        /// <summary>
         /// Construit le PointParameter pour GrabCommand :
         /// utilise le timestamp du premier déictique si présent, sinon la fin de phrase.
         /// </summary>

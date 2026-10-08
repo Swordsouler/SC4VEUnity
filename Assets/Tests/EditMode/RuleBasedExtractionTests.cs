@@ -295,6 +295,33 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void DebarrasseCetteTable_ViseToutCeQuePointeLeRayonEnFinDePhrase()
+        {
+            // Vu en jeu : « débarrasse cette table » sans rien de pointé au premier mot — on
+            // amène le rayon en parlant —, et « l'assiette de cette table » exigeait un objet à
+            // la fois assiette ET table. Les commandes de délégation visent TOUT ce que pointe
+            // le rayon en fin de phrase ; DelegationRoles y retrouve la table.
+            _recognizer = MakeRecognizer(Language.French,
+                annotationTypes: new List<string> { "Table", "Assiette" });
+
+            foreach (string phrase in new[] { "Débarrasse cette table", "Débarrasse l'assiette de cette table" })
+            {
+                var sentence = new Sentence(phrase);
+                string json = _recognizer.Recognize(sentence);
+                Assert.IsNotNull(json, phrase);
+                Command command = JsonConvert.DeserializeObject<List<Command>>(json).Single();
+                Assert.IsInstanceOf<ClearTableCommand>(command, phrase);
+
+                List<Condition> conditions = AllConditions(command);
+                Assert.AreEqual(1, conditions.Count, $"{phrase} : le pointage seul, sans type.");
+                Assert.IsTrue(conditions[0].IsEvent, phrase);
+                Assert.Less(System.Math.Abs((conditions[0].Timestamp - sentence.Words[^1].EndedAt).TotalMilliseconds), 1,
+                    $"{phrase} : le pointage se lit en fin de phrase.");
+                Assert.AreEqual(-1, Selection(command).Limit, $"{phrase} : toutes les cibles pointées.");
+            }
+        }
+
+        [Test]
         public void English_MakeColorPattern_TriggersColorize()
         {
             // Bascule complète en anglais (locale + vocabulaire de triggers + recognizer).

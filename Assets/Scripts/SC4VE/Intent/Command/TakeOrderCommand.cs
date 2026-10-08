@@ -29,7 +29,7 @@ namespace Sc4ve.Multimodality.Intent
         /// l'une marche, l'autre marche. Elles sont écrites ensemble à dessein.
         /// </summary>
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
-            => new() { ctx.BuildSelectionParameter(fallbackToSelection: true) };
+            => new() { ctx.BuildPointedTargetSelection() };
 
         /// <summary>La réponse attendue désigne une cible (« ce serveur-là 👆 »), pas un paramètre.</summary>
         public override bool ExpectsTargetAnswer => true;

@@ -35,7 +35,7 @@ namespace Sc4ve.Multimodality.Intent
         /// scène elle-même (§3 du README), pas par la grammaire.
         /// </summary>
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
-            => new() { ctx.BuildSelectionParameter(fallbackToSelection: true) };
+            => new() { ctx.BuildPointedTargetSelection() };
 
         /// <summary>La réponse attendue désigne une cible (« cette table-là 👆 »), pas un paramètre.</summary>
         public override bool ExpectsTargetAnswer => true;

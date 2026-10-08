@@ -31,7 +31,7 @@ namespace Sc4ve.Multimodality.Intent
         /// </summary>
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
         {
-            var parameters = new List<Parameter> { ctx.BuildSelectionParameter(fallbackToSelection: true) };
+            var parameters = new List<Parameter> { ctx.BuildPointedTargetSelection() };
 
             // Le plat NOMMÉ (« donne la salade César à Florence ») voyage avec l'ordre : le
             // serveur choisira l'assiette préparée pour CETTE recette plutôt que la plus
