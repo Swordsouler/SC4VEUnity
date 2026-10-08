@@ -276,7 +276,7 @@ Mesuré par le benchmark d'extraction de la thèse (35 cas, prompt complet ; dé
 | Ministral-3-8B | 94 % | 36 % | 79 % | 3/3 | 5 483 ms |
 | Ministral-3-3B | 91 % | 33 % | 64 % | 2/3 | 1 448 ms |
 
-> **Prompt complet, même en local** (~10 000 tokens avec la liste des prénoms) : le benchmark
+> **Prompt complet, même en local** (~10 000 tokens avec les prénoms et les plats) : le benchmark
 > l'a mesuré meilleur que le prompt allégé pour les quatre modèles locaux, sur les paramètres
 > hors instants et les clarifications. Le premier appel paie
 > le prefill (~5-7 s sur RTX 5070 Laptop) ; les suivants réutilisent le cache du prompt

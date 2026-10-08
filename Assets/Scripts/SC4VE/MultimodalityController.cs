@@ -633,6 +633,12 @@ namespace Sc4ve.Multimodality
                     .Select(c => c.name))
                 .ToList();
 
+            // Les plats, groupés par identifiant : sven:PumpkinSoup porte deux libellés
+            // (« Soupe de citrouille / Soupe de potiron → sven:PumpkinSoup »).
+            string recipes = string.Join(" ; ", _recipes
+                .GroupBy(r => r.Uri)
+                .Select(g => $"{string.Join(" / ", g.Select(r => r.Label))} → {g.Key}"));
+
             // Compilation du prompt système définitif (fait une seule fois par session).
             // Le résultat est identique entre tous les appels → OpenAI peut le mettre en
             // cache côté serveur (prompt caching automatique pour les prompts > 1024 tokens).
@@ -643,7 +649,8 @@ namespace Sc4ve.Multimodality
                 _pointerNamesString,
                 _pointerDeicticsString,
                 _availableCommandsString,
-                objectNames: string.Join(", ", _objectNames));
+                objectNames: string.Join(", ", _objectNames),
+                recipes: recipes);
 
             Debug.Log($"[LLM] Vocabularies cached. Prompt: {_cachedSystemPrompt.Length} chars.");
         }

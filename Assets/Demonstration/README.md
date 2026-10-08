@@ -267,9 +267,12 @@ objet correspondant » restent aux règles : ce ne sont pas des échecs de compr
 Vosk, la grammaire close remplacerait les verbes inconnus avant que le LLM ne les voie :
 l'hybride suppose Whisper.
 
-Le LLM du jeu connaît les prénoms des clients (filtre `Name`, section ajoutée au prompt par
-`LlmIntentService.BuildSystemPrompt` ; le prompt du benchmark, qui ne les reçoit pas, reste
-inchangé). Mais un prénom écorché reste l'affaire des règles : essayé avec Qwen3.5-4B, « la
+Le LLM du jeu connaît les prénoms des clients (filtre `Name`) et le catalogue des plats
+(`RecipeParameter`, « Salade de fruits → sven:FruitSalad ») : deux sections ajoutées au prompt
+par `LlmIntentService.BuildSystemPrompt` ; le prompt du benchmark, qui ne les reçoit pas, reste
+inchangé. Sans le catalogue, le LLM recopiait le plat tel que prononcé, et toute préparation
+passée par lui finissait en « Je ne connais pas cette recette ». Mais un prénom écorché reste
+l'affaire des règles : essayé avec Qwen3.5-4B, « la
 commande déma » (d'Emma) faisait viser Florence — c'est pourquoi les règles tolèrent l'élision
 soudée, les lettres doublées et les accents, et que le relais n'est sollicité qu'à défaut.
 

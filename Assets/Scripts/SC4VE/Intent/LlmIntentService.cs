@@ -454,6 +454,10 @@ JSON Attendu:
         /// reste celui que mesure le benchmark d'extraction. Pas de consigne « prends le
         /// prénom connu le plus proche » : essayée avec Qwen3.5-4B, elle ne rattrapait aucun
         /// prénom écorché et faisait viser Florence pour « la commande déma » (d'Emma).
+        /// <paramref name="recipes"/> : le catalogue des plats, « libellé → sven:Identifiant ».
+        /// Sans lui, le LLM recopiait le plat tel que prononcé (« Salade de fruits »), et
+        /// PrepareCommand, qui attend l'identifiant de l'ontologie, répondait « Je ne connais
+        /// pas cette recette ». Omis, même règle que pour les prénoms.
         /// </summary>
         public static string BuildSystemPrompt(
             string annotationTypes,
@@ -462,7 +466,8 @@ JSON Attendu:
             string pointerTerm,
             string pointerDeictics,
             string availableCommands,
-            string objectNames = null)
+            string objectNames = null,
+            string recipes = null)
         {
             string prompt = SystemPromptTemplate
                 // Les exemples JSON du template utilisent des accolades doublées ({{ }}),
@@ -478,16 +483,25 @@ JSON Attendu:
                 .Replace("{pointerDeicticsString}", pointerDeictics)
                 .Replace("{availableCommandsString}", availableCommands);
 
-            if (string.IsNullOrWhiteSpace(objectNames)) return prompt;
-
             const string nextSection = "--- VOCABULAIRE DE COULEUR CONNU ---";
-            return prompt.Replace(nextSection,
-                "--- PRÉNOMS CONNUS (filtre 'Name') ---\n" +
-                "Un objet peut aussi être désigné par son PRÉNOM (les clients). Un prénom prononcé " +
-                "produit un filtre { \"type\": \"Name\", \"value\": \"<prénom>\", \"timestamp\": \"<EndedAt du prénom>\" }, " +
-                "jamais un filtre 'Annotation'. La 'value' DOIT être l'un des prénoms suivants, recopié " +
-                "à l'identique. Prénoms : " + objectNames + "\n\n" +
-                nextSection);
+            if (!string.IsNullOrWhiteSpace(objectNames))
+                prompt = prompt.Replace(nextSection,
+                    "--- PRÉNOMS CONNUS (filtre 'Name') ---\n" +
+                    "Un objet peut aussi être désigné par son PRÉNOM (les clients). Un prénom prononcé " +
+                    "produit un filtre { \"type\": \"Name\", \"value\": \"<prénom>\", \"timestamp\": \"<EndedAt du prénom>\" }, " +
+                    "jamais un filtre 'Annotation'. La 'value' DOIT être l'un des prénoms suivants, recopié " +
+                    "à l'identique. Prénoms : " + objectNames + "\n\n" +
+                    nextSection);
+
+            if (!string.IsNullOrWhiteSpace(recipes))
+                prompt = prompt.Replace(nextSection,
+                    "--- RECETTES CONNUES (RecipeParameter) ---\n" +
+                    "Un plat nommé produit un paramètre { \"type\": \"RecipeParameter\", \"value\": \"<identifiant>\" }. " +
+                    "La 'value' DOIT être l'identifiant 'sven:' de la recette, recopié à l'identique — " +
+                    "jamais le nom prononcé. Recettes (nom → identifiant) : " + recipes + "\n\n" +
+                    nextSection);
+
+            return prompt;
         }
 
         /// <summary>
