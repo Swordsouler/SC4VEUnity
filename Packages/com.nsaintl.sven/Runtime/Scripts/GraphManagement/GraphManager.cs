@@ -47,6 +47,27 @@ namespace Sven.GraphManagement
         // la fin de la session — le disjoncteur du bloc catch de FlushBufferToEndpointAsync.
         private const int MaxConsecutiveFlushFailures = 5;
         private static int _backupCounter = 0;
+        // Horodatage de session dans le nom des sauvegardes locales : le compteur repart de zéro à
+        // chaque lancement, et « sven_backup_0.ttl » écrasait la sauvegarde de la session d'avant.
+        private static readonly string _sessionStamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+
+        /// <summary>
+        /// FENÊTRE GLISSANTE quand l'endpoint est absent (disjoncteur ouvert). Le graphe en mémoire
+        /// est alors l'unique magasin de la session et n'était jamais vidé : tout l'historique s'y
+        /// accumulait et chaque requête le parcourait — mesuré sur une partie réelle sans GraphDB,
+        /// 7 080 intervalles et 4 à 17 s par sélection après deux minutes et quart de jeu. Toutes
+        /// les <see cref="HistoryEvictionPeriodSeconds"/> secondes, les valeurs FERMÉES depuis plus
+        /// de <see cref="InMemoryHistorySeconds"/> secondes (positions, rotations, valeurs
+        /// primitives, couleurs, événements de collision) sont ajoutées au fichier d'historique de
+        /// la session (SVEN_Backup/sven_history_*.ttl) puis retirées de la mémoire. L'état courant
+        /// et l'historique récent restent interrogeables ; l'historique complet reste sur disque.
+        /// </summary>
+        public static float InMemoryHistorySeconds = 30f;
+        private const float HistoryEvictionPeriodSeconds = 10f;
+        private static DateTime _nextEvictionUtc = DateTime.MinValue;
+        private static bool _isEvicting = false;
+        private static bool _evictionAnnounced = false;
+
         public static int Count
         {
             get
@@ -632,7 +653,7 @@ WHERE {
             // Un SEUL verrou pour tout le lot, au lieu d'un par triplet : la sémantisation
             // écrit par paquets (un objet = plusieurs propriétés par tick), et chaque prise
             // de _graphLock est un point de contention avec les requêtes en cours.
-            bool kickFlush;
+            bool kickFlush, kickEviction;
             lock (_graphLock)
             {
                 foreach (Triple t in triples)
@@ -650,10 +671,13 @@ WHERE {
                     }
                 }
                 kickFlush = ShouldKickFlushLocked();
+                kickEviction = ShouldEvictLocked();
             }
 
             if (kickFlush)
                 CopyAndFlushAsync().FireAndForget();
+            if (kickEviction)
+                EvictOldHistoryAsync().FireAndForget();
         }
 
         public static IUriNode Assert(Triple t)
@@ -661,16 +685,19 @@ WHERE {
             if (t == null) throw new ArgumentNullException(nameof(t));
 
             IUriNode subject = t.Subject as IUriNode ?? throw new ArgumentException("The subject of the triple must be an IUriNode.", nameof(t));
-            bool kickFlush;
+            bool kickFlush, kickEviction;
 
             lock (_graphLock)
             {
                 _instance.Assert(t);
                 kickFlush = ShouldKickFlushLocked();
+                kickEviction = ShouldEvictLocked();
             }
 
             if (kickFlush)
                 CopyAndFlushAsync().FireAndForget();
+            if (kickEviction)
+                EvictOldHistoryAsync().FireAndForget();
             return subject;
         }
 
@@ -683,6 +710,20 @@ WHERE {
             if (_instance.Triples.Count < SvenSettings.BufferSize || _isFlushing || DateTime.UtcNow < _nextFlushRetryUtc)
                 return false;
             _isFlushing = true;
+            return true;
+        }
+
+        /// <summary>
+        /// À appeler SOUS _graphLock : décide si l'éviction de l'historique ancien doit partir —
+        /// seulement disjoncteur ouvert (endpoint absent pour la session), au plus une fois par
+        /// période — et réserve le créneau (_isEvicting) le cas échéant.
+        /// </summary>
+        private static bool ShouldEvictLocked()
+        {
+            if (_nextFlushRetryUtc != DateTime.MaxValue || _isEvicting || DateTime.UtcNow < _nextEvictionUtc)
+                return false;
+            _isEvicting = true;
+            _nextEvictionUtc = DateTime.UtcNow.AddSeconds(HistoryEvictionPeriodSeconds);
             return true;
         }
 
@@ -786,7 +827,8 @@ WHERE {
                 // emportant les annotations dont toutes les requêtes vivent. Le graphe en
                 // mémoire devient alors l'unique magasin de la session : le mode nominal de la
                 // démo sans GraphDB. Pas de spool dans ce mode, et c'est voulu — il viderait ce
-                // qui reste interrogeable. Relancer la partie réarme le disjoncteur ; le vidage
+                // qui reste interrogeable ; seul l'historique ANCIEN part sur disque, par la
+                // fenêtre glissante (EvictOldHistoryAsync). Relancer la partie réarme le disjoncteur ; le vidage
                 // de fermeture (ForceFlushToEndpointBlocking) n'est pas concerné.
                 // Un refus de CONNEXION (IsEndpointAbsent : port fermé, hôte introuvable) le
                 // déclenche dès la PREMIÈRE tentative — ce refus-là est définitif, et les
@@ -930,7 +972,7 @@ WHERE {
                 g.BaseUri = baseUri;
                 if (nsMap != null) g.NamespaceMap.Import(nsMap);
 
-                string file = Path.Combine(dir, $"sven_backup_{_backupCounter++}.ttl");
+                string file = Path.Combine(dir, $"sven_backup_{_sessionStamp}_{_backupCounter++}.ttl");
                 using (StreamWriter sw = new(file, false, Encoding.UTF8))
                 {
                     SaveGraph(g, sw);
@@ -948,6 +990,109 @@ WHERE {
             {
                 Debug.LogError($"SVEN : échec de l'écriture de la sauvegarde locale (les données restent en mémoire) : {ex}");
             }
+        }
+
+        /// <summary>
+        /// La fenêtre glissante (voir <see cref="InMemoryHistorySeconds"/>). Seules partent les
+        /// valeurs dont l'intervalle est FERMÉ depuis plus que la fenêtre : une valeur ouverte est
+        /// l'état courant. Pour chacune, son lien depuis son composant, ses triplets et son
+        /// intervalle ; les instants, partagés entre intervalles, restent en mémoire et sont
+        /// seulement recopiés dans le fichier, pour qu'il se suffise à lui-même. Le fichier est
+        /// écrit AVANT le retrait : un échec d'écriture laisse tout en mémoire.
+        /// </summary>
+        private static async Task EvictOldHistoryAsync()
+        {
+            try
+            {
+                DateTimeOffset cutoff = DateTimeOffset.Now.AddSeconds(-InMemoryHistorySeconds);
+                List<Triple> evicted = new();
+                List<Triple> instants = new();
+                Uri baseUri = null;
+                NamespaceMapper nsMap = null;
+
+                await Task.Run(() =>
+                {
+                    lock (_graphLock)
+                    {
+                        INode Node(string iri) => _instance.CreateUriNode(UriFactory.Create(iri));
+                        const string sven = "https://sven.lisn.upsaclay.fr/ontology#", time = "http://www.w3.org/2006/time#";
+                        INode rdfType = Node("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+                        INode hasTemporalExtent = Node(sven + "hasTemporalExtent");
+                        INode hasBeginning = Node(time + "hasBeginning"), hasEnd = Node(time + "hasEnd"), inXsd = Node(time + "inXSDDateTime");
+                        var historyTypes = new HashSet<INode>
+                        {
+                            Node(sven + "Vector3"), Node(sven + "Quaternion"), Node(sven + "Primitive"),
+                            Node(sven + "Color"), Node(sven + "CollisionEvent")
+                        };
+
+                        foreach (Triple extent in _instance.GetTriplesWithPredicate(hasTemporalExtent).ToList())
+                        {
+                            if (!_instance.GetTriplesWithSubjectPredicate(extent.Subject, rdfType).Any(t => historyTypes.Contains(t.Object)))
+                                continue;
+                            INode end = _instance.GetTriplesWithSubjectPredicate(extent.Object, hasEnd).FirstOrDefault()?.Object;
+                            if (end == null) continue;
+                            if (_instance.GetTriplesWithSubjectPredicate(end, inXsd).FirstOrDefault()?.Object is not ILiteralNode endedAt
+                                || !DateTimeOffset.TryParse(endedAt.Value, System.Globalization.CultureInfo.InvariantCulture,
+                                                            System.Globalization.DateTimeStyles.None, out DateTimeOffset ended)
+                                || ended >= cutoff)
+                                continue;
+
+                            evicted.AddRange(_instance.GetTriplesWithObject(extent.Subject));
+                            evicted.AddRange(_instance.GetTriplesWithSubject(extent.Subject));
+                            evicted.AddRange(_instance.GetTriplesWithSubject(extent.Object));
+                            INode begin = _instance.GetTriplesWithSubjectPredicate(extent.Object, hasBeginning).FirstOrDefault()?.Object;
+                            if (begin != null) instants.AddRange(_instance.GetTriplesWithSubject(begin));
+                            instants.AddRange(_instance.GetTriplesWithSubject(end));
+                        }
+                        baseUri = _instance.BaseUri;
+                        nsMap = new NamespaceMapper();
+                        nsMap.Import(_instance.NamespaceMap);
+                    }
+                });
+                if (evicted.Count == 0) return;
+
+                string file = AppendToSessionHistory(evicted.Concat(instants), baseUri, nsMap);
+                int remaining;
+                lock (_graphLock)
+                {
+                    foreach (Triple t in evicted)
+                        _instance.Retract(t);
+                    remaining = _instance.Triples.Count;
+                }
+                if (!_evictionAnnounced || SvenSettings.Debug)
+                    Debug.Log($"SVEN : endpoint absent — l'historique de plus de {InMemoryHistorySeconds:0} s part " +
+                              $"au fil de la partie dans '{file}' ({evicted.Count} triplets cette fois, {remaining} restent en mémoire).");
+                _evictionAnnounced = true;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"SVEN : éviction de l'historique impossible (il reste en mémoire) : {ex}");
+            }
+            finally
+            {
+                _isEvicting = false;
+            }
+        }
+
+        /// <summary>
+        /// Ajoute un lot de triplets au fichier d'historique de la session. Chaque lot redéclare
+        /// ses préfixes, ce que Turtle autorise : le fichier reste un seul document, relisible
+        /// d'un bloc (SVEN n'écrit aucun nœud anonyme dont les étiquettes se télescoperaient).
+        /// </summary>
+        private static string AppendToSessionHistory(IEnumerable<Triple> triples, Uri baseUri, NamespaceMapper nsMap)
+        {
+            string dir = Path.Combine(SvenSettings.PersistentDataPath, "SVEN_Backup");
+            Directory.CreateDirectory(dir);
+
+            Graph g = new();
+            g.BaseUri = baseUri;
+            if (nsMap != null) g.NamespaceMap.Import(nsMap);
+            g.Assert(triples);
+
+            string file = Path.Combine(dir, $"sven_history_{_sessionStamp}.ttl");
+            using (StreamWriter sw = new(file, append: true, Encoding.UTF8))
+                SaveGraph(g, sw);
+            return file;
         }
 
         private static async Task SyncWithEndpoint()

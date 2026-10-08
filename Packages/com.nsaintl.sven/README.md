@@ -77,6 +77,8 @@ To create a semanticized virtual environment, follow these steps:
 | **Buffer Size**               | Maximum number of triples the buffer can hold before being flushed to the endpoint triplestore.                                     |
 | **Ontologies**                | List of ontologies currently imported into your VE                                                                                  |
 
+> **Without an endpoint.** When the endpoint is unreachable, SVEN keeps the session in memory only. To keep queries fast during long sessions, every 10 s the history older than `GraphManager.InMemoryHistorySeconds` (30 s by default): closed positions, rotations, primitive values, colors and collision events, is appended to `PersistentDataPath/SVEN_Backup/sven_history_<session>.ttl` and removed from memory. The current state and the recent history stay queryable; the full history stays on disk, ready to be re-imported into a triplestore. Local backups are named per session (`sven_backup_<session>_<n>.ttl`) and no longer overwrite the previous session's.
+
 2. Add a **Graph Controller** component to your scene (GameObject > SVEN > Graph Controller). This component initialize your knowledge graph with ontologies, prefixes, endpoint that you defined in **SVEN Settings**.
 
 ![Instantiate Graph Controller](./Assets/com.nsaintl.sven/Documentation~/instantiate_graphcontroller.png)
