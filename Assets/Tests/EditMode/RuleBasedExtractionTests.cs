@@ -418,6 +418,20 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void FaitEnTete_EstLImperatifFais_PasUneSupposition()
+        {
+            _recognizer = MakeRecognizer(Language.French, recipes: Recipes());
+
+            // Whisper écrit l'impératif « Fais » comme son homophone (vu en démo : « Fait une
+            // salade de fruits. »). En tête de phrase, c'est le verbe : le mode hybride n'a
+            // pas à consulter le LLM pour deviner ce que la phrase dit déjà.
+            PrepareCommand cmd = RecognizeSingle<PrepareCommand>("Fait une salade de fruits.");
+            Assert.AreEqual("sven:FruitSalad",
+                cmd.Parameters.OfType<RecipeParameter>().First().Value);
+            Assert.IsFalse(_recognizer.GuessedFromDish, "« Fait » en tête est un verbe, pas une supposition.");
+        }
+
+        [Test]
         public void PreciseRecipe_WinsOverItsFamily()
         {
             _recognizer = MakeRecognizer(Language.French, recipes: Recipes());
@@ -664,6 +678,18 @@ namespace Sc4ve.Tests.EditMode
             TakeOrderCommand command = RecognizeSingle<TakeOrderCommand>("Va chercher la commande");
             Assert.IsFalse(AllConditions(command).Any(c => c.IsCoreference),
                 "Le « la » de « la commande » ne doit pas produire de coréférence.");
+        }
+
+        [Test]
+        public void SaCommande_EtRecuperer_SontDesPrisesDeCommande()
+        {
+            // Vu en démo : « prends sa commande » devenait un GrabCommand (stem « prend »), et
+            // « Va récupérer la commande de Patricia » n'était compris que par le LLM.
+            _recognizer = MakeNamedRecognizer();
+            RecognizeSingle<TakeOrderCommand>("Prends sa commande.");
+            TakeOrderCommand command =
+                RecognizeSingle<TakeOrderCommand>("Va récupérer la commande de Patricia.");
+            Assert.AreEqual("Patricia", AllConditions(command).Single(c => c.IsName).Value);
         }
 
         [Test]

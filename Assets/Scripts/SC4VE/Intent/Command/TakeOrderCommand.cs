@@ -12,10 +12,15 @@ namespace Sc4ve.Multimodality.Intent
         // commande Marie »), et un déclencheur multi-mots ne passe pas par le stem.
         "prends la commande", "prend la commande", "prenez la commande",
         "prendre la commande", "va prendre la commande", "allez prendre la commande",
+        // « sa commande » : sans ces formes, « prends sa commande » retombait sur le stem
+        // « prend » et devenait un GrabCommand.
+        "prends sa commande", "prend sa commande", "prenez sa commande", "prendre sa commande",
         // « chercher » plutôt que « prendre » : on va chercher une commande comme on va la
-        // prendre, et rien d'autre dans le jeu ne se « cherche ».
+        // prendre, et rien d'autre dans le jeu ne se « cherche ». « récupérer » de même (vu
+        // en démo : « Va récupérer la commande de Patricia »).
         "va chercher la commande", "allez chercher la commande",
         "cherche la commande", "cherchez la commande", "chercher la commande",
+        "récupère la commande", "récupérez la commande", "récupérer la commande",
         "take the order", "go take the order", "go get the order", "get the order")]
     [Serializable, CommandDescription(
         "Envoie un serveur prendre la commande d'une table (« va prendre la commande de cette " +

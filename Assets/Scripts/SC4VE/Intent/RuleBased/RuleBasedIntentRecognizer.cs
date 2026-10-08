@@ -729,7 +729,9 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // tranchait donc selon l'ordre de réflexion des types, c'est-à-dire au hasard.
             // C'est la PRÉSENCE d'un nom de recette qui lève l'ambiguïté, pas le verbe ; ces
             // trois verbes ont donc été retirés des [RuleBasedTriggers] de PrepareCommand.
-            string makeVerbs = IsFrench ? @"\b(fais|faire|prepare|preparer)\b" : @"\b(make|prepare|cook)\b";
+            // « Fait » EN TÊTE est l'impératif « Fais » tel que Whisper l'écrit (vu en démo :
+            // « Fait une salade de fruits. ») — ailleurs, c'est le participe de « c'est fait ».
+            string makeVerbs = IsFrench ? @"\b(fais|faire|prepare|preparer)\b|^\s*fait\b" : @"\b(make|prepare|cook)\b";
             if (Regex.IsMatch(normalizedText, makeVerbs) && FindRecipe(text, out _) != null)
                 return "PrepareCommand";
 
