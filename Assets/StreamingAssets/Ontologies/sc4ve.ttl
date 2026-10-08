@@ -905,7 +905,9 @@ sc4ve:ClearTableCommand sc4ve:trigger
 ###  « chercher » plutôt que « prendre » : on va chercher une commande comme on va la prendre,
 ###  et rien d'autre dans le jeu ne se « cherche ». « récupérer » de même (vu en démo :
 ###  « Va récupérer la commande de Patricia »). « sa commande » : sans ces formes, « prends sa
-###  commande » retombait sur le stem « prend » et devenait un GrabCommand.
+###  commande » retombait sur le stem « prend » et devenait un GrabCommand. « Va voir Marie » :
+###  aller voir un client, c'est prendre sa commande — le seul service qu'un serveur lui rend
+###  sans plat à la main.
 sc4ve:TakeOrderCommand sc4ve:trigger
     "prends la commande"@fr , "prend la commande"@fr , "prenez la commande"@fr ,
     "prendre la commande"@fr , "va prendre la commande"@fr , "allez prendre la commande"@fr ,
@@ -913,6 +915,7 @@ sc4ve:TakeOrderCommand sc4ve:trigger
     "va chercher la commande"@fr , "allez chercher la commande"@fr ,
     "cherche la commande"@fr , "cherchez la commande"@fr , "chercher la commande"@fr ,
     "récupère la commande"@fr , "récupérez la commande"@fr , "récupérer la commande"@fr ,
+    "va voir"@fr , "allez voir"@fr , "aller voir"@fr ,
     "take the order"@en , "go take the order"@en ,
     "go get the order"@en , "get the order"@en .
 

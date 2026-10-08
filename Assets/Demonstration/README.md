@@ -793,7 +793,7 @@ propre `sc4ve:clarification` bilingue.
 | `PutInCommand` | « mets tous les fruits rouges dans le saladier » | `SelectionParameter` (objets) + `SelectionParameter` (contenant) | faible |
 | `PrepareCommand` | « prépare une salade de fruits » | `RecipeParameter` (nouveau) | faible |
 | `GoToCommand` | « toi 👆 va là-bas 👆 » | `SelectionParameter` (agent) + `PointParameter` | faible |
-| `TakeOrderCommand` | « va prendre la commande de cette table-là 👆 » | `SelectionParameter` (agent) + `SelectionParameter` (table) | moyenne |
+| `TakeOrderCommand` | « va prendre la commande de cette table-là 👆 », « va voir Marie » | `SelectionParameter` (agent) + `SelectionParameter` (table) | moyenne |
 | `ServeCommand` | « va servir cette table-là 👆 » | `SelectionParameter` (agent) + `SelectionParameter` (table) | moyenne |
 | `BringCommand` | « apporte ça 👆 à ce client-là 👆 » | agent + objet + destinataire | **élevée** |
 | `StopCommand` | « stop », « attends » | `SelectionParameter` (agent) | faible |

@@ -693,6 +693,25 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void VaVoir_UnClient_PrendSaCommande()
+        {
+            // « Va voir Marie » : aller voir un client, c'est prendre sa commande. Vu en démo,
+            // les règles n'y reconnaissaient rien et le LLM en faisait un déplacement.
+            _recognizer = MakeNamedRecognizer();
+            TakeOrderCommand command = RecognizeSingle<TakeOrderCommand>("Va voir Florence.");
+            Assert.AreEqual("Florence", AllConditions(command).Single(c => c.IsName).Value);
+
+            // « … et prends sa commande » redit le même ordre : UNE commande, pas un second
+            // ordre vide qui demanderait « Quelle table ? ».
+            command = RecognizeSingle<TakeOrderCommand>("Va voir Florence et prends sa commande.");
+            Assert.AreEqual("Florence", AllConditions(command).Single(c => c.IsName).Value);
+
+            // Deux clients nommés restent deux ordres.
+            string json = _recognizer.Recognize(new Sentence("Prends la commande de Jean et va voir Florence."));
+            Assert.AreEqual(2, JsonConvert.DeserializeObject<List<Command>>(json).Count);
+        }
+
+        [Test]
         public void CibleManquee_AvecUnMotInexplique_PasseAuLlmEnHybride()
         {
             // Le mode hybride consulte le LLM quand une commande reste sans cible explicite

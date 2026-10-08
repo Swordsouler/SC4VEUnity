@@ -189,6 +189,15 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             foreach ((string clauseText, List<Word> clauseWords) in SplitClauses(sentence))
             {
                 List<Command> built = Build(clauseText, clauseWords, null);
+
+                // « Va voir Marie et prends sa commande » : la seconde clause REDIT la première
+                // — même commande, aucune cible à elle, son « sa » renvoie à Marie. Gardée,
+                // elle devenait un second ordre vide qui demandait « Quelle table ? » juste
+                // après le départ du serveur.
+                if (built != null && recognized.Count > 0 &&
+                    built.All(command => IsRestatement(command, recognized[^1])))
+                    continue;
+
                 if (built != null) recognized.AddRange(built);
 
                 if (built != null && built.Any(HasWeakTarget) && HasUnexplainedWord(clauseText))
@@ -282,6 +291,20 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         private static bool HasWeakTarget(Command command)
             => command.Parameters != null && command.Parameters.OfType<SelectionParameter>().Any(sp =>
                 sp.Filters == null || sp.Filters.All(f => f.IsOperator || f.Condition == null || f.Condition.IsCoreference));
+
+        /// <summary>
+        /// La commande répète-t-elle la précédente sans rien désigner ? Même type, et des
+        /// sélections toutes VIDES — une coréférence (« colorie-la ») désigne, elle. Une
+        /// commande sans sélection (préparation, annulation) n'est jamais une redite : « prépare
+        /// une salade de fruits et prépare une salade César » reste deux ordres.
+        /// </summary>
+        private static bool IsRestatement(Command command, Command previous)
+        {
+            List<SelectionParameter> selections =
+                command.Parameters?.OfType<SelectionParameter>().ToList() ?? new List<SelectionParameter>();
+            return command.Type == previous.Type && selections.Count > 0 &&
+                   selections.All(sp => sp.Filters == null || sp.Filters.Count == 0);
+        }
 
         /// <summary>
         /// Un mot de la clause échappe-t-il au vocabulaire du domaine ? Connu tel quel ou par

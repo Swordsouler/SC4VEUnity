@@ -21,10 +21,13 @@ namespace Sc4ve.Multimodality.Intent
         "va chercher la commande", "allez chercher la commande",
         "cherche la commande", "cherchez la commande", "chercher la commande",
         "récupère la commande", "récupérez la commande", "récupérer la commande",
+        // « Va voir Marie » : aller voir un client, c'est prendre sa commande — le seul
+        // service qu'un serveur lui rend sans plat à la main.
+        "va voir", "allez voir", "aller voir",
         "take the order", "go take the order", "go get the order", "get the order")]
     [Serializable, CommandDescription(
         "Envoie un serveur prendre la commande d'une table (« va prendre la commande de cette " +
-        "table-là »). Le serveur s'y rend ; le client ne parle qu'une fois qu'il est arrivé. " +
+        "table-là », « va voir Marie »). Le serveur s'y rend ; le client ne parle qu'une fois qu'il est arrivé. " +
         "Paramètres: DEUX SelectionParameter — le serveur et la table. Leur ORDRE est " +
         "indifférent : les rôles se lisent dans les objets désignés.")]
     public class TakeOrderCommand : Command
