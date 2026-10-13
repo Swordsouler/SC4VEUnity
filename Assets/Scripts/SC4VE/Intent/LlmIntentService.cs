@@ -458,6 +458,9 @@ JSON Attendu:
         /// Sans lui, le LLM recopiait le plat tel que prononcé (« Salade de fruits »), et
         /// PrepareCommand, qui attend l'identifiant de l'ontologie, répondait « Je ne connais
         /// pas cette recette ». Omis, même règle que pour les prénoms.
+        /// <paramref name="tableNames"/> : les noms des tables numérotées (« Table 3 »). Sans
+        /// eux, « la table 3 » devenait une annotation Table et une limite de trois. Omis,
+        /// même règle que pour les prénoms.
         /// </summary>
         public static string BuildSystemPrompt(
             string annotationTypes,
@@ -467,7 +470,8 @@ JSON Attendu:
             string pointerDeictics,
             string availableCommands,
             string objectNames = null,
-            string recipes = null)
+            string recipes = null,
+            string tableNames = null)
         {
             string prompt = SystemPromptTemplate
                 // Les exemples JSON du template utilisent des accolades doublées ({{ }}),
@@ -491,6 +495,15 @@ JSON Attendu:
                     "produit un filtre { \"type\": \"Name\", \"value\": \"<prénom>\", \"timestamp\": \"<EndedAt du prénom>\" }, " +
                     "jamais un filtre 'Annotation'. La 'value' DOIT être l'un des prénoms suivants, recopié " +
                     "à l'identique. Prénoms : " + objectNames + "\n\n" +
+                    nextSection);
+
+            if (!string.IsNullOrWhiteSpace(tableNames))
+                prompt = prompt.Replace(nextSection,
+                    "--- TABLES NUMÉROTÉES (filtre 'Name') ---\n" +
+                    "Chaque table porte un numéro, qui est son nom : « la table 3 » produit un filtre " +
+                    "{ \"type\": \"Name\", \"value\": \"Table 3\", \"timestamp\": \"<EndedAt du numéro>\" }, " +
+                    "jamais un filtre 'Annotation' ni une limite. La 'value' DOIT être l'un des noms suivants, " +
+                    "recopié à l'identique. Tables : " + tableNames + "\n\n" +
                     nextSection);
 
             if (!string.IsNullOrWhiteSpace(recipes))

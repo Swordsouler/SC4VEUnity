@@ -914,6 +914,57 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void NumeroDeTable_EstUnNom_PasUneQuantite()
+        {
+            // Vu en jeu : « À table 3 » envoyait le serveur à TROIS tables. Le numéro nomme la
+            // table (rdfs:label « Table 3 ») comme un prénom son client — et « amène … à la
+            // table 1 » est un service, comme « à Marie ».
+            _recognizer = MakeRecognizer(Language.French,
+                annotationTypes: new List<string> { "Table", "Assiette" },
+                recipes: new List<RecipeVocabulary.Recipe>
+                {
+                    new RecipeVocabulary.Recipe("sven:CaesarSalad", "Salade César", isConcrete: true),
+                });
+
+            ClearTableCommand clear = RecognizeSingle<ClearTableCommand>("Débarrasse la table 3.");
+            Condition named = AllConditions(clear).Single();
+            Assert.IsTrue(named.IsName);
+            Assert.AreEqual("Table 3", named.Value);
+            Assert.AreEqual(-1, Selection(clear).Limit, "Le numéro n'est pas une quantité.");
+
+            TakeOrderCommand order =
+                RecognizeSingle<TakeOrderCommand>("Va prendre la commande de la table numéro deux.");
+            Assert.AreEqual("Table 2", AllConditions(order).Single().Value);
+
+            // Une liste nomme chaque table.
+            clear = RecognizeSingle<ClearTableCommand>("Débarrasse les tables 1 et 2.");
+            CollectionAssert.AreEquivalent(new[] { "Table 1", "Table 2" },
+                AllConditions(clear).Select(c => c.Value).ToList());
+
+            ServeCommand serve = RecognizeSingle<ServeCommand>("Amène la salade César à la table 1.");
+            Assert.AreEqual("Table 1", AllConditions(serve).Single().Value);
+            Assert.AreEqual("sven:CaesarSalad", serve.Parameters.OfType<RecipeParameter>().Single().Value);
+        }
+
+        [Test]
+        public void ReponseAQuelleTable_UnNumeroSuffit()
+        {
+            // « Quelle table ? » — « La 2. » : en réponse, le numéro seul nomme la table. Pas
+            // l'article de « il y a une assiette », qui n'est pas en fin de phrase.
+            RuleBasedIntentRecognizer recognizer =
+                MakeRecognizer(Language.French, new List<string> { "Table", "Assiette" });
+            var pending = new ClearTableCommand { Type = "ClearTableCommand" };
+
+            Command answer = JsonConvert.DeserializeObject<List<Command>>(
+                recognizer.CompletePending(new Sentence("La 2."), pending)).Single();
+            Assert.AreEqual("Table 2", AllConditions(answer).Single(c => c.IsName).Value);
+
+            answer = JsonConvert.DeserializeObject<List<Command>>(
+                recognizer.CompletePending(new Sentence("Celle sur laquelle il y a une assiette."), pending)).Single();
+            Assert.IsFalse(AllConditions(answer).Any(c => c.IsName), "« une » n'est pas un numéro de table.");
+        }
+
+        [Test]
         public void DelegationSansPrenomNiGeste_UnTypeNeDesignePasDeTable()
         {
             // « débarrasse la table », « sers le client » valent pour les quatre : rien n'est

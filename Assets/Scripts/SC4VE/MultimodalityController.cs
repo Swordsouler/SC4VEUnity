@@ -696,6 +696,13 @@ namespace Sc4ve.Multimodality
                 .GroupBy(r => r.Uri)
                 .Select(g => $"{string.Join(" / ", g.Select(r => r.Label))} → {g.Key}"));
 
+            // Les tables, par leur nom — numérotées par DemoSceneBuilder (« Table 3 ») : le
+            // LLM les désigne par le même filtre Name que les prénoms, comme les règles.
+            string tableNames = string.Join(", ", FindObjectsByType<Sven.Multimodality.SemanticAnnotator>(FindObjectsInactive.Include)
+                .Where(a => a.Annotations.Contains("sven:Table"))
+                .Select(a => a.gameObject.name)
+                .OrderBy(n => n));
+
             // Compilation du prompt système définitif (fait une seule fois par session).
             // Le résultat est identique entre tous les appels → OpenAI peut le mettre en
             // cache côté serveur (prompt caching automatique pour les prompts > 1024 tokens).
@@ -707,7 +714,8 @@ namespace Sc4ve.Multimodality
                 _pointerDeicticsString,
                 _availableCommandsString,
                 objectNames: string.Join(", ", _objectNames),
-                recipes: recipes);
+                recipes: recipes,
+                tableNames: tableNames);
 
             Debug.Log($"[LLM] Vocabularies cached. Prompt: {_cachedSystemPrompt.Length} chars.");
         }

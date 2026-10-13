@@ -394,6 +394,13 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             // produire d'autre filtre.
             List<RuleBasedAnnotation> names = FindNames(remainingText, words, out remainingText);
 
+            // Les NUMÉROS de table de même : « la table 3 » nomme la table comme un prénom son
+            // client (rdfs:label « Table 3 ») — un filtre Name, jamais une quantité : vu en
+            // jeu, « À table 3 » envoyait le serveur à TROIS tables. La réponse à « Quelle
+            // table ? » peut s'en tenir au numéro (« la 2 »).
+            bool answering = forcedCommandType != null;
+            names.AddRange(FindTableNumbers(remainingText, words, answering, out remainingText));
+
             List<RuleBasedAnnotation> annotations = FindAnnotations(remainingText, words);
             List<RuleBasedColor>      colors      = FindColors(remainingText, words);
             // Ablation (benchmark) : pointage désactivé → pas de déictiques (« ça » ne produit
@@ -401,7 +408,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             List<RuleBasedAnnotation> deictics    = MultimodalitySettings.PointingEnabled
                 ? FindDeictics(text, words)
                 : new List<RuleBasedAnnotation>();
-            int  limit          = DetectLimit(text);
+            int  limit          = DetectLimit(TableNumberRegex(answering).Replace(text, " "));
             // Intention au singulier (« la pomme ») : aucun marqueur pluriel NI nombre. Sert à la
             // désambiguïsation quand plusieurs cibles correspondent (cf. ResolveCommands).
             // Deux prénoms (« Jean et Florence ») = deux cibles VOULUES, pas une ambiguïté
@@ -505,10 +512,15 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             };
 
             // « Amène la salade César à Marie » : amener quelque chose à un client NOMMÉ, c'est
-            // le servir — vu en jeu, la phrase demandait « À quel endroit ? ». « amène » reste à
-            // MoveCommand pour « amène ça ici 👆 » : une destination ou un pointage dits gardent
-            // le déplacement, et le type imposé d'une réponse n'est jamais requalifié.
-            if (forcedCommandType == null && commandType == "MoveCommand" && names.Count > 0 &&
+            // le servir — vu en jeu, la phrase demandait « À quel endroit ? ». De même vers une
+            // table numérotée (« à la table 1 ») ; « déplace la table 1 », elle, reste un
+            // déplacement. « amène » reste à MoveCommand pour « amène ça ici 👆 » : une
+            // destination ou un pointage dits gardent le déplacement, et le type imposé d'une
+            // réponse n'est jamais requalifié.
+            bool toCustomer = names.Any(n => !IsTableName(n.Value));
+            bool toTable = names.Any(n => IsTableName(n.Value)) &&
+                           Regex.IsMatch(FrenchStemmer.NormalizeAccents(text), @"\b(a|au|to)\s+(la\s+|the\s+)?table\b");
+            if (forcedCommandType == null && commandType == "MoveCommand" && (toCustomer || toTable) &&
                 deictics.Count == 0 && !ctx.HasDestination)
             {
                 Debug.Log("[RuleBased] MoveCommand requalifié en ServeCommand (amener à un client nommé, c'est le servir).");
@@ -981,6 +993,61 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             }
             return result;
         }
+
+        /// <summary>
+        /// Les numéros de table de la phrase (« la table 3 », « table numéro trois ») : le nom
+        /// de la table, « Table 3 », tel que DemoSceneBuilder l'écrit et que SVEN le porte en
+        /// rdfs:label. Retirés du texte de travail, comme les prénoms : « table » ne doit pas
+        /// produire en plus une annotation qui désignerait les quatre.
+        /// <paramref name="answering"/> : la phrase répond à « Quelle table ? », et un nombre
+        /// qui la termine suffit (« la 2 »).
+        /// </summary>
+        private List<RuleBasedAnnotation> FindTableNumbers(string text, List<Word> words, bool answering,
+                                                           out string remaining)
+        {
+            var result = new List<RuleBasedAnnotation>();
+            Regex pattern = TableNumberRegex(answering);
+            foreach (Match match in pattern.Matches(text))
+                foreach (Capture capture in match.Groups["n"].Captures)
+                {
+                    string token = capture.Value;
+                    int number = int.TryParse(token, out int digits) ? digits
+                               : Numbers.TryGetValue(token, out int spelled) ? spelled : 0;
+                    if (number <= 0) continue;
+
+                    result.Add(new RuleBasedAnnotation
+                    {
+                        Value     = $"Table {number}",
+                        Timestamp = GetWordTimestamp(words, token, useStartedAt: false)
+                    });
+                }
+            remaining = result.Count > 0 ? pattern.Replace(text, " ") : text;
+            return result;
+        }
+
+        /// <summary>
+        /// « table » (ou « tables »), éventuellement « numéro » / « n° », puis le nombre — en
+        /// chiffres ou en lettres —, et la suite d'une liste (« les tables 1, 2 et 3 ») tant
+        /// qu'un nombre y finit la phrase ou précède une conjonction : « la table 1 et deux
+        /// pommes » ne nomme que la table 1. En réponse à « Quelle table ? », le nombre seul
+        /// en fin de phrase suffit.
+        /// </summary>
+        private static Regex TableNumberRegex(bool answering)
+        {
+            string number = $@"(?<n>\d+|{string.Join("|", Numbers.Keys)})";
+            string table = IsFrench ? @"tables?\s+(?:num[ée]ro\s+|n°\s*)?" : @"tables?\s+(?:number\s+|no\.?\s*)?";
+            string conjunction = IsFrench ? @"\bet\b|\bou\b" : @"\band\b|\bor\b";
+            string article = IsFrench ? @"la\s+" : @"the\s+";
+            string more = $@"(?:\s*(?:,|{conjunction})\s*(?:{article})?(?:{table})?{number}(?=\s*(?:$|[.,;!?]|{conjunction})))*";
+            return new Regex(answering
+                    ? $@"\b{table}{number}{more}\b|\b{number}\s*[.!?]*\s*$"
+                    : $@"\b{table}{number}{more}\b",
+                RegexOptions.IgnoreCase);
+        }
+
+        /// <summary>Le nom d'une table numérotée (« Table 3 »), pas un prénom.</summary>
+        private static bool IsTableName(string name)
+            => name.StartsWith("Table ", StringComparison.Ordinal);
 
         private List<RuleBasedColor> FindColors(string text, List<Word> words)
         {

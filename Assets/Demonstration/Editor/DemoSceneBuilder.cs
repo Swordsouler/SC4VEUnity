@@ -748,8 +748,11 @@ namespace Sc4ve.Demonstration.EditorTools
             var room = new GameObject("Salle").transform;
             room.SetParent(root);
 
-            // Tables volontairement NON numérotées : c'est ce qui force le pointage
-            // (« cette table-là 👆 »). Le nom Unity reste neutre.
+            // Tables NUMÉROTÉES, de la plus proche à la plus lointaine, de gauche à droite : le
+            // nom Unity « Table 3 » est le rdfs:label que « débarrasse la table 3 » désigne, et
+            // le numéro s'affiche sur la table et sur la tablette. Elles ne l'étaient pas, pour
+            // forcer le pointage ; en jeu, le joueur disait « la table 3 » de lui-même, et la
+            // table d'une cliente partie — plus de prénom pour la nommer — a demandé six phrases.
             Vector3[] tables =
             {
                 new(-1.6f, 0f, 3.6f), new(1.6f, 0f, 3.6f),
@@ -760,10 +763,10 @@ namespace Sc4ve.Demonstration.EditorTools
             // critères 4 et 7 du lot 4 doivent être montrables à CHAQUE lancement, pas dans
             // 74 % des cas. Les quatre couples découpent quatre sous-ensembles différents et
             // non dégénérés des neuf recettes — vérifié contre les sven:requires réels :
-            //   A  Florence   Salade    sans banane   → refuse la salade de fruits POURTANT CONFORME
-            //   B  Logan      Soupe     sans poisson  → l'inférence de branche (Salmon ⊑ Fish)
-            //   C  Patricia   Salade    végétarien    → l'union de branches, un seul plat conforme
-            //   D  Jean       Sandwich  sans lactose  → Cheese ⊑ Dairy
+            //   1  Florence   Salade    sans banane   → refuse la salade de fruits POURTANT CONFORME
+            //   2  Logan      Soupe     sans poisson  → l'inférence de branche (Salmon ⊑ Fish)
+            //   3  Patricia   Salade    végétarien    → l'union de branches, un seul plat conforme
+            //   4  Jean       Sandwich  sans lactose  → Cheese ⊑ Dairy
             // La colonne « plats acceptables » n'est écrite nulle part : le client la CALCULE.
             (string family, string constraint)[] couples =
             {
@@ -782,9 +785,10 @@ namespace Sc4ve.Demonstration.EditorTools
             var templates = new List<CustomerOrder>();
             for (int i = 0; i < tables.Length; i++)
             {
-                GameObject table = Prop(room, $"Table {(char)('A' + i)}", "sven:Table",
+                GameObject table = Prop(room, $"Table {i + 1}", "sven:Table",
                     tables[i], height: 0.75f);
                 RestOnSurface(table, 0f);
+                TableNumber(room, table, i + 1);
                 // PAS statique : le static batching fond les meshes statiques en un
                 // « Combined Mesh » illisible, et SelectionManager saute alors le contour
                 // QuickOutline — « sélectionne cette table » ne surlignait rien. Or pointer
@@ -1030,6 +1034,52 @@ namespace Sc4ve.Demonstration.EditorTools
             }
 
             return pivot.transform;
+        }
+
+        /// <summary>
+        /// Le numéro de la table, sur un chevalet posé au milieu du plateau : le chiffre de la
+        /// tablette, celui que « débarrasse la table 3 » désigne. Tourné vers la caméra et
+        /// dilaté avec la distance (FaceCamera), comme le prénom des clients, sur un fond sombre
+        /// qui le détache du client assis derrière. Hors de la table dans la hiérarchie, comme
+        /// les étiquettes de LabelAt : enfant, il hériterait de son échelle et de son contour de
+        /// sélection. Sans collider : il intercepterait le pointeur.
+        /// </summary>
+        private static void TableNumber(Transform room, GameObject table, int number)
+        {
+            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (font == null) return;
+
+            // Le PIED du chevalet au ras du plateau, et le pivot avec lui : FaceCamera dilate
+            // autour du pivot, et un chevalet centré s'enfoncerait dans la table en grossissant.
+            Bounds bounds = WorldBounds(table);
+            var stand = new GameObject($"Numéro de la {table.name}");
+            stand.transform.SetParent(room, worldPositionStays: false);
+            stand.transform.position = new Vector3(bounds.center.x, bounds.max.y + 0.02f, bounds.center.z);
+            stand.transform.rotation = Quaternion.identity;
+            stand.AddComponent<FaceCamera>();
+
+            GameObject back = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            back.name = "Fond";
+            back.transform.SetParent(stand.transform, worldPositionStays: false);
+            back.transform.localPosition = new Vector3(0f, 0.075f, 0f);
+            back.transform.localScale = new Vector3(0.11f, 0.15f, 0.01f);
+            back.GetComponent<Renderer>().sharedMaterial =
+                GetMaterial("JaugeFond", new Color(0.12f, 0.12f, 0.12f));
+            UnityEngine.Object.DestroyImmediate(back.GetComponent<Collider>());
+
+            // DEVANT le fond, côté lecteur (-z, la face que FaceCamera présente à la caméra).
+            var digit = new GameObject("Chiffre");
+            digit.transform.SetParent(stand.transform, worldPositionStays: false);
+            digit.transform.localPosition = new Vector3(0f, 0.075f, -0.006f);
+            var mesh = digit.AddComponent<TextMesh>();
+            mesh.text = number.ToString();
+            mesh.font = font;
+            mesh.fontSize = 72;
+            mesh.characterSize = 0.016f;
+            mesh.anchor = TextAnchor.MiddleCenter;
+            mesh.alignment = TextAlignment.Center;
+            mesh.color = Color.white;
+            digit.GetComponent<MeshRenderer>().sharedMaterial = font.material;
         }
 
         #endregion

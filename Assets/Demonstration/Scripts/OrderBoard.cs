@@ -26,8 +26,8 @@ namespace Sc4ve.Demonstration
     ///    règles, LLM, recherche sémantique, exécution ; une étape jamais sollicitée ne
     ///    s'affiche pas), et le résultat ;
     ///  - la SALLE : les quatre tables en plan, placées comme le joueur les voit depuis la
-    ///    passe — le fond en haut, la gauche à gauche. Les tables ne sont pas numérotées
-    ///    (§5) : c'est leur place qui les désigne. Chacune dit où en est sa commande —
+    ///    passe — le fond en haut, la gauche à gauche —, chacune sous le numéro de son
+    ///    chevalet (« 3 · Alice »). Chacune dit où en est sa commande —
     ///    commande, cuisine, service, débarrassage —, en jaune quand c'est au joueur de
     ///    parler ; après DEUX phrases non comprises de suite, la phrase à dire s'y écrit.
     ///    Pendant la prise en main (ServiceProgression), la table du premier client prend
@@ -589,17 +589,35 @@ namespace Sc4ve.Demonstration
             if (over)
                 ShowCard(_soloCard, Score(everyone, gone, french));
             else if (_solo)
-                ShowCard(_soloCard, Describe(onboarding, everyone, cook, queue, waiter, gone, max, help, french));
+                ShowCard(_soloCard, Numbered(Describe(onboarding, everyone, cook, queue, waiter, gone, max, help, french),
+                                             onboarding));
             else
                 for (int i = 0; i < _cards.Length; i++)
                 {
                     SemantizationCore table = i < _tables.Count ? _tables[i] : null;
-                    ShowCard(_cards[i], Describe(table, everyone, cook, queue, waiter, gone, max, help, french));
+                    ShowCard(_cards[i], Numbered(Describe(table, everyone, cook, queue, waiter, gone, max, help, french),
+                                                 table));
                 }
 
             ShowDepartures(gone, max, french);
             ShowFooter(everyone, cook, queue, waiter, french);
         }
+
+        /// <summary>
+        /// Le numéro de la table en tête de carte (« 3 · Alice »), celui de son chevalet et de
+        /// « débarrasse la table 3 ».
+        /// </summary>
+        private static CardModel Numbered(CardModel card, SemantizationCore table)
+        {
+            string number = TableNumber(table);
+            if (number != null && !string.IsNullOrEmpty(card.Title))
+                card.Title = $"{number} · {card.Title}";
+            return card;
+        }
+
+        /// <summary>Le numéro de la table (DemoSceneBuilder la nomme « Table 3 »), ou null.</summary>
+        private static string TableNumber(SemantizationCore table)
+            => table != null && table.name.StartsWith("Table ") ? table.name.Substring("Table ".Length) : null;
 
         /// <summary>
         /// Les tables, en plan : la salle vue depuis la passe — le fond en haut, la gauche à
@@ -762,8 +780,10 @@ namespace Sc4ve.Demonstration
                 card.Slot = clearing
                     ? Lines(Step(french ? "Débarrassage" : "Clearing", french ? "le serveur débarrasse" : "the waiter is clearing"))
                     : help
-                        ? Lines(Hint(french ? "Débarrasse cette table" : "Clear this table", french),
-                                Note(french ? "en la pointant" : "while pointing at it"))
+                        ? TableNumber(table) is string number
+                            ? Lines(Hint(french ? $"Débarrasse la table {number}" : $"Clear table {number}", french))
+                            : Lines(Hint(french ? "Débarrasse cette table" : "Clear this table", french),
+                                    Note(french ? "en la pointant" : "while pointing at it"))
                         : Lines(Step(french ? "Débarrassage" : "Clearing", french ? "assiette à ranger" : "plate to put away"));
                 return card;
             }

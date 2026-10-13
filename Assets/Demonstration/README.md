@@ -28,7 +28,7 @@ Menu **SC4VE > Démonstration** :
 
 | | |
 |---|---|
-| **1 — (Re)construire le contenu du mini-jeu** | remplit `Scenes/Demo Mini Game.unity` : sol, cuisine (plan de travail, étagère, 11 ingrédients ×2, 2 stations, 6 assiettes, poubelle, passe), salle (4 tables non numérotées, 2 serveurs identiques, 4 clients avec jauge de patience), tablette de la main gauche, `ListeningTimeScale`, NavMesh cuit, et le rig XR s'il manque |
+| **1 — (Re)construire le contenu du mini-jeu** | remplit `Scenes/Demo Mini Game.unity` : sol, cuisine (plan de travail, étagère, 11 ingrédients ×2, 2 stations, 6 assiettes, poubelle, passe), salle (4 tables numérotées, 2 serveurs identiques, 4 clients avec jauge de patience), tablette de la main gauche, `ListeningTimeScale`, NavMesh cuit, et le rig XR s'il manque |
 | **2 — Corriger les prefabs existants** | passe le `SemanticAnnotator` des prefabs de fruits en `Dynamic` et leur ajoute un `XRGrabInteractable`. Idempotent. L'outil 1 l'exécute d'abord. |
 | **3 — Générer les meshes des ingrédients** | fabrique les meshes low-poly des 8 ingrédients sans modèle, dans `Meshes/`. L'outil 1 l'exécute aussi. |
 | **4 — Peupler la scène d'exposition** | aligne un exemplaire de chaque objet manipulable dans `Scenes/Demo Exposition.unity`, à sa taille réelle et étiqueté |
@@ -274,8 +274,8 @@ objet correspondant » restent aux règles : ce ne sont pas des échecs de compr
 Vosk, la grammaire close remplacerait les verbes inconnus avant que le LLM ne les voie :
 l'hybride suppose Whisper.
 
-Le LLM du jeu connaît les prénoms des clients (filtre `Name`) et le catalogue des plats
-(`RecipeParameter`, « Salade de fruits → sven:FruitSalad ») : deux sections ajoutées au prompt
+Le LLM du jeu connaît les prénoms des clients et les tables numérotées (filtre `Name`), et le
+catalogue des plats (`RecipeParameter`, « Salade de fruits → sven:FruitSalad ») : sections ajoutées au prompt
 par `LlmIntentService.BuildSystemPrompt` ; le prompt du benchmark, qui ne les reçoit pas, reste
 inchangé. Sans le catalogue, le LLM recopiait le plat tel que prononcé, et toute préparation
 passée par lui finissait en « Je ne connais pas cette recette ». Mais un prénom écorché reste
@@ -307,8 +307,11 @@ de situations.
 
 - « pose-le **ici** 👆 » → un emplacement vide n'a pas de nom
 - deux pommes strictement identiques → seul le pointage tranche
-- « **cette** table-**là** 👆 » → **les tables ne sont pas numérotées** (décision de design
-  volontaire : numéroter les tables tuerait la deixis)
+- « **cette** table-**là** 👆 » → le geste reste le plus court chemin vers une table. Elles ne
+  devaient pas être numérotées — numéroter tuerait la deixis — et l'ont été après la partie du
+  13 octobre : le joueur disait « la table 3 » de lui-même, et débarrasser la table d'une
+  cliente partie, que plus aucun prénom ne nommait, a demandé six phrases. Le prénom d'un
+  client contournait déjà le pointage pour toute table occupée
 
 **Les énoncés hybrides** sont le cœur de la démonstration — ils exigent les deux modalités
 dans le même énoncé :
@@ -418,7 +421,7 @@ poser sur une station. Trois mécaniques différentes, une seule commande.
 
 | Élément | Rôle |
 |---|---|
-| 2 à 4 tables **non numérotées** | désignables uniquement par pointage |
+| 4 tables **numérotées** (un chevalet sur chacune) | désignables par pointage, par leur numéro (« la table 3 »), par le prénom de leur client — ou trouvées seules quand une seule est concernée (§8) |
 | Clients | un par table ; commande + jauge de patience |
 | 1 à 2 serveurs | agents autonomes ; au moins deux visuellement identiques au niveau 4 |
 
@@ -432,10 +435,11 @@ La tablette de la main gauche (`OrderBoard`, 33 × 25,5 cm), en trois bandes :
   que si les règles lui passent la main ; la recherche sémantique, que si une commande désigne
   des objets. Dessous, le résultat : la commande comprise, la question posée ou le refus ;
 - **la salle** : les quatre tables en plan, placées comme vues depuis la passe (le fond en
-  haut). Chacune dit où en est sa commande — commande, cuisine, service, débarrassage —, en
+  haut), chacune sous le numéro de son chevalet (« 3 · Alice »). Chacune dit où en est sa
+  commande — commande, cuisine, service, débarrassage —, en
   jaune quand c'est au joueur de parler. Après **deux phrases non comprises de suite**, la
   phrase à dire s'y écrit (« Va voir Alice », « Fais une salade de fruits » en regardant le
-  cuisinier, « Sers Patricia », « Débarrasse cette table » en la pointant). Pendant la prise en
+  cuisinier, « Sers Patricia », « Débarrasse la table 3 »). Pendant la prise en
   main, la table du premier client prend toute la salle, jusqu'à ce que son assiette soit
   débarrassée ; à la fin de la partie, le score — clients servis, sur tous ceux venus — et le
   record ;
