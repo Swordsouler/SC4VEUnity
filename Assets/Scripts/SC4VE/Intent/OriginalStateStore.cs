@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Sc4ve.Multimodality.Intent
 {
     /// <summary>
-    /// Stocke l'état initial (transform + couleur) de chaque objet de la scène.
+    /// Stocke l'état initial (transform, couleur, activation) de chaque objet de la scène.
     /// Capturé automatiquement au chargement de la scène.
     /// Utilisé par ResetTransformCommand, ResetColorCommand et ResetSceneCommand.
     /// </summary>
@@ -17,6 +17,7 @@ namespace Sc4ve.Multimodality.Intent
             public Quaternion         Rotation;
             public Vector3            Scale;
             public UnityEngine.Color? Color;
+            public bool               Active;
         }
 
         // Stocke aussi les références pour retrouver les objets désactivés (soft-delete).
@@ -55,7 +56,8 @@ namespace Sc4ve.Multimodality.Intent
                 Position = obj.transform.position,
                 Rotation = obj.transform.rotation,
                 Scale    = obj.transform.localScale,
-                Color    = color
+                Color    = color,
+                Active   = obj.gameObject.activeSelf
             };
             _objectRefs[obj.GetUUID()] = obj;
         }
@@ -80,13 +82,19 @@ namespace Sc4ve.Multimodality.Intent
                 r.material.color = s.Color.Value;
         }
 
-        /// <summary>Remet tous les objets de la scène à leur état initial.</summary>
+        /// <summary>
+        /// Remet tous les objets de la scène à leur état initial — activation comprise : un
+        /// objet supprimé (désactivé) revient, un objet INACTIF au chargement le reste. Les
+        /// modèles de client de ServiceProgression, endormis dès la construction, se
+        /// réveillaient ici : quatre clients attablés d'un coup à chaque « Rejouer », et plus
+        /// de prise en main, faute de table libre.
+        /// </summary>
         public static void RestoreAll()
         {
-            foreach (var (_, obj) in _objectRefs)
+            foreach (var (id, obj) in _objectRefs)
             {
                 if (obj == null) continue; // Détruit définitivement
-                obj.gameObject.SetActive(true);
+                obj.gameObject.SetActive(_store[id].Active);
                 RestoreTransform(obj);
                 RestoreColor(obj);
             }
