@@ -168,6 +168,7 @@ namespace Sc4ve.Multimodality
         private PiperTextToSpeech _tts;
         private Action _ttsSpeechStartHandler;
         private Action _ttsSpeechEndHandler;
+        private VoiceProcessor _voiceProcessor;
 
         private void Awake()
         {
@@ -175,6 +176,19 @@ namespace Sc4ve.Multimodality
 
             PublishModeForJournal();
             if (_speechToText != null) _speechToText.OnTranscriptionResult += OnTranscriptionResult;
+
+            // La copie du graphe qu'interrogeront les paramètres de la phrase part dès la fin de
+            // la parole, pendant que Whisper transcrit (SceneGraphSnapshot).
+            _voiceProcessor = FindAnyObjectByType<VoiceProcessor>();
+            if (_voiceProcessor != null) _voiceProcessor.OnRecordingStop += SceneGraphSnapshot.Take;
+
+            // L'historique gardé en mémoire sans GraphDB : 15 s au lieu des 30 de SVEN. Les
+            // paramètres interrogent la copie prise en FIN DE PAROLE : l'historique n'a donc à
+            // couvrir que la phrase elle-même, pas l'attente du LLM. Mesuré sur une partie
+            // réelle (25 000 triplets), la moitié du graphe était cet historique — surtout la
+            // tête et la main droite, quatre valeurs par seconde. À 15 s : 22 % de triplets en
+            // moins, une copie et des requêtes de sélection environ deux fois plus rapides.
+            GraphManager.InMemoryHistorySeconds = 15f;
 
             // Suspendre l'écoute pendant que le système parle (Piper) : sinon le micro re-capte
             // la voix de synthèse et la réinterprète comme une commande (boucle de rétroaction).
@@ -310,6 +324,7 @@ namespace Sc4ve.Multimodality
             // Désabonnements symétriques d'Awake : sans eux, STT/TTS continueraient d'invoquer
             // un contrôleur détruit après un rechargement de scène (MissingReferenceException).
             if (_speechToText != null) _speechToText.OnTranscriptionResult -= OnTranscriptionResult;
+            if (_voiceProcessor != null) _voiceProcessor.OnRecordingStop -= SceneGraphSnapshot.Take;
             if (_tts != null)
             {
                 if (_ttsSpeechStartHandler != null) _tts.OnSpeechStart -= _ttsSpeechStartHandler;
@@ -319,6 +334,8 @@ namespace Sc4ve.Multimodality
 
         private async void OnTranscriptionResult(string obj)
         {
+            // La copie du graphe prise à la fin de cette parole : toutes ses phrases la partagent.
+            Task<Graph> snapshot = SceneGraphSnapshot.Current;
             var result = new RecognitionResult(obj, _speechToText.RecognizerStartedAt);
             if (result.Phrases.Any(p => !string.IsNullOrWhiteSpace(p.Text)))
                 Debug.Log($"[LLM] Received transcription result: {obj}");
@@ -455,6 +472,7 @@ namespace Sc4ve.Multimodality
                     MultimodalityMetrics.Complete(null, "error", 0);
                 }
             }
+            SceneGraphSnapshot.Release(snapshot);
         }
 
         /// <summary>

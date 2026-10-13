@@ -1,7 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Sven.Content;
-using Sven.GraphManagement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -169,17 +168,18 @@ WHERE {{
         {
             IUriNode parameterNode = await base.Semanticize(graph);
 
-            // Task.Run : la copie du graphe de scène duplique et réindexe TOUS ses triplets
-            // (~20 000 en cours de partie). Appelée directement, elle s'exécutait sur le thread
-            // appelant — une continuation async, donc le THREAD PRINCIPAL d'Unity : le rendu
-            // gelait le temps de la copie, à chaque paramètre de chaque commande.
+            // La copie du graphe de scène duplique et réindexe TOUS ses triplets (25 000 en
+            // cours de partie) : c'est celle de la phrase (SceneGraphSnapshot), prise sur un
+            // thread de fond dès la fin de la parole et partagée par tous ses paramètres. Ici,
+            // on ne fait le plus souvent que la récupérer.
             //
             // Le chronomètre n'est pas du débogage jetable : la résolution d'un paramètre est
-            // le poste le plus lourd d'une commande, et ses deux moitiés — copier le graphe,
-            // l'interroger — se règlent par des leviers OPPOSÉS (taille du tampon SVEN d'un
-            // côté, forme de la requête de l'autre). Sans ce partage, on optimise à l'aveugle.
+            // le poste le plus lourd d'une commande, et ses deux moitiés — obtenir la copie,
+            // l'interroger — se règlent par des leviers OPPOSÉS (taille du graphe en mémoire
+            // d'un côté, forme de la requête de l'autre). Sans ce partage, on optimise à
+            // l'aveugle.
             var watch = System.Diagnostics.Stopwatch.StartNew();
-            Graph sceneGraphCopy = await Task.Run(GraphManager.InstanceCopy);
+            Graph sceneGraphCopy = await SceneGraphSnapshot.GetAsync();
             long copyMs = watch.ElapsedMilliseconds;
 
             // PAS d'inférence RDFS ici, et c'est mesuré, pas supposé.
@@ -253,7 +253,7 @@ WHERE
             // doit — Objects résout des GameObjects.
             List<string> objectsUri = await Task.Run(() => QueryObjects(sceneGraphCopy));
 
-            Debug.Log($"[Perf] SelectionParameter : copie {copyMs} ms " +
+            Debug.Log($"[Perf] SelectionParameter : attente de la copie {copyMs} ms " +
                       $"({sceneGraphCopy.Triples.Count} triplets), requête " +
                       $"{watch.ElapsedMilliseconds - copyMs} ms.");
             // Le pointage / la cible explicite sont résolus EN PREMIER (QueryObjects ci-dessus).

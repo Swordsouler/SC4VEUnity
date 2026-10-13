@@ -1,5 +1,4 @@
 using Newtonsoft.Json;
-using Sven.GraphManagement;
 using System;
 using System.Globalization;
 using System.Threading.Tasks;
@@ -109,8 +108,9 @@ WHERE {{
 
             // Copie et requête sur un thread de fond, comme dans SelectionParameter : sur le
             // thread principal (où reprennent les continuations async d'Unity), elles gelaient
-            // le rendu à chaque « ici »/« là » d'un déplacement.
-            Graph sceneGraphCopy = await Task.Run(GraphManager.InstanceCopy);
+            // le rendu à chaque « ici »/« là » d'un déplacement. La copie est celle de la
+            // phrase (SceneGraphSnapshot), prise dès la fin de la parole.
+            Graph sceneGraphCopy = await SceneGraphSnapshot.GetAsync();
 
             Point ??= await Task.Run(() => QueryPoint(sceneGraphCopy));
             if (Point != null)
