@@ -1894,15 +1894,24 @@ WHERE {{
             await RetrieveSceneFromEndpoint(new Instant(DateTime.Now));
         }
 
+        /// <summary>
+        /// Une copie privée du graphe en mémoire, à interroger hors du thread principal. Sous
+        /// verrou, seulement la PRISE des triplets (4 ms pour 25 000) ; leur indexation dans la
+        /// copie, quarante fois plus longue, se fait hors verrou. Elle se faisait dessous : chaque
+        /// tick de sémantisation du thread principal attendait la fin de la copie, et la scène se
+        /// figeait le temps de chaque requête.
+        /// </summary>
         public static Graph InstanceCopy()
         {
             Graph g = new();
+            List<Triple> triples;
             lock (_graphLock)
             {
                 g.NamespaceMap.Import(_instance.NamespaceMap);
                 g.BaseUri = _instance.BaseUri;
-                g.Assert(_instance.Triples);
+                triples = new List<Triple>(_instance.Triples);
             }
+            g.Assert(triples);
             return g;
         }
     }
