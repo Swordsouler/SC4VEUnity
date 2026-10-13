@@ -576,16 +576,19 @@ namespace Sc4ve.Demonstration
             bool help = IntentPipeline.HelpWanted;
 
             // La prise en main : une seule table occupée — son client, puis son assiette à
-            // débarrasser —, elle prend toute la place.
-            SemantizationCore onboarding = _progression != null ? _progression.OnboardingTable : null;
-            if ((onboarding != null) != _solo)
+            // débarrasser —, elle prend toute la place. La fin de partie aussi : le score.
+            bool over = ServiceProgression.IsGameOver;
+            SemantizationCore onboarding = !over && _progression != null ? _progression.OnboardingTable : null;
+            if ((over || onboarding != null) != _solo)
             {
-                _solo = onboarding != null;
+                _solo = over || onboarding != null;
                 foreach (CardView card in _cards) SetVisible(card, !_solo);
                 SetVisible(_soloCard, _solo);
             }
 
-            if (_solo)
+            if (over)
+                ShowCard(_soloCard, Score(everyone, gone, french));
+            else if (_solo)
                 ShowCard(_soloCard, Describe(onboarding, everyone, cook, queue, waiter, gone, max, help, french));
             else
                 for (int i = 0; i < _cards.Length; i++)
@@ -773,6 +776,33 @@ namespace Sc4ve.Demonstration
             card.Border = EdgeQuiet;
             card.Fill = PanelQuiet;
             return card;
+        }
+
+        /// <summary>
+        /// La fin de partie : le score — les clients servis, sur tous ceux venus. Les modèles de
+        /// client, jamais activés, ne sont pas venus : ni en salle, ni partis.
+        /// </summary>
+        private CardModel Score(CustomerOrder[] everyone, int gone, bool french)
+        {
+            int came = everyone.Count(c => c.gameObject.activeInHierarchy || c.DepartedAt >= 0f);
+            int served = everyone.Count(c => c.State == CustomerOrder.Stage.Served);
+            return new CardModel
+            {
+                Title = french ? "Fin de partie" : "Game over",
+                TitleColor = Yellow,
+                RightColor = Dim,
+                Bar = -1f,
+                Dish = french
+                    ? $"{served} client{(served > 1 ? "s" : "")} servi{(served > 1 ? "s" : "")}"
+                    : $"{served} customer{(served == 1 ? "" : "s")} served",
+                DishColor = Cream,
+                DishStyle = FontStyle.Bold,
+                Slot = Lines(Plain(french
+                    ? $"sur {came} venu{(came > 1 ? "s" : "")} · {gone} parti{(gone > 1 ? "s" : "")} sans être servi{(gone > 1 ? "s" : "")}"
+                    : $"out of {came} · {gone} left unserved", Dim)),
+                Border = Yellow,
+                Fill = Panel,
+            };
         }
 
         /// <summary>« Fais une salade de fruits » : l'article suit le nom de tête du plat.</summary>

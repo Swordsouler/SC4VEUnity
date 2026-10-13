@@ -22,7 +22,8 @@ namespace Sc4ve.Multimodality
     ///
     /// Les arrivées sont CADENCÉES PAR LE TEMPS (jamais par les actions du joueur — les
     /// listes de directives demandent des clients co-présents), et chaque arrivée RACCOURCIT
-    /// l'intervalle d'un pas fixe jusqu'au plancher. En Time.time : le ralenti pendant la
+    /// l'intervalle d'un pas fixe jusqu'au plancher — et la patience du client suivant aussi
+    /// (_patienceStep, jusqu'à _minPatience). En Time.time : le ralenti pendant la
     /// parole retient les arrivées comme il retient la patience. Salle pleine : l'arrivée
     /// GUETTE et part à l'instant où une table se libère — la pression ne retombe jamais.
     /// Table libre = sans client (CustomerOrder.At — les modèles endormis n'y comptent
@@ -77,6 +78,15 @@ namespace Sc4ve.Multimodality
         [SerializeField, Tooltip("… jusqu'à ce plancher : au plus fort, un client toutes les N secondes.")]
         [Range(3f, 60f)]
         private float _minInterval = 6f;
+
+        [SerializeField, Tooltip("Chaque client a cette patience de MOINS que le précédent (secondes de JEU), " +
+                                 "à partir de celle de CustomerOrder (60 s) pour le premier après la prise en main…")]
+        [Range(0f, 10f)]
+        private float _patienceStep = 2f;
+
+        [SerializeField, Tooltip("… jusqu'à ce plancher : au plus fort, chaque client attend N secondes.")]
+        [Range(10f, 60f)]
+        private float _minPatience = 30f;
 
         [SerializeField, Tooltip("La partie s'arrête quand ce nombre de clients est parti sans être servi.")]
         [Range(1, 10)]
@@ -238,7 +248,10 @@ namespace Sc4ve.Multimodality
                 return;
             }
 
-            Spawn(free[Random.Range(0, free.Count)]);
+            // La patience baisse d'un pas à CHAQUE client, jusqu'au plancher : 60, 58, 56… 30 s
+            // par défaut — la pression monte aussi par l'attente, plus seulement par le nombre.
+            Spawn(free[Random.Range(0, free.Count)],
+                  Mathf.Max(_minPatience, CustomerOrder.DefaultPatience - _patienceStep * _spawned));
             _spawned++;
 
             // Les DEUX premiers après la prise en main arrivent rapprochés (la salle s'anime
@@ -255,7 +268,7 @@ namespace Sc4ve.Multimodality
             }
         }
 
-        private CustomerOrder Spawn(CustomerOrder template, float? patience = null)
+        private CustomerOrder Spawn(CustomerOrder template, float patience)
         {
             GameObject clone = Instantiate(template.gameObject, template.transform.parent);
             clone.name = PickName();
@@ -267,11 +280,11 @@ namespace Sc4ve.Multimodality
 
             // AVANT l'activation : Start part de cette patience.
             CustomerOrder customer = clone.GetComponent<CustomerOrder>();
-            if (patience.HasValue) customer.Patience = patience.Value;
+            customer.Patience = patience;
 
             clone.SetActive(true);
             _customers.Add(customer);
-            Debug.Log($"[Progression] {clone.name} s'installe.");
+            Debug.Log($"[Progression] {clone.name} s'installe — {patience:0} s de patience.");
             return customer;
         }
 

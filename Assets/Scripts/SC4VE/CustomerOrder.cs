@@ -69,11 +69,12 @@ namespace Sc4ve.Multimodality
         /// valeur d'un champ était figée dans les modèles de clients à la construction de la
         /// scène, si bien qu'un changement ici ne valait qu'après reconstruction.
         /// </summary>
-        private const float DefaultPatience = 60f;
+        internal const float DefaultPatience = 60f;
 
         /// <summary>
-        /// La patience de CE client : DefaultPatience, sauf pour le client de la prise en main,
-        /// à qui ServiceProgression en donne davantage AVANT de l'activer — Start en part.
+        /// La patience de CE client, que ServiceProgression fixe AVANT de l'activer — Start en
+        /// part : davantage pour la prise en main, puis de moins en moins à chaque client.
+        /// DefaultPatience sinon.
         /// Non sérialisée, pour la même raison que DefaultPatience.
         /// </summary>
         internal float Patience { get; set; } = DefaultPatience;
