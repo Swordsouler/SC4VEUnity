@@ -78,9 +78,10 @@ namespace Sc4ve.Demonstration
             var holder = new GameObject("Aide");
             holder.transform.SetParent(controller.transform, false);
             // SOUS la manette, le texte poussant vers le bas : au-dessus, il passait devant la
-            // tablette, collée à la main gauche et inclinée vers le visage — elle descend à
-            // peine 3 cm sous la main, d'où les 7 cm de marge.
-            holder.transform.localPosition = new Vector3(0f, -0.07f, 0f);
+            // tablette, collée à la main gauche et inclinée vers le visage. Elle descend à
+            // 2,5 cm sous la main ; vue d'en haut, son bord bas chevauchait encore l'aide posée
+            // à 7 cm — à 13 cm, elle reste dégagée.
+            holder.transform.localPosition = new Vector3(0f, -0.13f, 0f);
             holder.AddComponent<FaceCamera>();
 
             var mesh = holder.AddComponent<TextMesh>();

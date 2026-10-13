@@ -1368,7 +1368,7 @@ namespace Sc4ve.Demonstration.EditorTools
             //
             // Quelle que soit sa taille (OrderBoard.HeightMeters), le bord BAS reste où le
             // posait la première tablette — 12 cm de haut, centrée en (0 ; 0,01 ; 0,03) —, si
-            // bien que l'aide écrite sous la manette (ControllerHints, 7 cm plus bas) n'est pas
+            // bien que l'aide écrite sous la manette (ControllerHints, 13 cm plus bas) n'est pas
             // masquée : la tablette grandit vers le haut, le long de l'écran.
             Quaternion tilt = Quaternion.Euler(55f, 0f, 0f);
             Vector3 up = tilt * Vector3.up;
