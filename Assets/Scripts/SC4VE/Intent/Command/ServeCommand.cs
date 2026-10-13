@@ -9,8 +9,10 @@ namespace Sc4ve.Multimodality.Intent
         // démo (« Donne la salade César à Florence ») — sans elles, la phrase partait dans
         // le repli plat-nommé et faisait REFAIRE le plat au lieu de le servir. Même cas pour
         // « envoie » (« Envoie le sandwich au saumon à Marie »). « amène » reste à
-        // MoveCommand (« amène ça ici 👆 »).
-        "va servir", "sers", "servir", "donne", "donner", "donnez",
+        // MoveCommand (« amène ça ici 👆 »). « serre » : l'homophone que Whisper écrit pour
+        // « sers » devant un prénom (« Serre Florence » — mesuré, small comme medium), un
+        // déclencheur à part entière comme « débarasse » pour ClearTableCommand.
+        "va servir", "sers", "serre", "servir", "donne", "donner", "donnez",
         "apporte", "apporter", "porte à", "envoie", "envoyer", "envoyez",
         "go serve", "serve", "give", "bring", "send")]
     [Serializable, CommandDescription(

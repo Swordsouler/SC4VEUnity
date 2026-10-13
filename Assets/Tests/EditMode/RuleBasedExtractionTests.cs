@@ -823,6 +823,20 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void Serre_HomophoneDeSers_EstUnOrdreDeService()
+        {
+            // Whisper écrit « Serre Florence » pour « Sers Florence » — et « Serre-Florence »,
+            // trait d'union compris (mesuré sur la voix du jeu, small comme medium).
+            _recognizer = MakeRecognizer(Language.French, objectNames: new List<string> { "Florence" });
+
+            foreach (string phrase in new[] { "Serre Florence.", "Serre-Florence." })
+            {
+                ServeCommand command = RecognizeSingle<ServeCommand>(phrase);
+                Assert.AreEqual("Florence", AllConditions(command).Single(c => c.IsName).Value, phrase);
+            }
+        }
+
+        [Test]
         public void FamilleEtIngredientSansEmploi_PasseAuLlmEnHybride()
         {
             // Vu en démo : Whisper écrit « Prépare un sandwich la saumon » pour « au saumon ».
