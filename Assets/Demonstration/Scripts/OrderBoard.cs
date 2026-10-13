@@ -30,8 +30,8 @@ namespace Sc4ve.Demonstration
     ///    (§5) : c'est leur place qui les désigne. Chacune dit où en est sa commande —
     ///    commande, cuisine, service, débarrassage —, en jaune quand c'est au joueur de
     ///    parler ; après DEUX phrases non comprises de suite, la phrase à dire s'y écrit.
-    ///    Pendant la prise en main (ServiceProgression), la table du seul client attablé
-    ///    prend toute la salle ;
+    ///    Pendant la prise en main (ServiceProgression), la table du premier client prend
+    ///    toute la salle, jusqu'à ce que son assiette soit débarrassée ;
     ///  - le PIED : ce que font le cuisinier et le serveur, et le score.
     ///
     /// **Une projection, jamais une seconde source de vérité.** Elle ne détient aucun état :
@@ -575,8 +575,9 @@ namespace Sc4ve.Demonstration
             int max = _progression != null ? _progression.MaxDepartures : 0;
             bool help = IntentPipeline.HelpWanted;
 
-            // La prise en main : un seul client en salle, sa table prend toute la place.
-            CustomerOrder onboarding = _progression != null ? _progression.OnboardingCustomer : null;
+            // La prise en main : une seule table occupée — son client, puis son assiette à
+            // débarrasser —, elle prend toute la place.
+            SemantizationCore onboarding = _progression != null ? _progression.OnboardingTable : null;
             if ((onboarding != null) != _solo)
             {
                 _solo = onboarding != null;
@@ -585,7 +586,7 @@ namespace Sc4ve.Demonstration
             }
 
             if (_solo)
-                ShowCard(_soloCard, Describe(onboarding.Table, everyone, cook, queue, waiter, gone, max, help, french));
+                ShowCard(_soloCard, Describe(onboarding, everyone, cook, queue, waiter, gone, max, help, french));
             else
                 for (int i = 0; i < _cards.Length; i++)
                 {

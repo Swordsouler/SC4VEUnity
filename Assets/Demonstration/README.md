@@ -174,7 +174,7 @@ thèse. Ça n'est pas un détail de communication, ça contraint la conception :
 | Les agents (serveurs) sont des `SemantizationCore` ordinaires, avec un état de tâche | acté |
 | **Aucune action réflexe** : toute commande est un plan, jamais une réaction | acté |
 | **La pression vient du nombre, pas de la vitesse** : timers clients 45–90 s, montée en difficulté par le nombre de tables | acté |
-| **Prise en main** : le premier client arrive seul, avec 300 s de patience ; les autres ne commencent à venir qu'une fois qu'il est reparti (repas fini ou patience épuisée) | acté, **implémenté** — `ServiceProgression`, réglable dans l'Inspector |
+| **Prise en main** : le premier client arrive seul, avec 300 s de patience ; les autres ne commencent à venir qu'une fois qu'il est reparti ET son assiette retirée de la table (aucune s'il part sans être servi) — toute la boucle, débarrassage compris. Rejouée après chaque réinitialisation | acté, **implémenté** — `ServiceProgression`, réglable dans l'Inspector |
 | **Le trajet des serveurs absorbe la latence** du pipeline STT+LLM (~1–3 s) | acté |
 | **Ralenti à 30 % du temps de jeu pendant que le joueur parle** | acté, **implémenté** — réglable dans l'Inspector, `1` désactive l'effet |
 | **Un plat est un contenant rempli**, pas un objet créé de toutes pièces | acté |
@@ -435,7 +435,8 @@ La tablette de la main gauche (`OrderBoard`, 33 × 25,5 cm), en trois bandes :
   jaune quand c'est au joueur de parler. Après **deux phrases non comprises de suite**, la
   phrase à dire s'y écrit (« Va voir Alice », « Fais une salade de fruits » en regardant le
   cuisinier, « Sers Patricia », « Débarrasse cette table » en la pointant). Pendant la prise en
-  main, la table du seul client attablé prend toute la salle ;
+  main, la table du premier client prend toute la salle, jusqu'à ce que son assiette soit
+  débarrassée ;
 - **le pied** : ce que font le cuisinier et le serveur, et le score.
 
 C'est ce qui rend l'objectif lisible en 3 secondes, sans quitter la salle des yeux. Non

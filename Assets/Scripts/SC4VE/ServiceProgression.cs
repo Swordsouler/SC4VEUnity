@@ -1,3 +1,4 @@
+using Sven.Content;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -29,9 +30,10 @@ namespace Sc4ve.Multimodality
     /// (Delegation.HasDishOn) : l'assiette sale du précédent retient l'arrivée.
     ///
     /// Une exception, au tout début : la PRISE EN MAIN. Le premier client arrive SEUL, avec
-    /// une patience large (_onboardingPatience), le temps d'apprendre la boucle — prendre sa
-    /// commande, faire préparer le plat, le servir. La cadence ne démarre qu'à son départ,
-    /// repas fini ou patience épuisée : c'est la seule arrivée qui attend le joueur.
+    /// une patience large (_onboardingPatience), le temps d'apprendre TOUTE la boucle —
+    /// prendre sa commande, faire préparer le plat, le servir, débarrasser. La cadence ne
+    /// démarre qu'une fois ce client reparti ET son assiette retirée de la table (aucune
+    /// assiette s'il part sans avoir été servi) : c'est la seule arrivée qui attend le joueur.
     /// </summary>
     public class ServiceProgression : MonoBehaviour
     {
@@ -56,7 +58,7 @@ namespace Sc4ve.Multimodality
         private float _firstArrivalDelay = 2f;
 
         [SerializeField, Tooltip("Patience du PREMIER client, en secondes de JEU : la prise en main. Il est seul " +
-                                 "en salle ; les autres ne commencent à arriver qu'une fois qu'il est reparti.")]
+                                 "en salle ; les autres n'arrivent qu'une fois son assiette retirée de la table.")]
         [Range(60f, 600f)]
         private float _onboardingPatience = 300f;
 
@@ -93,19 +95,25 @@ namespace Sc4ve.Multimodality
 
         /// <summary>
         /// Le client de la prise en main, de son arrivée à la réinitialisation ; null avant.
-        /// Tant qu'il est en salle, il y est seul.
+        /// Tant que la prise en main dure, il est seul en salle.
         /// </summary>
         private CustomerOrder _onboarding;
+
+        /// <summary>
+        /// La prise en main n'est complète qu'une fois son client reparti ET son assiette
+        /// retirée de la table : débarrasser fait partie de la boucle à apprendre.
+        /// </summary>
+        private bool OnboardingInProgress
+            => _onboarding != null && (_onboarding.gameObject.activeSelf || Delegation.HasDishOn(_onboarding.Table));
 
         /// <summary>Les « vies » de la partie : la tablette affiche partis N/max.</summary>
         public int MaxDepartures => _maxDepartures;
 
         /// <summary>
-        /// Le client de la prise en main tant qu'il est en salle, null sinon : la tablette lui
-        /// donne alors toute la salle.
+        /// La table de la prise en main tant qu'elle dure, null sinon : la tablette lui donne
+        /// alors toute la salle — son client, puis son assiette à débarrasser.
         /// </summary>
-        public CustomerOrder OnboardingCustomer
-            => _onboarding != null && _onboarding.gameObject.activeSelf ? _onboarding : null;
+        public SemantizationCore OnboardingTable => OnboardingInProgress ? _onboarding.Table : null;
 
         /// <summary>
         /// Vrai du départ qui atteint la limite jusqu'à la réinitialisation : plus aucune
@@ -197,10 +205,10 @@ namespace Sc4ve.Multimodality
                 return;
             }
 
-            // La prise en main : tant que le premier client est en salle, il y est SEUL. On
-            // ré-arme, comme pendant l'écran de départ : la cadence démarre
-            // _firstArrivalDelay après son départ — repas fini ou patience épuisée.
-            if (_onboarding != null && _onboarding.gameObject.activeSelf)
+            // La prise en main : tant qu'elle dure, son client est SEUL. On ré-arme, comme
+            // pendant l'écran de départ : la cadence démarre _firstArrivalDelay après qu'elle
+            // est complète — client reparti, assiette retirée de sa table.
+            if (OnboardingInProgress)
             {
                 _nextArrivalAt = Time.time + _firstArrivalDelay;
                 return;
@@ -221,12 +229,12 @@ namespace Sc4ve.Multimodality
             if (free.Count == 0) return; // salle pleine : on guette, la prochaine table libérée est servie
 
             // Le tout premier client de la partie est celui de la prise en main : patience
-            // large, et hors cadence — elle part de son départ.
+            // large, et hors cadence — elle part de sa table débarrassée.
             if (_onboarding == null)
             {
                 _onboarding = Spawn(free[Random.Range(0, free.Count)], _onboardingPatience);
-                Debug.Log($"[Progression] Prise en main : personne d'autre n'arrivera avant le départ " +
-                          $"de {_onboarding.name} ({_onboardingPatience:0} s de patience).");
+                Debug.Log($"[Progression] Prise en main : personne d'autre n'arrivera avant que la table " +
+                          $"de {_onboarding.name} soit débarrassée ({_onboardingPatience:0} s de patience).");
                 return;
             }
 
