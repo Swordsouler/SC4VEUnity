@@ -75,6 +75,7 @@ namespace Sc4ve.Demonstration
         private const float TrackZ = -0.0006f;
         private const float MarkZ = -0.0008f;
         private const float TextZ = -0.0011f;
+        private const float ShieldZ = -0.0013f;     // devant tout : le cache des contours
 
         // 4 Hz en temps RÉEL : c'est de l'affichage, il ne doit pas se figer au ralenti.
         private const float RefreshInterval = 0.25f;
@@ -1009,6 +1010,22 @@ namespace Sc4ve.Demonstration
             Place(_served, Right, 602f);
             _refusals = NewText("Refus", 24f, TextAnchor.UpperRight);
             Place(_refusals, Right, 628f);
+
+            // Le cache des contours. SelectionManager les trace À TRAVERS la scène (QuickOutline,
+            // OutlineAll) : un objet sélectionné derrière la tablette dessinait le sien
+            // par-dessus. QuickOutline ne trace un contour que là où le stencil ne vaut pas 1
+            // (OutlineFill) : la tablette pose son propre masque (OutlineMask) sur toute sa
+            // face — invisible, et soumis à la profondeur : il ne marque que la tablette vue,
+            // pas la main ou l'objet qui passe devant elle.
+            GameObject shield = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            shield.name = "Cache des contours";
+            shield.transform.SetParent(transform, false);
+            shield.transform.localPosition = new Vector3(0f, 0f, ShieldZ);
+            shield.transform.localScale = new Vector3(WidthPx * Px, HeightPx * Px, 1f);
+            Destroy(shield.GetComponent<Collider>());
+            Material mask = Instantiate(Resources.Load<Material>("Materials/OutlineMask"));
+            mask.SetFloat("_ZTest", (float)CompareFunction.LessEqual);
+            shield.GetComponent<Renderer>().sharedMaterial = mask;
         }
 
         private Renderer NewQuad(string name, float z)
