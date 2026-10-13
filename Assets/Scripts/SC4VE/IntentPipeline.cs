@@ -155,6 +155,13 @@ namespace Sc4ve.Multimodality
             else if (outcome != "error") Misunderstood = 0;
         }
 
+        /// <summary>
+        /// Réinitialisation de la scène (ResetSceneCommand) : le compteur repart de zéro, et le
+        /// visiteur suivant n'hérite pas des phrases suggérées de celui d'avant. Le trajet de
+        /// la phrase en cours reste : la réinitialisation peut être cette phrase-là.
+        /// </summary>
+        public static void ForgetMisunderstandings() => Misunderstood = 0;
+
         /// <summary>Oublie tout, compte compris — utile surtout aux tests.</summary>
         public static void Reset()
         {

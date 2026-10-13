@@ -88,6 +88,22 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void Reinitialisation_OublieLesPhrasesNonComprises()
+        {
+            // Entre deux visiteurs (ResetSceneCommand, au menu pause comme à la voix), le
+            // suivant ne doit pas hériter des phrases suggérées de celui d'avant.
+            IntentPipeline.Begin();
+            IntentPipeline.Complete(null, "not_understood", 0);
+            IntentPipeline.Begin();
+            IntentPipeline.Complete(null, "not_understood", 0);
+            Assert.IsTrue(IntentPipeline.HelpWanted);
+
+            IntentPipeline.ForgetMisunderstandings();
+            Assert.IsFalse(IntentPipeline.HelpWanted);
+            Assert.AreEqual(0, IntentPipeline.Misunderstood);
+        }
+
+        [Test]
         public void UneSeuleIssueParPhrase()
         {
             IntentPipeline.Begin();

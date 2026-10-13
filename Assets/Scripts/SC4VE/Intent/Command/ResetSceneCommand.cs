@@ -50,6 +50,7 @@ namespace Sc4ve.Multimodality.Intent
             }
 
             CommandHistory.Clear();
+            IntentPipeline.ForgetMisunderstandings();
             OriginalStateStore.RestoreAll();
 
             UnityEngine.Object.FindAnyObjectByType<ServiceProgression>()?.ResetGame();
