@@ -841,7 +841,15 @@ namespace Sc4ve.Multimodality
             foreach (string w in functionWords)
                 vocab.Add(w);
 
-            var result = vocab.OrderBy(w => w).ToList();
+            // Whisper ne garde que la FIN de son invite (224 jetons, voir
+            // WhisperSpeechToText.SetGrammar) : par ordre alphabétique, les prénoms et les plats —
+            // les mots qu'il écorche le plus — tombaient au début, donc hors de l'invite. Ils
+            // passent en dernier, les plats puis les prénoms. Vosk ignore l'ordre.
+            var names = new HashSet<string>(objectNames.Select(n => n.ToLowerInvariant()));
+            var dishes = new HashSet<string>(recipes.Select(r => r.Label.ToLowerInvariant()));
+            var result = vocab.OrderBy(w => names.Contains(w) ? 2 : dishes.Contains(w) ? 1 : 0)
+                              .ThenBy(w => w)
+                              .ToList();
             Debug.Log($"[Vosk] Grammaire construite : {result.Count} mots.");
             return result;
         }
