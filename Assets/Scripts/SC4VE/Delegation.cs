@@ -50,6 +50,9 @@ namespace Sc4ve.Multimodality
         /// </summary>
         public enum Activity { Idle, Moving, Acting }
 
+        /// <summary>La course en cours — ce que la tablette de la main gauche raconte.</summary>
+        public enum Errand { None, Move, TakeOrder, Serve, Clear }
+
         [SerializeField, Tooltip("Vitesse de marche. Allure de démonstration (×4) : la course " +
                                  "du serveur est le principal temps mort de la boucle de " +
                                  "service, elle doit se lire, pas se subir.")]
@@ -134,6 +137,15 @@ namespace Sc4ve.Multimodality
         /// <summary>Le contenant porté, ou null.</summary>
         public ContainerContent Carried => _carried;
 
+        /// <summary>La course en cours, None s'il est libre.</summary>
+        public Errand CurrentErrand { get; private set; }
+
+        /// <summary>La table visée par la course en cours, ou null.</summary>
+        public SemantizationCore Target { get; private set; }
+
+        /// <summary>Les ordres notés pour après la course en cours.</summary>
+        public int QueuedOrders => _orders.Count;
+
         /// <summary>Un serveur occupé refuse tout nouvel ordre (§8 : file à un seul créneau).</summary>
         public bool IsBusy => _activity != Activity.Idle;
 
@@ -183,7 +195,7 @@ namespace Sc4ve.Multimodality
         public bool GoTo(Vector3 destination)
         {
             if (Defer(() => GoTo(destination))) return true;
-            if (!Accept(French ? "me déplacer" : "moving")) return false;
+            if (!Accept(French ? "me déplacer" : "moving", Errand.Move, null)) return false;
             _task = StartCoroutine(GoToTask(destination));
             return true;
         }
@@ -229,7 +241,7 @@ namespace Sc4ve.Multimodality
             // plat se cherchera au dépilage, quand le monde aura changé.
             if (Defer(() => Serve(table, recipe))) return true;
 
-            if (!Accept(French ? "servir une table" : "serving a table")) return false;
+            if (!Accept(French ? "servir une table" : "serving a table", Errand.Serve, table)) return false;
 
             // Sans plat dicté par l'ordre, celui que LE CLIENT DE CETTE TABLE attend : le
             // graphe sait déjà qui veut quoi — « donne leurs assiettes aux clients » n'a
@@ -264,7 +276,7 @@ namespace Sc4ve.Multimodality
         {
             if (table == null) return false;
             if (Defer(() => Clear(table))) return true;
-            if (!Accept(French ? "débarrasser une table" : "clearing a table")) return false;
+            if (!Accept(French ? "débarrasser une table" : "clearing a table", Errand.Clear, table)) return false;
 
             List<ContainerContent> dishes = DishesOn(table);
             ContainerContent dish = dishes.FirstOrDefault(d => d.Content.Count == 0);
@@ -333,7 +345,7 @@ namespace Sc4ve.Multimodality
         {
             if (table == null) return false;
             if (Defer(() => TakeOrder(table))) return true;
-            if (!Accept(French ? "prendre une commande" : "taking an order")) return false;
+            if (!Accept(French ? "prendre une commande" : "taking an order", Errand.TakeOrder, table)) return false;
             _task = StartCoroutine(TakeOrderTask(table));
             return true;
         }
@@ -798,6 +810,18 @@ namespace Sc4ve.Multimodality
             return ready.FirstOrDefault();
         }
 
+        /// <summary>
+        /// Vrai si un plat de cette recette attend d'être servi : plein, habillé pour elle,
+        /// posé ailleurs que sur une table, que personne ne porte et qu'aucun client n'a refusé
+        /// — un plat que FindReadyDish pourrait prendre pour cette recette. La tablette de la
+        /// main gauche s'en sert pour dire « prêt sur la passe ».
+        /// </summary>
+        public static bool IsDishReady(string recipe)
+            => !string.IsNullOrEmpty(recipe) && UnityEngine.Object
+                .FindObjectsByType<ContainerContent>(FindObjectsInactive.Exclude)
+                .Any(c => c != null && c.Content.Count > 0 && IsPlate(c) && HasDressing(c, recipe)
+                          && !IsCarriedBySomeone(c) && !IsOnATable(c) && !CustomerOrder.HoldsRefused(c));
+
         /// <summary>Vrai si le contenant porte l'habillage instancié pour cette recette.</summary>
         private static bool HasDressing(ContainerContent dish, string recipe)
         {
@@ -876,7 +900,7 @@ namespace Sc4ve.Multimodality
         /// Accepte ou refuse un ordre, et le dit. Tout ordre passe par ici : c'est le seul
         /// endroit qui décide qu'un serveur est disponible, donc le seul à maintenir.
         /// </summary>
-        private bool Accept(string label)
+        private bool Accept(string label, Errand errand, SemantizationCore target)
         {
             if (IsBusy)
             {
@@ -898,6 +922,8 @@ namespace Sc4ve.Multimodality
             // sous-coroutine (yield return Walk(...)) qu'à l'image suivante. Entre l'acceptation
             // et ce démarrage, le serveur paraîtrait libre — et accepterait un second ordre.
             SetActivity(Activity.Moving, label);
+            CurrentErrand = errand;
+            Target = target;
             return true;
         }
 
@@ -929,6 +955,11 @@ namespace Sc4ve.Multimodality
         {
             _activity = activity;
             _taskLabel = label;
+            if (activity == Activity.Idle)
+            {
+                CurrentErrand = Errand.None;
+                Target = null;
+            }
         }
 
         /// <summary>

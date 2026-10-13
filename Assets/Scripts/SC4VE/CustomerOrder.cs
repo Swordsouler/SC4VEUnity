@@ -137,6 +137,25 @@ namespace Sc4ve.Multimodality
         /// <summary>1 → 0. Figée dès que l'état vaut Served ou Gone.</summary>
         public float PatienceRatio => Mathf.Clamp01(_remaining / Patience);
 
+        /// <summary>La même patience, en secondes de jeu restantes.</summary>
+        public float PatienceLeft => Mathf.Max(0f, _remaining);
+
+        /// <summary>Secondes de repas restantes une fois servi — ce que décompte la barre bleue.</summary>
+        public float MealLeft => _stage == Stage.Served ? Mathf.Max(0f, _eatingDuration - (Time.time - _servedAt)) : 0f;
+
+        /// <summary>1 → 0 pendant le repas.</summary>
+        public float MealRatio => _eatingDuration > 0f ? Mathf.Clamp01(MealLeft / _eatingDuration) : 0f;
+
+        /// <summary>
+        /// Time.unscaledTime du départ, ou -1 tant que le client est en salle. Les clients
+        /// partis restent dans la scène, désactivés : la tablette en tire « qui vient de
+        /// partir », et à quelle table.
+        /// </summary>
+        public float DepartedAt { get; private set; } = -1f;
+
+        /// <summary>La phrase du dernier refus (« Non : végétarien — Poulet. »), ou null.</summary>
+        public string LastRefusal { get; private set; }
+
         /// <summary>
         /// Secondes de JEU entre l'arrivée du client et l'assiette acceptée : la patience
         /// consommée, figée au service. L'écran de fin en fait la moyenne (« temps moyen
@@ -390,6 +409,7 @@ namespace Sc4ve.Multimodality
         /// </summary>
         private void Depart(string reason)
         {
+            DepartedAt = Time.unscaledTime;
             ConsumeDish();
             Debug.Log($"[Client] {name} : {reason}.");
             gameObject.SetActive(false);
@@ -414,9 +434,10 @@ namespace Sc4ve.Multimodality
             _servedDish = null;
         }
 
-        private static readonly UnityEngine.Color PatientColor   = new(0.35f, 0.65f, 0.30f);
-        private static readonly UnityEngine.Color ImpatientColor = new(0.75f, 0.22f, 0.18f);
-        private static readonly UnityEngine.Color MealColor      = new(0.30f, 0.55f, 0.85f);
+        // Publiques : la tablette de la main gauche reprend les couleurs de la jauge.
+        public static readonly UnityEngine.Color PatientColor   = new(0.35f, 0.65f, 0.30f);
+        public static readonly UnityEngine.Color ImpatientColor = new(0.75f, 0.22f, 0.18f);
+        public static readonly UnityEngine.Color MealColor      = new(0.30f, 0.55f, 0.85f);
 
         /// <summary>La barre au-dessus de la tête : remplie à <paramref name="ratio"/>, fondant vers la gauche.</summary>
         private void UpdateGauge(float ratio, UnityEngine.Color color)
@@ -634,7 +655,10 @@ namespace Sc4ve.Multimodality
             // déjà parti n'en est pas un — aucun plat ne lui a été présenté à temps, et son
             // départ se compte déjà (Gone).
             if (verdict.Outcome == Outcome.Refused && _stage != Stage.Gone)
+            {
                 Refusals++;
+                LastRefusal = verdict.Sentence;
+            }
 
             Say(verdict.Sentence);
             return verdict;

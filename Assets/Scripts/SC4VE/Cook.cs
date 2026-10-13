@@ -92,6 +92,9 @@ namespace Sc4ve.Multimodality
         // Finish, dans l'ordre.
         private readonly Queue<string> _orders = new();
 
+        /// <summary>Les recettes notées pour après le plat en cours, dans l'ordre (URI préfixées).</summary>
+        public IEnumerable<string> PendingOrders => _orders;
+
         /// <summary>
         /// Vrai si le cuisinier est DANS LE CHAMP DE VISION du joueur — et la réponse est
         /// SÉMANTIQUE : PointOfView (SVEN), l'interactor de la caméra de tête, maintient la

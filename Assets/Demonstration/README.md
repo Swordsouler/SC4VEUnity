@@ -16,7 +16,7 @@ ligne à ligne. À lire avec `../../COMMANDS.md` (ajouter une commande) et `../.
 | `Scenes/` | les scènes du mini-jeu, produites par l'outil ci-dessus |
 | `Prefabs/` | ingrédients, assiettes, stations, tables, serveurs, clients |
 | `Ontologies/` | brouillon de `sven-restaurant.ttl` avant copie dans `StreamingAssets` |
-| `Scripts/` | code **spécifique au jeu** : machine à états des serveurs, spawn des clients, score, tableau des commandes |
+| `Scripts/` | code **spécifique au jeu** : machine à états des serveurs, spawn des clients, score, tablette de la main gauche |
 | `Materials/`, `Meshes/` | les 8 nouveaux assets du §6.1 |
 
 Les dossiers sont à créer au fur et à mesure — un dossier vide n'est pas suivi par Git et
@@ -28,7 +28,7 @@ Menu **SC4VE > Démonstration** :
 
 | | |
 |---|---|
-| **1 — (Re)construire le contenu du mini-jeu** | remplit `Scenes/Demo Mini Game.unity` : sol, cuisine (plan de travail, étagère, 11 ingrédients ×2, 2 stations, 6 assiettes, poubelle, passe), salle (4 tables non numérotées, 2 serveurs identiques, 4 clients avec jauge de patience), tableau des commandes, `ListeningTimeScale`, NavMesh cuit, et le rig XR s'il manque |
+| **1 — (Re)construire le contenu du mini-jeu** | remplit `Scenes/Demo Mini Game.unity` : sol, cuisine (plan de travail, étagère, 11 ingrédients ×2, 2 stations, 6 assiettes, poubelle, passe), salle (4 tables non numérotées, 2 serveurs identiques, 4 clients avec jauge de patience), tablette de la main gauche, `ListeningTimeScale`, NavMesh cuit, et le rig XR s'il manque |
 | **2 — Corriger les prefabs existants** | passe le `SemanticAnnotator` des prefabs de fruits en `Dynamic` et leur ajoute un `XRGrabInteractable`. Idempotent. L'outil 1 l'exécute d'abord. |
 | **3 — Générer les meshes des ingrédients** | fabrique les meshes low-poly des 8 ingrédients sans modèle, dans `Meshes/`. L'outil 1 l'exécute aussi. |
 | **4 — Peupler la scène d'exposition** | aligne un exemplaire de chaque objet manipulable dans `Scenes/Demo Exposition.unity`, à sa taille réelle et étiqueté |
@@ -417,8 +417,23 @@ poser sur une station. Trois mécaniques différentes, une seule commande.
 
 ### Affichage
 
-Un panneau de bons de commande visible depuis la cuisine, listant ce que chaque table attend.
-C'est ce qui rend l'objectif lisible pour un spectateur en 3 secondes. Non interactif.
+La tablette de la main gauche (`OrderBoard`, 22 × 17 cm), en trois bandes :
+
+- **la voix** : la phrase entendue, en entier — jusqu'à trois lignes, puis le texte rétrécit,
+  jamais coupé —, puis son trajet : Règles → LLM → Recherche sémantique → Exécution
+  (`IntentPipeline`). Seules les étapes sollicitées s'affichent : en hybride, le LLM n'apparaît
+  que si les règles lui passent la main ; la recherche sémantique, que si une commande désigne
+  des objets. Dessous, le résultat : la commande comprise, la question posée ou le refus ;
+- **la salle** : les quatre tables en plan, placées comme vues depuis la passe (le fond en
+  haut). Chacune dit où en est sa commande — commande, cuisine, service, débarrassage —, en
+  jaune quand c'est au joueur de parler. Après **deux phrases non comprises de suite**, la
+  phrase à dire s'y écrit (« Va voir Alice », « Fais une salade de fruits » en regardant le
+  cuisinier, « Sers Patricia », « Débarrasse cette table » en la pointant) ;
+- **le pied** : ce que font le cuisinier et le serveur, et le score.
+
+C'est ce qui rend l'objectif lisible en 3 secondes, sans quitter la salle des yeux. Non
+interactive : elle relit le monde à chaque rafraîchissement. Dessinée au lancement — après une
+mise à jour, relancer « SC4VE > Démonstration > 1 », qui remplace l'ancienne.
 
 ---
 
