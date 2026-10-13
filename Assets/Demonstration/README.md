@@ -244,7 +244,7 @@ RuleBased produise une clarification parlée, jamais un silence.
 
 #### Le mode hybride
 
-Les règles d'abord ; le LLM en relais (`MultimodalityController.AskLlmInHybridAsync`) dans trois
+Les règles d'abord ; le LLM en relais (`MultimodalityController.AskLlmInHybridAsync`) dans quatre
 cas seulement :
 
 - **les règles n'ont reconnu aucune commande**, et la phrase ne complète aucune clarification
@@ -259,7 +259,12 @@ cas seulement :
   du domaine** (`RuleBasedIntentRecognizer.MissedTarget`) : sélection vide, ou réduite à une
   coréférence devinée d'un « la » qui peut aussi être un article. La cible a sans doute été
   dite, mais pas comprise (« va chercher la commande de la dame »). Les mots neutres
-  (« toi », « s'il te plaît ») ne comptent pas.
+  (« toi », « s'il te plaît ») ne comptent pas ;
+- **les règles font préparer une famille de plats alors qu'un ingrédient de la phrase est resté
+  sans emploi** (`RuleBasedIntentRecognizer.VagueRecipe`) : le plat précis a sans doute été dit,
+  mais pas compris — Whisper écrit « Prépare un sandwich la saumon » pour « au saumon », et le
+  cuisinier demandait « Laquelle ? ». Sans ingrédient (« prépare un sandwich »), la famille est
+  bien ce qui a été dit : la question part sans attendre le LLM.
 
 Le LLM a dix secondes, et n'est retenu que s'il rend des commandes connues ; sinon les règles
 gardent la main — leur supposition, leur clarification ou leur « je n'ai pas compris ». Sans

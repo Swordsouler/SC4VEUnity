@@ -402,22 +402,29 @@ namespace Sc4ve.Multimodality
                                 continue;
                             }
                         }
-                        // Hybride : deux suppositions des règles passent au LLM. Un plat nommé
+                        // Hybride : trois suppositions des règles passent au LLM. Un plat nommé
                         // SANS verbe reconnu (« prépare-le »), juste quand Whisper a mangé le
                         // verbe, fausse quand le verbe manque aux déclencheurs (« livre la soupe
-                        // à Jean ») ; et une commande SANS cible quand un mot de la phrase n'a
-                        // servi à rien (« va chercher la commande de la dame »). Le LLM tranche ;
-                        // s'il ne rend rien d'utilisable, la réponse des règles tient.
+                        // à Jean ») ; une commande SANS cible quand un mot de la phrase n'a
+                        // servi à rien (« va chercher la commande de la dame ») ; et une FAMILLE
+                        // de plats à préparer quand un ingrédient de la phrase est resté sans
+                        // emploi (« prépare un sandwich la saumon »). Le LLM tranche ; s'il ne
+                        // rend rien d'utilisable, la réponse des règles tient.
                         else if (_recognizerMode == RecognizerMode.Hybrid &&
-                                 (_ruleBasedRecognizer.GuessedFromDish || _ruleBasedRecognizer.MissedTarget))
+                                 (_ruleBasedRecognizer.GuessedFromDish || _ruleBasedRecognizer.MissedTarget ||
+                                  _ruleBasedRecognizer.VagueRecipe))
                         {
                             string reason = _ruleBasedRecognizer.GuessedFromDish
                                 ? "ont deviné le verbe d'après le plat"
-                                : "n'ont pas trouvé la cible";
+                                : _ruleBasedRecognizer.VagueRecipe
+                                    ? "n'ont reconnu que la famille du plat"
+                                    : "n'ont pas trouvé la cible";
                             IntentPipeline.End(IntentPipeline.Stage.Rules, IntentPipeline.Status.Relayed,
                                                _ruleBasedRecognizer.GuessedFromDish
                                                    ? IntentPipeline.Reason.GuessedVerb
-                                                   : IntentPipeline.Reason.MissedTarget);
+                                                   : _ruleBasedRecognizer.VagueRecipe
+                                                       ? IntentPipeline.Reason.VagueDish
+                                                       : IntentPipeline.Reason.MissedTarget);
                             string llmJson = await AskLlmInHybridAsync(phrase, reason);
                             if (llmJson == null)
                                 IntentPipeline.Revise(IntentPipeline.Stage.Rules, IntentPipeline.Status.Done,

@@ -36,7 +36,7 @@ namespace Sc4ve.Multimodality
         }
 
         /// <summary>Le mot du verdict d'une étape ; la tablette le traduit.</summary>
-        public enum Reason { None, NothingRecognized, GuessedVerb, MissedTarget, Kept, NotUnderstood, Timeout, NoObject, WhichOne }
+        public enum Reason { None, NothingRecognized, GuessedVerb, MissedTarget, VagueDish, Kept, NotUnderstood, Timeout, NoObject, WhichOne }
 
         public sealed class Step
         {

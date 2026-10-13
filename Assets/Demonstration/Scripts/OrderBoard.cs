@@ -443,6 +443,7 @@ namespace Sc4ve.Demonstration
             IntentPipeline.Reason.NothingRecognized => french ? "rien reconnu" : "nothing recognized",
             IntentPipeline.Reason.GuessedVerb => french ? "verbe deviné" : "verb guessed",
             IntentPipeline.Reason.MissedTarget => french ? "cible manquée" : "target missed",
+            IntentPipeline.Reason.VagueDish => french ? "plat imprécis" : "vague dish",
             IntentPipeline.Reason.Kept => french ? "retenues" : "kept",
             IntentPipeline.Reason.NotUnderstood => french ? "rien compris" : "not understood",
             IntentPipeline.Reason.Timeout => french ? "délai dépassé" : "timed out",

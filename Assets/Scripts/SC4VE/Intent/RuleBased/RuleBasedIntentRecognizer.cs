@@ -168,6 +168,16 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         public bool MissedTarget { get; private set; }
 
         /// <summary>
+        /// Vrai si le dernier Recognize a fait PRÉPARER une famille de plats (sous-spécifiée)
+        /// alors qu'un ingrédient nommé dans la même clause est resté sans emploi : le plat
+        /// précis a sans doute été dit, mais pas compris — vu en démo, Whisper écrit « Prépare
+        /// un sandwich la saumon » pour « au saumon », et le cuisinier demandait « Laquelle ? ».
+        /// Le mode hybride consulte alors le LLM. Sans ingrédient (« prépare un sandwich »), la
+        /// famille est bien ce qui a été dit : la question part sans attendre le LLM.
+        /// </summary>
+        public bool VagueRecipe { get; private set; }
+
+        /// <summary>
         /// Reconnaît l'intention d'une phrase et retourne un JSON de commandes
         /// au même format que celui produit par le LLM, prêt à être passé à
         /// DeserializeCommand puis CommandToGraphOutputCommandAsync.
@@ -183,6 +193,7 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
         {
             GuessedFromDish = false;
             MissedTarget = false;
+            VagueRecipe = false;
             if (sentence == null || string.IsNullOrWhiteSpace(sentence.Text)) return null;
 
             var recognized = new List<Command>();
@@ -457,6 +468,12 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 $"Couleurs : [{string.Join(", ", colors.Select(c => $"{c.Value}(cible={c.IsTarget})"))}] | " +
                 $"Déictiques : [{string.Join(", ", deictics.Select(d => d.Value))}] | " +
                 $"Coréf : {hasCoreference} | Limite : {limit}");
+
+            // Une famille de plats à préparer, et un ingrédient resté sans emploi : le plat
+            // précis a sans doute échappé aux règles (voir VagueRecipe).
+            if (commandType == "PrepareCommand" && annotations.Count > 0 &&
+                recipes.Any(uri => _recipes.Any(r => r.Uri == uri && !r.IsConcrete)))
+                VagueRecipe = true;
 
             // 3. Construction de la commande via BuildRuleBasedParameters
             var ctx = new RuleBasedContext

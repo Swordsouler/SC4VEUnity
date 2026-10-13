@@ -823,6 +823,32 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void FamilleEtIngredientSansEmploi_PasseAuLlmEnHybride()
+        {
+            // Vu en démo : Whisper écrit « Prépare un sandwich la saumon » pour « au saumon ».
+            // Les règles n'y lisent que la famille « Sandwich », le saumon reste sans emploi :
+            // le mode hybride consulte le LLM au lieu de demander « Laquelle ? ». Sans
+            // ingrédient, la famille est bien ce qui a été dit ; un plat précis reconnu n'a
+            // rien à rattraper.
+            _recognizer = MakeRecognizer(Language.French,
+                annotationTypes: new List<string> { "Saumon" },
+                recipes: new List<RecipeVocabulary.Recipe>
+                {
+                    new RecipeVocabulary.Recipe("sven:Sandwich",       "Sandwich",           isConcrete: false),
+                    new RecipeVocabulary.Recipe("sven:SalmonSandwich", "Sandwich au saumon", isConcrete: true),
+                });
+
+            RecognizeSingle<PrepareCommand>("Prépare un sandwich la saumon.");
+            Assert.IsTrue(_recognizer.VagueRecipe, "Famille et saumon sans emploi : le plat précis a échappé aux règles.");
+
+            RecognizeSingle<PrepareCommand>("Prépare un sandwich.");
+            Assert.IsFalse(_recognizer.VagueRecipe, "La famille seule est ce qui a été dit.");
+
+            RecognizeSingle<PrepareCommand>("Prépare un sandwich au saumon.");
+            Assert.IsFalse(_recognizer.VagueRecipe, "Plat précis reconnu : rien à rattraper.");
+        }
+
+        [Test]
         public void DeuxPrenoms_SUnissent_SansDesambiguisation()
         {
             // « Prends la commande de Jean et de Florence » : deux prénoms ne désignent
