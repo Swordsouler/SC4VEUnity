@@ -46,7 +46,16 @@ namespace Sc4ve.Multimodality.Intent
             if (direct != null) return direct;
 
             CustomerOrder customer = Customer(selection);
-            return customer != null ? customer.Table : null;
+            if (customer != null) return customer.Table;
+
+            // Une assiette POSÉE sur une table mène à elle : le cône du pointeur ne touche
+            // parfois qu'elle (« débarrasse cette assiette 👆 »).
+            return selection?
+                .Where(o => o != null)
+                .Select(o => o.GetComponent<ContainerContent>())
+                .Where(dish => dish != null)
+                .Select(Delegation.TableOf)
+                .FirstOrDefault(table => table != null);
         }
 
         /// <summary>
@@ -133,6 +142,9 @@ namespace Sc4ve.Multimodality.Intent
                 table ??= Table(selected);
             }
 
+            // Une seule table concernée : même règle que le serveur unique, ci-dessous.
+            table ??= OnlyConcernedTable(command);
+
             // Un seul serveur dans la scène : il n'y a rien à demander. « Quel serveur ? » ne
             // veut dire quelque chose que devant un choix ; le poser devant une évidence donne
             // un système qui a l'air de ne pas voir ce que le joueur voit. Le seuil est
@@ -156,6 +168,47 @@ namespace Sc4ve.Multimodality.Intent
             Delegation[] waiters = UnityEngine.Object
                 .FindObjectsByType<Delegation>(UnityEngine.FindObjectsInactive.Exclude);
             return waiters.Length == 1 ? waiters[0] : null;
+        }
+
+        /// <summary>
+        /// La table que l'ordre concerne, quand il n'y en a qu'UNE — la règle du serveur unique
+        /// appliquée aux tables : sans table désignée, « Quelle table ? » devant une évidence
+        /// donne un système qui a l'air de ne pas voir ce que voit le joueur. Vu en jeu :
+        /// débarrasser la table d'Alice, la seule à débarrasser, a demandé six phrases.
+        /// Concernée : le seul client qui attend qu'on prenne sa commande, le seul qui attend
+        /// son plat — celui qui l'a commandé, si le plat est nommé —, la seule assiette vide à
+        /// débarrasser, la seule commande à répéter. Deux candidates et plus : null, et la
+        /// question redevient légitime.
+        /// </summary>
+        internal static SemantizationCore OnlyConcernedTable(Command command)
+        {
+            List<SemantizationCore> concerned = UnityEngine.Object
+                .FindObjectsByType<SemanticAnnotator>(UnityEngine.FindObjectsInactive.Exclude)
+                .Where(annotator => annotator.Annotations.Contains("sven:Table"))
+                .Select(annotator => annotator.GetComponent<SemantizationCore>())
+                .Where(table => table != null && Concerns(command, table))
+                .ToList();
+            return concerned.Count == 1 ? concerned[0] : null;
+        }
+
+        private static bool Concerns(Command command, SemantizationCore table)
+        {
+            CustomerOrder customer = CustomerOrder.At(table);
+            switch (command)
+            {
+                case TakeOrderCommand:
+                    return customer != null && customer.State == CustomerOrder.Stage.Seated;
+                case ServeCommand:
+                    string recipe = command.Parameters?.OfType<RecipeParameter>().FirstOrDefault()?.Value;
+                    return customer != null && customer.State != CustomerOrder.Stage.Served &&
+                           (recipe == null || recipe == customer.WantedRecipe || recipe == customer.Family);
+                case ClearTableCommand:
+                    return Delegation.HasEmptyDishOn(table);
+                case RepeatOrderCommand:
+                    return customer != null && customer.HasOrdered;
+                default:
+                    return false;
+            }
         }
     }
 }

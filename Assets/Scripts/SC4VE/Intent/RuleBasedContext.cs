@@ -90,6 +90,21 @@ namespace Sc4ve.Multimodality.Intent
         }
 
         /// <summary>
+        /// Un adverbe de lieu qui accompagne le geste (« là », « là-bas », « ici ») — voir
+        /// BuildPointedTargetSelection. « voilà » et « au-delà » n'en sont pas : pas de
+        /// frontière de mot devant leur « là ».
+        /// </summary>
+        private bool PointsWithAdverb
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(Text) || !MultimodalitySettings.PointingEnabled) return false;
+                bool fr = string.IsNullOrEmpty(UserData.Locale) || UserData.Locale.StartsWith("fr");
+                return Regex.IsMatch(Text, fr ? @"\b(là|ici)\b" : @"\b(here|there)\b", RegexOptions.IgnoreCase);
+            }
+        }
+
+        /// <summary>
         /// Construit le SelectionParameter standard à partir des entités extraites.
         /// <paramref name="useStartedAt"/> = true pour MoveCommand (source pointée avant de parler).
         /// <paramref name="fallbackToSelection"/> = true : si la cible (déictique/pointage, ou
@@ -188,7 +203,8 @@ namespace Sc4ve.Multimodality.Intent
             // PAR TYPE (annotation/couleur) n'est donnée. Un déictique (« ça ») ou l'absence de
             // cible peuvent retomber sur la sélection quand le pointage résout à vide ; « les
             // pommes » non (cible explicite → NoMatch si aucune pomme). Résolu dans Semanticize.
-            bool explicitTypeTarget = (Names?.Count > 0) || (Annotations?.Count > 0) || (SourceColors?.Count > 0);
+            bool explicitTypeTarget = (Names?.Count > 0) ||
+                                      (withTypes && ((Annotations?.Count > 0) || (SourceColors?.Count > 0)));
 
             return new SelectionParameter
             {
@@ -222,13 +238,20 @@ namespace Sc4ve.Multimodality.Intent
         /// nomment d'AUTRES rôles que le client : vu en jeu, « le serveur va prendre la
         /// commande d'Alice » cherchait un objet à la fois Alice ET serveur, « débarrasse
         /// l'assiette d'Alice » un objet à la fois Alice ET assiette — « aucun objet ».
+        ///
+        /// « là », « là-bas » et « ici » pointent comme « cette » : vu en jeu, « Là-bas sur la
+        /// table il y a une assiette, débarrasse-la » ignorait le geste. Sans prénom ni
+        /// pointage, un TYPE ne désigne aucune table en particulier — « la table »,
+        /// « l'assiette », « le client » valent pour les quatre — : rien n'est désigné, et
+        /// l'ordre prend la seule table qu'il concerne, ou la demande (DelegationRoles).
         /// </summary>
         public SelectionParameter BuildPointedTargetSelection()
         {
             if (Names?.Count > 0)
                 return BuildSelectionParameter(fallbackToSelection: true, withPointing: false, withTypes: false);
-            if (Deictics == null || Deictics.Count == 0 || Words == null || Words.Count == 0)
-                return BuildSelectionParameter(fallbackToSelection: true);
+            bool pointed = Deictics?.Count > 0 || PointsWithAdverb;
+            if (!pointed || Words == null || Words.Count == 0)
+                return BuildSelectionParameter(fallbackToSelection: true, withTypes: false);
 
             return new SelectionParameter
             {
@@ -238,7 +261,12 @@ namespace Sc4ve.Multimodality.Intent
                     new()
                     {
                         IsOperator = false,
-                        Condition  = new Condition { Type = "Event", Value = Deictics[0].Value, Timestamp = Words[^1].EndedAt }
+                        Condition  = new Condition
+                        {
+                            Type      = "Event",
+                            Value     = Deictics?.Count > 0 ? Deictics[0].Value : PointerName,
+                            Timestamp = Words[^1].EndedAt
+                        }
                     }
                 },
                 Limit = -1,

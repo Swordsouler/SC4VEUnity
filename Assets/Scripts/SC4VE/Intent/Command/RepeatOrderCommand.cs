@@ -36,6 +36,8 @@ namespace Sc4ve.Multimodality.Intent
         {
             List<SemantizationCore> targets = DelegationRoles.AllTargets(this);
             CustomerOrder customer = DelegationRoles.Customer(targets);
+            // Une seule commande à répéter : inutile de demander laquelle (DelegationRoles).
+            customer ??= CustomerOrder.At(DelegationRoles.OnlyConcernedTable(this));
 
             bool french = UserData.Locale == "fr";
 

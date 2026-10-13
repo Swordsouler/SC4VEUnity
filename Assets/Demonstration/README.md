@@ -935,6 +935,13 @@ Idle ──(ordre reçu)──► Moving ──(arrivé)──► Acting ──(
   C'est le seul endroit du jeu où une erreur coûte du temps, et c'est voulu — mais le coût
   doit rester lisible, donc le serveur **annonce le refus à voix haute** en rapportant le plat,
   plutôt que de le reposer en silence.
+- **On ne demande pas l'évidence.** Un seul serveur : « Quel serveur ? » n'est jamais posé. Une
+  seule table concernée, de même (`DelegationRoles.OnlyConcernedTable`) : sans table désignée,
+  l'ordre prend le seul client qui attend qu'on prenne sa commande, le seul qui attend son plat
+  (celui qui l'a commandé, si le plat est nommé), la seule assiette vide à débarrasser, la seule
+  commande à répéter ; à deux candidates et plus, « Quelle table ? ». Un type seul (« la
+  table », « l'assiette ») ne désigne aucune table en particulier — elles le partagent toutes —
+  et compte pour rien de désigné ; « là », « là-bas » et « ici » comptent comme un pointage.
 - **Tout ordre est interruptible** par `StopCommand`, qui ramène à `Idle`.
 - **Le serveur parle à chaque transition importante** : accusé de réception, refus, échec
   (« je ne trouve pas de plat pour cette table »), fin de tâche. C'est le canal Piper.

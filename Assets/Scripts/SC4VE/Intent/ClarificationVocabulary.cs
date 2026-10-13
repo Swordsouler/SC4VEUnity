@@ -117,7 +117,15 @@ namespace Sc4ve.Multimodality.Intent
             SelectionParameter sel = command.Parameters?.OfType<SelectionParameter>().FirstOrDefault();
             if (sel == null) return null;
 
-            bool hasCriteria = (sel.Filters != null && sel.Filters.Count > 0) || sel.FallbackToSelection;
+            // Les ordres de délégation réclament eux-mêmes leur cible (« Quelle table ? »), ou
+            // la trouvent seuls quand une seule table est concernée (DelegationRoles) : un
+            // pointage, une coréférence ou un repli restés vides n'y disent pas « aucun objet »
+            // mais « aucune cible dite ». Seule une cible DÉCRITE et introuvable en est un —
+            // le prénom d'un client parti, par exemple.
+            bool hasCriteria = command.ExpectsTargetAnswer
+                ? sel.Filters != null && sel.Filters.Any(f => !f.IsOperator && f.Condition != null &&
+                                                         (f.Condition.IsName || f.Condition.IsAnnotation || f.Condition.IsColor))
+                : (sel.Filters != null && sel.Filters.Count > 0) || sel.FallbackToSelection;
             bool empty = (sel.Objects?.Count ?? 0) == 0;
             if (!hasCriteria || !empty) return null;
 

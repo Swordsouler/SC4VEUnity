@@ -914,6 +914,29 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void DelegationSansPrenomNiGeste_UnTypeNeDesignePasDeTable()
+        {
+            // « débarrasse la table », « sers le client » valent pour les quatre : rien n'est
+            // désigné, et l'ordre prend la seule table concernée ou la demande. « là-bas »
+            // pointe comme « cette » — mais pas le « là » de « voilà ».
+            _recognizer = MakeRecognizer(Language.French,
+                annotationTypes: new List<string> { "Table", "Assiette", "Client" });
+
+            ClearTableCommand typed = RecognizeSingle<ClearTableCommand>("Débarrasse la table.");
+            Assert.AreEqual(0, AllConditions(typed).Count, "Un type seul ne désigne aucune table.");
+            Assert.IsTrue(Selection(typed).FallbackToSelection);
+
+            var sentence = new Sentence("Débarrasse là-bas.");
+            Command pointed = JsonConvert.DeserializeObject<List<Command>>(_recognizer.Recognize(sentence)).Single();
+            Condition gesture = AllConditions(pointed).Single();
+            Assert.IsTrue(gesture.IsEvent, "« là-bas » accompagne le geste.");
+            Assert.Less(System.Math.Abs((gesture.Timestamp - sentence.Words[^1].EndedAt).TotalMilliseconds), 1);
+
+            ClearTableCommand voila = RecognizeSingle<ClearTableCommand>("Voilà, débarrasse.");
+            Assert.AreEqual(0, AllConditions(voila).Count, "« voilà » ne pointe rien.");
+        }
+
+        [Test]
         public void FamilleEtIngredientSansEmploi_PasseAuLlmEnHybride()
         {
             // Vu en démo : Whisper écrit « Prépare un sandwich la saumon » pour « au saumon ».

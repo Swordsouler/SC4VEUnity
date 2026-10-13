@@ -318,22 +318,37 @@ namespace Sc4ve.Multimodality
             => table != null && DishesOn(table).Count > 0;
 
         /// <summary>
+        /// Vrai si une assiette VIDE est posée sur cette table : celle que Clear débarrasse,
+        /// laissée par un client parti après avoir mangé.
+        /// </summary>
+        public static bool HasEmptyDishOn(SemantizationCore table)
+            => table != null && DishesOn(table).Any(dish => dish.Content.Count == 0);
+
+        /// <summary>
         /// L'inverse : vrai si ce contenant est posé sur UNE table de la salle (même seuil
         /// d'un mètre que DishesOn). Le cuisinier s'en sert : une assiette restée sur une
         /// table non débarrassée appartient encore au service — elle ne redevient assiette
         /// de travail qu'une fois rangée (« range l'assiette de cette table »).
         /// </summary>
-        public static bool IsOnATable(ContainerContent dish)
+        public static bool IsOnATable(ContainerContent dish) => TableOf(dish) != null;
+
+        /// <summary>
+        /// La table sur laquelle ce contenant est posé — la plus proche à moins d'un mètre,
+        /// le seuil de DishesOn —, ou null. DelegationRoles s'en sert : une assiette pointée
+        /// désigne sa table.
+        /// </summary>
+        public static SemantizationCore TableOf(ContainerContent dish)
         {
-            if (dish == null) return false;
+            if (dish == null) return null;
 
-            foreach (SemanticAnnotator annotator in
-                     UnityEngine.Object.FindObjectsByType<SemanticAnnotator>(FindObjectsInactive.Exclude))
-                if (annotator.Annotations.Contains("sven:Table") &&
-                    Vector3.SqrMagnitude(dish.transform.position - annotator.transform.position) < 1f)
-                    return true;
-
-            return false;
+            return UnityEngine.Object.FindObjectsByType<SemanticAnnotator>(FindObjectsInactive.Exclude)
+                .Where(annotator => annotator.Annotations.Contains("sven:Table"))
+                .Select(annotator => (Table: annotator.GetComponent<SemantizationCore>(),
+                                      Distance: Vector3.SqrMagnitude(dish.transform.position - annotator.transform.position)))
+                .Where(candidate => candidate.Table != null && candidate.Distance < 1f)
+                .OrderBy(candidate => candidate.Distance)
+                .Select(candidate => candidate.Table)
+                .FirstOrDefault();
         }
 
         /// <summary>
