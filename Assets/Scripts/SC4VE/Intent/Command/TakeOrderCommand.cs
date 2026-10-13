@@ -15,6 +15,10 @@ namespace Sc4ve.Multimodality.Intent
         // « sa commande » : sans ces formes, « prends sa commande » retombait sur le stem
         // « prend » et devenait un GrabCommand.
         "prends sa commande", "prend sa commande", "prenez sa commande", "prendre sa commande",
+        // « les commandes » : vu en jeu, « prends les commandes » retombait lui aussi sur le
+        // stem « prend » — un GrabCommand qui ne saisissait rien.
+        "prends les commandes", "prend les commandes", "prenez les commandes",
+        "prendre les commandes", "va prendre les commandes", "allez prendre les commandes",
         // « chercher » plutôt que « prendre » : on va chercher une commande comme on va la
         // prendre, et rien d'autre dans le jeu ne se « cherche ». « récupérer » de même (vu
         // en démo : « Va récupérer la commande de Patricia »).

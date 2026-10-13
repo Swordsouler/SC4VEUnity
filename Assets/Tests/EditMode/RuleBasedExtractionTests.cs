@@ -881,6 +881,18 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void PrendsLesCommandes_EstUnePriseDeCommande()
+        {
+            // Vu en jeu : « prends les commandes » retombait sur le stem « prend » — un
+            // GrabCommand. Le « les » du déclencheur n'est pas une coréférence : sans cible,
+            // la commande réclame elle-même sa table.
+            _recognizer = MakeNamedRecognizer();
+            TakeOrderCommand command = RecognizeSingle<TakeOrderCommand>("Prends les commandes.");
+            Assert.IsFalse(AllConditions(command).Any(c => c.IsCoreference),
+                "Le « les » de « les commandes » ne doit pas produire de coréférence.");
+        }
+
+        [Test]
         public void FamilleEtIngredientSansEmploi_PasseAuLlmEnHybride()
         {
             // Vu en démo : Whisper écrit « Prépare un sandwich la saumon » pour « au saumon ».

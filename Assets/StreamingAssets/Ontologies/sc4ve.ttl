@@ -910,10 +910,14 @@ sc4ve:ClearTableCommand sc4ve:trigger
 ###  commande » retombait sur le stem « prend » et devenait un GrabCommand. « Va voir Marie » :
 ###  aller voir un client, c'est prendre sa commande — le seul service qu'un serveur lui rend
 ###  sans plat à la main.
+# « les commandes » : vu en jeu, « prends les commandes » retombait lui aussi sur le stem
+# « prend » — un GrabCommand qui ne saisissait rien.
 sc4ve:TakeOrderCommand sc4ve:trigger
     "prends la commande"@fr , "prend la commande"@fr , "prenez la commande"@fr ,
     "prendre la commande"@fr , "va prendre la commande"@fr , "allez prendre la commande"@fr ,
     "prends sa commande"@fr , "prend sa commande"@fr , "prenez sa commande"@fr , "prendre sa commande"@fr ,
+    "prends les commandes"@fr , "prend les commandes"@fr , "prenez les commandes"@fr ,
+    "prendre les commandes"@fr , "va prendre les commandes"@fr , "allez prendre les commandes"@fr ,
     "va chercher la commande"@fr , "allez chercher la commande"@fr ,
     "cherche la commande"@fr , "cherchez la commande"@fr , "chercher la commande"@fr ,
     "récupère la commande"@fr , "récupérez la commande"@fr , "récupérer la commande"@fr ,
