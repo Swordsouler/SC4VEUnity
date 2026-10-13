@@ -27,6 +27,11 @@ namespace Sc4ve.Multimodality
     /// Table libre = sans client (CustomerOrder.At — les modèles endormis n'y comptent
     /// pas ; un client servi qui mange encore bloque la sienne) ET débarrassée
     /// (Delegation.HasDishOn) : l'assiette sale du précédent retient l'arrivée.
+    ///
+    /// Une exception, au tout début : la PRISE EN MAIN. Le premier client arrive SEUL, avec
+    /// une patience large (_onboardingPatience), le temps d'apprendre la boucle — prendre sa
+    /// commande, faire préparer le plat, le servir. La cadence ne démarre qu'à son départ,
+    /// repas fini ou patience épuisée : c'est la seule arrivée qui attend le joueur.
     /// </summary>
     public class ServiceProgression : MonoBehaviour
     {
@@ -46,15 +51,20 @@ namespace Sc4ve.Multimodality
         [SerializeField, Tooltip("Les modèles de client (un par table), jamais actifs — clonés à chaque arrivée.")]
         private List<CustomerOrder> _templates = new();
 
-        [SerializeField, Tooltip("Secondes de JEU avant la toute première arrivée.")]
+        [SerializeField, Tooltip("Secondes de JEU avant la toute première arrivée — et avant la première après la prise en main.")]
         [Range(0f, 30f)]
         private float _firstArrivalDelay = 2f;
 
-        [SerializeField, Tooltip("Le DEUXIÈME client arrive vite lui aussi — la salle s'anime d'emblée.")]
+        [SerializeField, Tooltip("Patience du PREMIER client, en secondes de JEU : la prise en main. Il est seul " +
+                                 "en salle ; les autres ne commencent à arriver qu'une fois qu'il est reparti.")]
+        [Range(60f, 600f)]
+        private float _onboardingPatience = 300f;
+
+        [SerializeField, Tooltip("Le DEUXIÈME client après la prise en main arrive vite lui aussi — la salle s'anime d'emblée.")]
         [Range(2f, 30f)]
         private float _secondArrivalDelay = 8f;
 
-        [SerializeField, Tooltip("Intervalle de croisière initial entre deux arrivées, à partir du 3e client (secondes de JEU).")]
+        [SerializeField, Tooltip("Intervalle de croisière initial entre deux arrivées, à partir du 3e client après la prise en main (secondes de JEU).")]
         [Range(6f, 120f)]
         private float _startInterval = 30f;
 
@@ -80,6 +90,12 @@ namespace Sc4ve.Multimodality
         /// état Gone reste lisible ici jusqu'à la réinitialisation.
         /// </summary>
         private readonly List<CustomerOrder> _customers = new();
+
+        /// <summary>
+        /// Le client de la prise en main, de son arrivée à la réinitialisation ; null avant.
+        /// Tant qu'il est en salle, il y est seul.
+        /// </summary>
+        private CustomerOrder _onboarding;
 
         /// <summary>Les « vies » de la partie : la tablette affiche partis N/max.</summary>
         public int MaxDepartures => _maxDepartures;
@@ -123,8 +139,8 @@ namespace Sc4ve.Multimodality
         /// <summary>
         /// « Réinitialise la scène » entre deux visiteurs (ResetSceneCommand) : TOUS les
         /// clients quittent la salle — clones attablés ET corps désactivés, donc le score
-        /// du tableau retombe à zéro —, la cadence repart du début, et l'écran de départ
-        /// revient : le prochain visiteur choisit SON mode.
+        /// du tableau retombe à zéro —, la cadence repart du début, prise en main comprise, et
+        /// l'écran de départ revient : le prochain visiteur choisit SON mode.
         /// </summary>
         public void ResetGame()
         {
@@ -133,6 +149,7 @@ namespace Sc4ve.Multimodality
                     Destroy(customer.gameObject);
 
             _customers.Clear();
+            _onboarding = null;
             _interval = _startInterval;
             _spawned = 0;
             _nextArrivalAt = Time.time + _firstArrivalDelay;
@@ -173,6 +190,15 @@ namespace Sc4ve.Multimodality
                 return;
             }
 
+            // La prise en main : tant que le premier client est en salle, il y est SEUL. On
+            // ré-arme, comme pendant l'écran de départ : la cadence démarre
+            // _firstArrivalDelay après son départ — repas fini ou patience épuisée.
+            if (_onboarding != null && _onboarding.gameObject.activeSelf)
+            {
+                _nextArrivalAt = Time.time + _firstArrivalDelay;
+                return;
+            }
+
             if (Time.time < _nextArrivalAt) return;
 
             // Une table LIBRE, au hasard — libre = sans client ET débarrassée : personne
@@ -187,12 +213,22 @@ namespace Sc4ve.Multimodality
                 .ToList();
             if (free.Count == 0) return; // salle pleine : on guette, la prochaine table libérée est servie
 
+            // Le tout premier client de la partie est celui de la prise en main : patience
+            // large, et hors cadence — elle part de son départ.
+            if (_onboarding == null)
+            {
+                _onboarding = Spawn(free[Random.Range(0, free.Count)], _onboardingPatience);
+                Debug.Log($"[Progression] Prise en main : personne d'autre n'arrivera avant le départ " +
+                          $"de {_onboarding.name} ({_onboardingPatience:0} s de patience).");
+                return;
+            }
+
             Spawn(free[Random.Range(0, free.Count)]);
             _spawned++;
 
-            // Les DEUX premiers arrivent rapprochés (la salle s'anime d'emblée), puis la
-            // cadence de croisière s'installe : _startInterval, raccourcie d'un pas à
-            // CHAQUE arrivée, jusqu'au plancher — 30, 24, 18, 12, 6, 6… par défaut.
+            // Les DEUX premiers après la prise en main arrivent rapprochés (la salle s'anime
+            // d'emblée), puis la cadence de croisière s'installe : _startInterval, raccourcie
+            // d'un pas à CHAQUE arrivée, jusqu'au plancher — 30, 24, 18, 12, 6, 6… par défaut.
             if (_spawned == 1)
             {
                 _nextArrivalAt = Time.time + _secondArrivalDelay;
@@ -204,7 +240,7 @@ namespace Sc4ve.Multimodality
             }
         }
 
-        private void Spawn(CustomerOrder template)
+        private CustomerOrder Spawn(CustomerOrder template, float? patience = null)
         {
             GameObject clone = Instantiate(template.gameObject, template.transform.parent);
             clone.name = PickName();
@@ -214,9 +250,14 @@ namespace Sc4ve.Multimodality
             TextMesh label = clone.GetComponentInChildren<TextMesh>(includeInactive: true);
             if (label != null) label.text = clone.name;
 
+            // AVANT l'activation : Start part de cette patience.
+            CustomerOrder customer = clone.GetComponent<CustomerOrder>();
+            if (patience.HasValue) customer.Patience = patience.Value;
+
             clone.SetActive(true);
-            _customers.Add(clone.GetComponent<CustomerOrder>());
+            _customers.Add(customer);
             Debug.Log($"[Progression] {clone.name} s'installe.");
+            return customer;
         }
 
         /// <summary>Clients de cette partie partis sans être servis.</summary>
