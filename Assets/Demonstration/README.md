@@ -272,7 +272,9 @@ gardent la main — leur supposition, leur clarification ou leur « je n'ai pas 
 réseau, l'hybride retombe donc sur les règles. Clarifications, désambiguïsations et « aucun
 objet correspondant » restent aux règles : ce ne sont pas des échecs de compréhension. Avec
 Vosk, la grammaire close remplacerait les verbes inconnus avant que le LLM ne les voie :
-l'hybride suppose Whisper.
+l'hybride suppose Whisper. Le premier appel d'une session lit à froid les quelque 10 000 jetons
+du prompt — 10,9 s mesurées en jeu, au-delà des dix secondes : au choix d'un mode qui consulte
+un LLM local, une phrase vide met le serveur en route (`WarmUpLocalLlmAsync`).
 
 Le LLM du jeu connaît les prénoms des clients et les tables numérotées (filtre `Name`), et le
 catalogue des plats (`RecipeParameter`, « Salade de fruits → sven:FruitSalad ») : sections ajoutées au prompt

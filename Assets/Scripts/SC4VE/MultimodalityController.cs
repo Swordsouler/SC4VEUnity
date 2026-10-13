@@ -216,6 +216,37 @@ namespace Sc4ve.Multimodality
             _recognizerMode = mode;
             PublishModeForJournal();
             if (UsesRules) _ = WarmUpAsync();
+            if (IsLlmModeLocal) _ = WarmUpLocalLlmAsync();
+        }
+
+        /// <summary>
+        /// La MISE EN ROUTE du LLM local, au choix d'un mode qui le consulte : le premier appel
+        /// d'une session paie à froid la lecture du prompt système (≈ 10 000 jetons) — vu en
+        /// jeu, 10,9 s, au-delà du délai de l'hybride : « C'est bon Alice ? » attendait tout
+        /// ce temps son « Je n'ai pas compris ». Payée ici, pendant la prise en main, avec une
+        /// phrase vide, elle laisse au serveur le prompt déjà lu. Rien n'en sort — ni journal
+        /// de commandes, ni tablette, ni réponse.
+        /// </summary>
+        private async Task WarmUpLocalLlmAsync()
+        {
+            try
+            {
+                await InitializeVocabulariesAsync();
+                if (string.IsNullOrWhiteSpace(_localLlmUrl)) return;
+
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                LlmIntentService.CallResult result = await LlmIntentService.CallChatCompletionsAsync(
+                    _httpClient, _localLlmUrl, LocalLlmApiKey, "local-model", _cachedSystemPrompt,
+                    JsonConvert.SerializeObject(new { Text = "", Words = Array.Empty<object>() }),
+                    jsonObjectFormat: false);
+                Debug.Log(result.Error == null
+                    ? $"[LLM] Serveur local mis en route : {watch.ElapsedMilliseconds} ms."
+                    : $"[LLM] Mise en route du serveur local impossible : {result.Error}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[LLM] Mise en route du serveur local impossible : {e.Message}");
+            }
         }
 
         // La colonne « mode » du journal (MultimodalityMetrics, §10) : la variable qui rend
