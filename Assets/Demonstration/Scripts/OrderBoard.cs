@@ -779,13 +779,23 @@ namespace Sc4ve.Demonstration
         }
 
         /// <summary>
-        /// La fin de partie : le score — les clients servis, sur tous ceux venus. Les modèles de
-        /// client, jamais activés, ne sont pas venus : ni en salle, ni partis.
+        /// La fin de partie : le score — les clients servis, sur tous ceux venus — et le record,
+        /// celui de l'écran de fin (GameOverScreen), qui l'a mis à jour en s'ouvrant. Les modèles
+        /// de client, jamais activés, ne sont pas venus : ni en salle, ni partis.
         /// </summary>
         private CardModel Score(CustomerOrder[] everyone, int gone, bool french)
         {
             int came = everyone.Count(c => c.gameObject.activeInHierarchy || c.DepartedAt >= 0f);
             int served = everyone.Count(c => c.State == CustomerOrder.Stage.Served);
+
+            (int Served, float Average)? best = GameOverScreen.Best;
+            Piece record = GameOverScreen.NewRecord
+                ? Plain(french ? "Nouveau record !" : "New record!", Yellow)
+                : best.HasValue
+                    ? Plain(french
+                        ? $"Record : {best.Value.Served} servi{(best.Value.Served > 1 ? "s" : "")}, {Mathf.RoundToInt(best.Value.Average)} s"
+                        : $"Record: {best.Value.Served} served, {Mathf.RoundToInt(best.Value.Average)} s", Cream)
+                    : Plain("", Dim);
             return new CardModel
             {
                 Title = french ? "Fin de partie" : "Game over",
@@ -797,9 +807,11 @@ namespace Sc4ve.Demonstration
                     : $"{served} customer{(served == 1 ? "" : "s")} served",
                 DishColor = Cream,
                 DishStyle = FontStyle.Bold,
+                // Deux lignes au plus (Lines) : le score, puis le record.
                 Slot = Lines(Plain(french
-                    ? $"sur {came} venu{(came > 1 ? "s" : "")} · {gone} parti{(gone > 1 ? "s" : "")} sans être servi{(gone > 1 ? "s" : "")}"
-                    : $"out of {came} · {gone} left unserved", Dim)),
+                                   ? $"sur {came} venu{(came > 1 ? "s" : "")} · {gone} parti{(gone > 1 ? "s" : "")}"
+                                   : $"out of {came} · {gone} left", Dim),
+                             record),
                 Border = Yellow,
                 Fill = Panel,
             };

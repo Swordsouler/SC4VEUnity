@@ -32,6 +32,15 @@ namespace Sc4ve.Demonstration
         private const string BestServedKey = "Sc4ve.BestServed";
         private const string BestAverageKey = "Sc4ve.BestAverage";
 
+        /// <summary>Vrai si la dernière partie terminée a battu le record — la tablette l'annonce aussi.</summary>
+        public static bool NewRecord { get; private set; }
+
+        /// <summary>Le meilleur score enregistré (clients servis, temps moyen), ou null.</summary>
+        public static (int Served, float Average)? Best
+            => PlayerPrefs.HasKey(BestServedKey)
+                ? (PlayerPrefs.GetInt(BestServedKey), PlayerPrefs.GetFloat(BestAverageKey))
+                : null;
+
         private bool _open;
         private bool _triggerWasPressed;
 
@@ -68,6 +77,7 @@ namespace Sc4ve.Demonstration
                 .ToArray();
             float average = served.Length > 0 ? served.Average(c => c.ServiceTime) : 0f;
             bool record = RecordIfBest(served.Length, average);
+            NewRecord = record;
 
             ListeningTimeScale.Freeze();
             XRPanel.PlaceBeforeHead(transform);

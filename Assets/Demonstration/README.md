@@ -437,7 +437,8 @@ La tablette de la main gauche (`OrderBoard`, 33 × 25,5 cm), en trois bandes :
   phrase à dire s'y écrit (« Va voir Alice », « Fais une salade de fruits » en regardant le
   cuisinier, « Sers Patricia », « Débarrasse cette table » en la pointant). Pendant la prise en
   main, la table du premier client prend toute la salle, jusqu'à ce que son assiette soit
-  débarrassée ; à la fin de la partie, le score — clients servis, sur tous ceux venus ;
+  débarrassée ; à la fin de la partie, le score — clients servis, sur tous ceux venus — et le
+  record ;
 - **le pied** : ce que font le cuisinier et le serveur, et le score.
 
 C'est ce qui rend l'objectif lisible en 3 secondes, sans quitter la salle des yeux. Non
