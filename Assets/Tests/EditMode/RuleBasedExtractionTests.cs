@@ -741,9 +741,10 @@ namespace Sc4ve.Tests.EditMode
         {
             // « le client Jean » : prénom ET type — intersection (AND), le prénom en tête.
             // Le « le » ne doit pas déclencher la coréférence : un prénom est une cible
-            // explicite, comme une annotation.
+            // explicite, comme une annotation. Hors délégation : servir, prendre une commande
+            // ou débarrasser ne gardent que le prénom (PrenomDUneDelegation_PrimeSurLesTypes).
             _recognizer = MakeNamedRecognizer(new List<string> { "Client" });
-            ServeCommand command = RecognizeSingle<ServeCommand>("Sers le client Jean");
+            SelectCommand command = RecognizeSingle<SelectCommand>("Sélectionne le client Jean");
             List<Condition> conditions = AllConditions(command);
             Assert.AreEqual(2, conditions.Count);
             Assert.IsTrue(conditions[0].IsName);
@@ -854,6 +855,29 @@ namespace Sc4ve.Tests.EditMode
             Assert.AreEqual("Julia", only.Value);
 
             Assert.IsNull(_recognizer.Recognize(new Sentence("C'est Julia ?")), "Une question n'est pas un ordre.");
+        }
+
+        [Test]
+        public void PrenomDUneDelegation_PrimeSurLesTypes()
+        {
+            // Vu en jeu : « Et parfois le serveur va prendre la commande de Alice » (Whisper)
+            // cherchait un objet à la fois Alice ET serveur, « Va débarrasser l'assiette
+            // d'Alice » un objet à la fois Alice ET assiette — « aucun objet correspondant ».
+            // Dans une délégation, les types nomment d'autres rôles que le client.
+            _recognizer = MakeRecognizer(Language.French,
+                annotationTypes: new List<string> { "Serveur", "Assiette", "Table" },
+                objectNames: new List<string> { "Alice" });
+
+            TakeOrderCommand order =
+                RecognizeSingle<TakeOrderCommand>("Et parfois le serveur va prendre la commande de Alice.");
+            Condition named = AllConditions(order).Single();
+            Assert.IsTrue(named.IsName);
+            Assert.AreEqual("Alice", named.Value);
+
+            ClearTableCommand clear = RecognizeSingle<ClearTableCommand>("Va débarrasser l'assiette d'Alice.");
+            named = AllConditions(clear).Single();
+            Assert.IsTrue(named.IsName);
+            Assert.AreEqual("Alice", named.Value);
         }
 
         [Test]

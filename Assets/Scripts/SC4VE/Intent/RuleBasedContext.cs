@@ -96,9 +96,11 @@ namespace Sc4ve.Multimodality.Intent
         /// absence de cible) résout à vide, on retombe sur la sélection courante au lieu de laisser
         /// le paramètre vide — pour les commandes qui transforment l'existant (Move, Duplicate).
         /// Une cible explicite PAR TYPE (annotation/couleur) désactive ce repli.
+        /// <paramref name="withTypes"/> = false : ni annotation ni couleur source — le prénom
+        /// seul désigne (BuildPointedTargetSelection).
         /// </summary>
         public SelectionParameter BuildSelectionParameter(bool useStartedAt = false, bool fallbackToSelection = false,
-                                                          bool withPointing = true)
+                                                          bool withPointing = true, bool withTypes = true)
         {
             var filters = new List<FilterElement>();
 
@@ -141,7 +143,7 @@ namespace Sc4ve.Multimodality.Intent
                 // Tri par horodatage = ordre de PRONONCIATION : sans lui, l'ordre suivrait celui
                 // du vocabulaire ontologique (arbitraire), et « les pommes ou les bananes »
                 // pourrait produire [Banane OR Pomme].
-                foreach (RuleBasedAnnotation a in (Annotations ?? Enumerable.Empty<RuleBasedAnnotation>()).OrderBy(x => x.Timestamp))
+                foreach (RuleBasedAnnotation a in ((withTypes ? Annotations : null) ?? Enumerable.Empty<RuleBasedAnnotation>()).OrderBy(x => x.Timestamp))
                 {
                     // « les pommes ou les bananes » : OR entre annotations (UNION SPARQL) ;
                     // les autres jonctions (annotation-couleur, -pointage) restent des AND.
@@ -159,7 +161,7 @@ namespace Sc4ve.Multimodality.Intent
                     firstAnnotation = false;
                 }
 
-                foreach (RuleBasedColor c in SourceColors.OrderBy(x => x.Timestamp))
+                foreach (RuleBasedColor c in (withTypes ? SourceColors : new List<RuleBasedColor>()).OrderBy(x => x.Timestamp))
                 {
                     if (needsOp) filters.Add(new FilterElement { IsOperator = true, Operator = "AND" });
                     filters.Add(new FilterElement
@@ -213,14 +215,18 @@ namespace Sc4ve.Multimodality.Intent
         ///   (« mets ça ici »), dont la source se pointe AVANT de parler.
         /// Toutes les cibles, donc sans désambiguïsation. Sans pointage, la sélection standard.
         ///
-        /// Un prénom PRIME sur le pointage : il nomme UN client — deux ne portent jamais le même
-        /// (ServiceProgression.PickName) —, le pointage ne ferait que l'intersecter. Et le « ça »
-        /// de « C'est ça Julia », que Whisper écrit pour « Sers Julia », n'a jamais rien désigné.
+        /// Un prénom PRIME sur le pointage ET sur les types : il nomme UN client — deux ne
+        /// portent jamais le même (ServiceProgression.PickName) —, le pointage ou un type ne
+        /// feraient que l'intersecter. Et le « ça » de « C'est ça Julia », que Whisper écrit pour
+        /// « Sers Julia », n'a jamais rien désigné. Les types d'une phrase de délégation
+        /// nomment d'AUTRES rôles que le client : vu en jeu, « le serveur va prendre la
+        /// commande d'Alice » cherchait un objet à la fois Alice ET serveur, « débarrasse
+        /// l'assiette d'Alice » un objet à la fois Alice ET assiette — « aucun objet ».
         /// </summary>
         public SelectionParameter BuildPointedTargetSelection()
         {
             if (Names?.Count > 0)
-                return BuildSelectionParameter(fallbackToSelection: true, withPointing: false);
+                return BuildSelectionParameter(fallbackToSelection: true, withPointing: false, withTypes: false);
             if (Deictics == null || Deictics.Count == 0 || Words == null || Words.Count == 0)
                 return BuildSelectionParameter(fallbackToSelection: true);
 
