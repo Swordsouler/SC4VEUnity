@@ -418,7 +418,7 @@ poser sur une station. Trois mécaniques différentes, une seule commande.
 
 ### Affichage
 
-La tablette de la main gauche (`OrderBoard`, 22 × 17 cm), en trois bandes :
+La tablette de la main gauche (`OrderBoard`, 33 × 25,5 cm), en trois bandes :
 
 - **la voix** : la phrase entendue, en entier — jusqu'à trois lignes, puis le texte rétrécit,
   jamais coupé —, puis son trajet : Règles → LLM → Recherche sémantique → Exécution
@@ -429,7 +429,8 @@ La tablette de la main gauche (`OrderBoard`, 22 × 17 cm), en trois bandes :
   haut). Chacune dit où en est sa commande — commande, cuisine, service, débarrassage —, en
   jaune quand c'est au joueur de parler. Après **deux phrases non comprises de suite**, la
   phrase à dire s'y écrit (« Va voir Alice », « Fais une salade de fruits » en regardant le
-  cuisinier, « Sers Patricia », « Débarrasse cette table » en la pointant) ;
+  cuisinier, « Sers Patricia », « Débarrasse cette table » en la pointant). Pendant la prise en
+  main, la table du seul client attablé prend toute la salle ;
 - **le pied** : ce que font le cuisinier et le serveur, et le score.
 
 C'est ce qui rend l'objectif lisible en 3 secondes, sans quitter la salle des yeux. Non

@@ -101,6 +101,13 @@ namespace Sc4ve.Multimodality
         public int MaxDepartures => _maxDepartures;
 
         /// <summary>
+        /// Le client de la prise en main tant qu'il est en salle, null sinon : la tablette lui
+        /// donne alors toute la salle.
+        /// </summary>
+        public CustomerOrder OnboardingCustomer
+            => _onboarding != null && _onboarding.gameObject.activeSelf ? _onboarding : null;
+
+        /// <summary>
         /// Vrai du départ qui atteint la limite jusqu'à la réinitialisation : plus aucune
         /// arrivée, et l'écran de fin fige le temps. Statique, comme WaitingForModeChoice :
         /// le menu pause (autre assembly) le lit pour ne pas relancer une partie finie.

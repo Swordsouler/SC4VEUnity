@@ -1366,11 +1366,15 @@ namespace Sc4ve.Demonstration.EditorTools
             // l'opposé de son +z : à 55°, ce +z part vers le bas et l'avant, donc l'écran
             // regarde les yeux, au-dessus et en arrière de la main.
             //
-            // 17 cm de haut au lieu de 12 : le centre remonte le long de l'écran de la moitié
-            // de la différence, si bien que le bord BAS reste où il était — l'aide écrite sous
-            // la manette (ControllerHints, 7 cm plus bas) n'est pas masquée.
-            tablet.transform.localPosition = new Vector3(0f, 0.025f, 0.051f);
-            tablet.transform.localRotation = Quaternion.Euler(55f, 0f, 0f);
+            // Quelle que soit sa taille (OrderBoard.HeightMeters), le bord BAS reste où le
+            // posait la première tablette — 12 cm de haut, centrée en (0 ; 0,01 ; 0,03) —, si
+            // bien que l'aide écrite sous la manette (ControllerHints, 7 cm plus bas) n'est pas
+            // masquée : la tablette grandit vers le haut, le long de l'écran.
+            Quaternion tilt = Quaternion.Euler(55f, 0f, 0f);
+            Vector3 up = tilt * Vector3.up;
+            Vector3 bottomEdge = new Vector3(0f, 0.01f, 0.03f) - up * 0.06f;
+            tablet.transform.localPosition = bottomEdge + up * (Sc4ve.Demonstration.OrderBoard.HeightMeters / 2f);
+            tablet.transform.localRotation = tilt;
             tablet.transform.localScale = Vector3.one;
 
             Debug.Log("[DemoSceneBuilder] Tablette des commandes posée sur la main gauche.");

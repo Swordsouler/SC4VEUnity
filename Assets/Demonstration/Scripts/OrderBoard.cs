@@ -19,7 +19,7 @@ namespace Sc4ve.Demonstration
     /// <summary>
     /// La tablette de la main gauche (§5 du README) : ce que le système a fait de la dernière
     /// phrase, et où en est chaque table. Trois bandes, dessinées au lancement d'après la
-    /// maquette validée (22 × 17 cm) :
+    /// maquette validée (22 × 17 cm, agrandie à 33 × 25,5 cm) :
     ///
     ///  - la VOIX : la phrase entendue, en entier — jusqu'à trois lignes, puis le texte
     ///    rétrécit, il n'est jamais coupé —, son trajet étape par étape (IntentPipeline :
@@ -29,7 +29,9 @@ namespace Sc4ve.Demonstration
     ///    passe — le fond en haut, la gauche à gauche. Les tables ne sont pas numérotées
     ///    (§5) : c'est leur place qui les désigne. Chacune dit où en est sa commande —
     ///    commande, cuisine, service, débarrassage —, en jaune quand c'est au joueur de
-    ///    parler ; après DEUX phrases non comprises de suite, la phrase à dire s'y écrit ;
+    ///    parler ; après DEUX phrases non comprises de suite, la phrase à dire s'y écrit.
+    ///    Pendant la prise en main (ServiceProgression), la table du seul client attablé
+    ///    prend toute la salle ;
     ///  - le PIED : ce que font le cuisinier et le serveur, et le score.
     ///
     /// **Une projection, jamais une seconde source de vérité.** Elle ne détient aucun état :
@@ -45,10 +47,16 @@ namespace Sc4ve.Demonstration
     /// </summary>
     public class OrderBoard : MonoBehaviour
     {
-        // ── La géométrie de la maquette, dessinée à 40 px par cm ──────────────
-        private const float Px = 0.00025f;          // 1 px de la maquette = 0,25 mm
-        private const float WidthPx = 880f;         // 22 cm
-        private const float HeightPx = 680f;        // 17 cm
+        // ── La géométrie de la maquette (880 × 680 px), agrandie de moitié ─────
+        // La maquette était dessinée à 40 px par cm (22 × 17 cm). Px est LE nombre à retoucher
+        // pour changer la taille de la tablette : tout en découle, texte compris.
+        private const float Px = 0.000375f;         // 1 px de la maquette = 0,375 mm
+        private const float WidthPx = 880f;         // 33 cm
+        private const float HeightPx = 680f;        // 25,5 cm
+
+        /// <summary>Hauteur de la tablette, en mètres : DemoSceneBuilder la pose d'après elle.</summary>
+        public const float HeightMeters = HeightPx * Px;
+
         private const float Thickness = 0.006f;
         private const int FontSize = 64;            // résolution des glyphes, pas leur taille
 
@@ -121,7 +129,8 @@ namespace Sc4ve.Demonstration
 
         private sealed class CardView
         {
-            public float X, Y;
+            public float X, Y, W, H;
+            public float Scale;         // 1 pour une table parmi quatre, 2 seule en salle
             public Renderer Border, Fill, Track, Bar;
             public readonly Renderer[] Segments = new Renderer[4];
             public TextMesh Title, Right, Dish, Slot;
@@ -178,6 +187,8 @@ namespace Sc4ve.Demonstration
         private readonly Chip[] _chips = new Chip[4];
         private readonly TextMesh[] _arrows = new TextMesh[3];
         private readonly CardView[] _cards = new CardView[4];
+        private CardView _soloCard;
+        private bool _solo;
         private TextMesh _cook, _waiter, _served, _refusals;
         private readonly List<SemantizationCore> _tables = new();
 
@@ -563,11 +574,23 @@ namespace Sc4ve.Demonstration
             int max = _progression != null ? _progression.MaxDepartures : 0;
             bool help = IntentPipeline.HelpWanted;
 
-            for (int i = 0; i < _cards.Length; i++)
+            // La prise en main : un seul client en salle, sa table prend toute la place.
+            CustomerOrder onboarding = _progression != null ? _progression.OnboardingCustomer : null;
+            if ((onboarding != null) != _solo)
             {
-                SemantizationCore table = i < _tables.Count ? _tables[i] : null;
-                ShowCard(_cards[i], Describe(table, everyone, cook, queue, waiter, gone, max, help, french));
+                _solo = onboarding != null;
+                foreach (CardView card in _cards) SetVisible(card, !_solo);
+                SetVisible(_soloCard, _solo);
             }
+
+            if (_solo)
+                ShowCard(_soloCard, Describe(onboarding.Table, everyone, cook, queue, waiter, gone, max, help, french));
+            else
+                for (int i = 0; i < _cards.Length; i++)
+                {
+                    SemantizationCore table = i < _tables.Count ? _tables[i] : null;
+                    ShowCard(_cards[i], Describe(table, everyone, cook, queue, waiter, gone, max, help, french));
+                }
 
             ShowDepartures(gone, max, french);
             ShowFooter(everyone, cook, queue, waiter, french);
@@ -762,20 +785,21 @@ namespace Sc4ve.Demonstration
 
         private void ShowCard(CardView view, CardModel model)
         {
-            float edge = model.Thick ? 3f : 2f;
-            Frame(view.Border, view.X, view.Y, CardWidth, CardHeight, model.Border);
-            Frame(view.Fill, view.X + edge, view.Y + edge, CardWidth - 2f * edge, CardHeight - 2f * edge, model.Fill);
+            float scale = view.Scale;
+            float edge = (model.Thick ? 3f : 2f) * scale;
+            Frame(view.Border, view.X, view.Y, view.W, view.H, model.Border);
+            Frame(view.Fill, view.X + edge, view.Y + edge, view.W - 2f * edge, view.H - 2f * edge, model.Fill);
 
             Write(view.Title, model.Title);
             Tint(view.Title, model.TitleColor);
 
             bool bar = model.Bar >= 0f;
-            float barX = view.X + CardWidth - 18f - 110f;
+            float barX = view.X + view.W - (18f + 110f) * scale;
             view.Track.gameObject.SetActive(bar);
             view.Bar.gameObject.SetActive(bar && model.Bar > 0f);
-            if (bar) Frame(view.Bar, barX, view.Y + 25f, 110f * Mathf.Clamp01(model.Bar), 12f, model.BarColor);
+            if (bar) Frame(view.Bar, barX, view.Y + 25f * scale, 110f * scale * Mathf.Clamp01(model.Bar), 12f * scale, model.BarColor);
 
-            Place(view.Right, bar ? barX - 8f : view.X + CardWidth - 18f, view.Y + 18f);
+            Place(view.Right, bar ? barX - 8f * scale : view.X + view.W - 18f * scale, view.Y + 18f * scale);
             view.Right.fontStyle = model.RightBold ? FontStyle.Bold : FontStyle.Normal;
             Write(view.Right, model.Right);
             Tint(view.Right, model.RightColor);
@@ -969,36 +993,13 @@ namespace Sc4ve.Demonstration
             Place(_outcome, Left, OutcomeTop);
             Frame(NewQuad("Filet de la voix", BorderZ), Left, VoiceRule, Right - Left, 2f, EdgeQuiet);
 
-            // La salle.
-            float segment = (CardWidth - 36f - 18f) / 4f;
+            // La salle : quatre cartes, et celle de la prise en main — la même à l'échelle 2,
+            // sur toute la salle — qui les remplace tant qu'un seul client est attablé.
             for (int i = 0; i < _cards.Length; i++)
-            {
-                var card = new CardView
-                {
-                    X = Left + (i % 2) * (CardWidth + Gap),
-                    Y = GridTop + (i / 2) * (CardHeight + Gap),
-                };
-                string prefix = $"Table {i + 1}";
-                card.Border = NewQuad($"{prefix} — cadre", BorderZ);
-                card.Fill = NewQuad($"{prefix} — fond", FillZ);
-                card.Track = NewQuad($"{prefix} — jauge", TrackZ);
-                Frame(card.Track, card.X + CardWidth - 18f - 110f, card.Y + 25f, 110f, 12f, Track);
-                card.Bar = NewQuad($"{prefix} — niveau", MarkZ);
-                for (int s = 0; s < card.Segments.Length; s++)
-                {
-                    card.Segments[s] = NewQuad($"{prefix} — étape {s + 1}", TrackZ);
-                    Frame(card.Segments[s], card.X + 18f + s * (segment + 6f), card.Y + 90f, segment, 10f, Todo);
-                }
-
-                card.Title = NewText($"{prefix} — nom", 30f, TextAnchor.UpperLeft, FontStyle.Bold);
-                Place(card.Title, card.X + 18f, card.Y + 14f);
-                card.Right = NewText($"{prefix} — secondes", 22f, TextAnchor.UpperRight);
-                card.Dish = NewText($"{prefix} — plat", 26f, TextAnchor.UpperLeft);
-                Place(card.Dish, card.X + 18f, card.Y + 54f);
-                card.Slot = NewText($"{prefix} — état", 22f, TextAnchor.UpperLeft);
-                Place(card.Slot, card.X + 18f, card.Y + 106f);
-                _cards[i] = card;
-            }
+                _cards[i] = NewCard($"Table {i + 1}", Left + (i % 2) * (CardWidth + Gap),
+                                    GridTop + (i / 2) * (CardHeight + Gap), CardWidth, CardHeight, 1f);
+            _soloCard = NewCard("Prise en main", Left, GridTop, Right - Left, 2f * CardHeight + Gap, 2f);
+            SetVisible(_soloCard, false);
 
             // Le pied.
             Frame(NewQuad("Filet du pied", BorderZ), Left, FooterRule, Right - Left, 2f, EdgeQuiet);
@@ -1026,6 +1027,45 @@ namespace Sc4ve.Demonstration
             Material mask = Instantiate(Resources.Load<Material>("Materials/OutlineMask"));
             mask.SetFloat("_ZTest", (float)CompareFunction.LessEqual);
             shield.GetComponent<Renderer>().sharedMaterial = mask;
+        }
+
+        /// <summary>
+        /// Une carte de table sur le rectangle (x, y, w, h) de la maquette, son contenu à
+        /// l'échelle <paramref name="scale"/> : les marges et les tailles de la carte d'une
+        /// table parmi quatre, multipliées.
+        /// </summary>
+        private CardView NewCard(string prefix, float x, float y, float w, float h, float scale)
+        {
+            var card = new CardView { X = x, Y = y, W = w, H = h, Scale = scale };
+            card.Border = NewQuad($"{prefix} — cadre", BorderZ);
+            card.Fill = NewQuad($"{prefix} — fond", FillZ);
+            card.Track = NewQuad($"{prefix} — jauge", TrackZ);
+            Frame(card.Track, x + w - (18f + 110f) * scale, y + 25f * scale, 110f * scale, 12f * scale, Track);
+            card.Bar = NewQuad($"{prefix} — niveau", MarkZ);
+            float segment = (w - (36f + 18f) * scale) / 4f;
+            for (int s = 0; s < card.Segments.Length; s++)
+            {
+                card.Segments[s] = NewQuad($"{prefix} — étape {s + 1}", TrackZ);
+                Frame(card.Segments[s], x + (18f + s * 6f) * scale + s * segment, y + 90f * scale, segment, 10f * scale, Todo);
+            }
+
+            card.Title = NewText($"{prefix} — nom", 30f * scale, TextAnchor.UpperLeft, FontStyle.Bold);
+            Place(card.Title, x + 18f * scale, y + 14f * scale);
+            card.Right = NewText($"{prefix} — secondes", 22f * scale, TextAnchor.UpperRight);
+            card.Dish = NewText($"{prefix} — plat", 26f * scale, TextAnchor.UpperLeft);
+            Place(card.Dish, x + 18f * scale, y + 54f * scale);
+            card.Slot = NewText($"{prefix} — état", 22f * scale, TextAnchor.UpperLeft);
+            Place(card.Slot, x + 18f * scale, y + 106f * scale);
+            return card;
+        }
+
+        private static void SetVisible(CardView view, bool on)
+        {
+            foreach (Component part in new Component[] { view.Border, view.Fill, view.Track, view.Bar,
+                                                         view.Title, view.Right, view.Dish, view.Slot })
+                part.gameObject.SetActive(on);
+            foreach (Renderer segment in view.Segments)
+                segment.gameObject.SetActive(on);
         }
 
         private Renderer NewQuad(string name, float z)
