@@ -53,8 +53,11 @@ namespace Sc4ve.Demonstration
         private bool _placed;
         private bool _done;
 
-        // L'état précédent de la gâchette, pour n'agir que sur le front montant.
-        private bool _triggerWasPressed;
+        // L'état précédent de la gâchette, pour n'agir que sur le front montant. Vrai au
+        // départ : l'écran revient à la réinitialisation depuis le menu pause, dont le bouton
+        // « Réinitialiser » occupe la place exacte du bouton « English » — la gâchette encore
+        // enfoncée par ce clic choisissait l'anglais. Il faut la relâcher avant de choisir.
+        private bool _triggerWasPressed = true;
 
         private void Start()
         {
