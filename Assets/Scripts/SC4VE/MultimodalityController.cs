@@ -757,7 +757,10 @@ namespace Sc4ve.Multimodality
                 _movePointDelayMs,
                 _recipes,
                 _objectNames,
-                vocabulary);
+                vocabulary,
+                // Les clients EN SALLE (les modèles et les partis sont inactifs) : un prénom
+                // écorché d'une lettre ne se rattrape que parmi eux.
+                () => FindObjectsByType<CustomerOrder>(FindObjectsInactive.Exclude).Select(c => c.name));
 
             Debug.Log($"[RuleBased] Reconnaisseur initialisé — {annotationTypes.Count} annotations, " +
                       $"{availableColors.Count} couleurs, {pointerDeictics.Count} déictiques, " +

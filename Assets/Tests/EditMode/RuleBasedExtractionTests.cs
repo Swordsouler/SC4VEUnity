@@ -988,6 +988,30 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void PrenomAUneLettrePres_ParmiLesPresentsSeulement()
+        {
+            // Vu en jeu : Whisper a écrit « Marine » pour Marie. Une lettre d'écart se
+            // tolère parmi les clients PRÉSENTS — contre tout le bassin, non.
+            List<string> pool = new() { "Marie", "Paul" };
+            RuleBasedIntentRecognizer With(params string[] present) => new(
+                annotationTypes: new List<string> { "Table" },
+                availableColors: new List<string> { "Rouge" },
+                pointerDeictics: new List<string> { "ce", "cette", "ça" },
+                pointerName: "Pointeur",
+                cameraName: "Caméra",
+                objectNames: pool,
+                presentNames: () => present);
+
+            _recognizer = With("Marie", "Paul");
+            TakeOrderCommand order = RecognizeSingle<TakeOrderCommand>("Va prendre la commande de Marine !");
+            Assert.AreEqual("Marie", AllConditions(order).Single(c => c.IsName).Value);
+
+            _recognizer = With("Paul");
+            order = RecognizeSingle<TakeOrderCommand>("Va prendre la commande de Marine !");
+            Assert.IsFalse(AllConditions(order).Any(c => c.IsName), "Marie n'est pas en salle.");
+        }
+
+        [Test]
         public void FamilleEtIngredientSansEmploi_PasseAuLlmEnHybride()
         {
             // Vu en démo : Whisper écrit « Prépare un sandwich la saumon » pour « au saumon ».

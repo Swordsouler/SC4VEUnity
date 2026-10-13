@@ -281,7 +281,9 @@ inchangé. Sans le catalogue, le LLM recopiait le plat tel que prononcé, et tou
 passée par lui finissait en « Je ne connais pas cette recette ». Mais un prénom écorché reste
 l'affaire des règles : essayé avec Qwen3.5-4B, « la
 commande déma » (d'Emma) faisait viser Florence — c'est pourquoi les règles tolèrent l'élision
-soudée, les lettres doublées et les accents, et que le relais n'est sollicité qu'à défaut.
+soudée, les lettres doublées et les accents, et que le relais n'est sollicité qu'à défaut. Elles
+tolèrent aussi UNE lettre d'écart, mais parmi les clients présents seulement (« Marine » pour
+Marie) : contre les vingt prénoms du bassin, le moindre mot de quatre lettres trouverait un voisin.
 
 Conséquence majeure du point « agents = `SemantizationCore` » : **aucun nouveau type de
 paramètre n'est nécessaire pour désigner un serveur.** Le `SelectionParameter` existant sait

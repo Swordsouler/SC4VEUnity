@@ -100,7 +100,8 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
             int movePointDelayMs = 300,
             List<RecipeVocabulary.Recipe> recipes = null,
             List<string> objectNames = null,
-            IEnumerable<string> knownWords = null)
+            IEnumerable<string> knownWords = null,
+            Func<IEnumerable<string>> presentNames = null)
         {
             // Du libellé le plus long au plus court, comme les recettes et les déclencheurs :
             // « Pomme de terre » doit être essayé avant « Pomme », sans quoi « mets la pomme de
@@ -127,7 +128,12 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 _knownWords = new HashSet<string>(knownWords.SelectMany(WordsOf));
                 _knownStems = new HashSet<string>(_knownWords.Select(Stem));
             }
+            _presentNames = presentNames;
         }
+
+        // Les prénoms des clients PRÉSENTS, relus à chaque phrase (voir FindNames) ; null sans
+        // salle — rien n'est alors toléré à une lettre près.
+        private readonly Func<IEnumerable<string>> _presentNames;
 
         // Le vocabulaire du domaine, mot à mot et par stem (voir MissedTarget). Null quand
         // l'appelant ne le fournit pas : rien n'est alors jamais tenu pour inexpliqué.
@@ -991,7 +997,59 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 });
                 remaining = pattern.Replace(remaining, " ", 1);
             }
+
+            // À UNE LETTRE près, parmi les clients PRÉSENTS seulement : vu en jeu, Whisper a
+            // écrit « Marine » pour Marie. Les présents sont quatre au plus, et c'est ce qui
+            // rend la tolérance sûre — contre les vingt prénoms du bassin, le moindre mot de
+            // quatre lettres trouverait un voisin. Un mot du domaine ou un mot neutre n'est
+            // jamais un prénom écorché ; l'initiale doit concorder, et un seul candidat.
+            if (_presentNames == null) return result;
+
+            List<string> present = _presentNames()
+                .Where(name => result.All(found => found.Value != name))
+                .ToList();
+            foreach (Match token in Regex.Matches(remaining, @"\p{L}{4,}"))
+            {
+                string folded = FrenchStemmer.NormalizeAccents(token.Value.ToLowerInvariant());
+                if (NeutralWords.Contains(folded) || (_knownWords != null && _knownWords.Contains(folded)))
+                    continue;
+
+                List<string> near = present
+                    .Where(name => IsOneEditAway(folded, FrenchStemmer.NormalizeAccents(name.ToLowerInvariant())))
+                    .ToList();
+                if (near.Count != 1) continue;
+
+                result.Add(new RuleBasedAnnotation
+                {
+                    Value     = near[0],
+                    Timestamp = GetWordTimestamp(words, token.Value, useStartedAt: false)
+                });
+                present.Remove(near[0]);
+                remaining = ConsumeFirst(remaining, token.Value);
+            }
             return result;
+        }
+
+        /// <summary>
+        /// Les deux mots ne diffèrent que d'UNE lettre — ajoutée, retirée ou changée —, et
+        /// pas la première (« marine » ~ « marie », « julie » ~ « julia »).
+        /// </summary>
+        private static bool IsOneEditAway(string a, string b)
+        {
+            if (a.Length == 0 || b.Length == 0 || a == b || a[0] != b[0] ||
+                Math.Abs(a.Length - b.Length) > 1)
+                return false;
+
+            int i = 0, j = 0, edits = 0;
+            while (i < a.Length && j < b.Length)
+            {
+                if (a[i] == b[j]) { i++; j++; continue; }
+                if (++edits > 1) return false;
+                if (a.Length > b.Length) i++;
+                else if (a.Length < b.Length) j++;
+                else { i++; j++; }
+            }
+            return edits + (a.Length - i) + (b.Length - j) == 1;
         }
 
         /// <summary>
