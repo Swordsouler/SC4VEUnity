@@ -504,6 +504,17 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 Recipe           = recipe
             };
 
+            // « Amène la salade César à Marie » : amener quelque chose à un client NOMMÉ, c'est
+            // le servir — vu en jeu, la phrase demandait « À quel endroit ? ». « amène » reste à
+            // MoveCommand pour « amène ça ici 👆 » : une destination ou un pointage dits gardent
+            // le déplacement, et le type imposé d'une réponse n'est jamais requalifié.
+            if (forcedCommandType == null && commandType == "MoveCommand" && names.Count > 0 &&
+                deictics.Count == 0 && !ctx.HasDestination)
+            {
+                Debug.Log("[RuleBased] MoveCommand requalifié en ServeCommand (amener à un client nommé, c'est le servir).");
+                commandType = "ServeCommand";
+            }
+
             Command cmd = CreateCommand(commandType);
             cmd.Parameters = cmd.BuildRuleBasedParameters(ctx);
             if (cmd.Parameters == null)

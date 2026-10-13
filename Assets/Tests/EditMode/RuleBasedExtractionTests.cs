@@ -893,6 +893,27 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void Amene_AUnClientNomme_EstUnService()
+        {
+            // Vu en jeu : « Toi, amène la salade César à Marie » devenait un déplacement qui
+            // demandait « À quel endroit ? ». Amener à un client nommé, c'est le servir — le
+            // plat nommé voyage avec l'ordre. Une destination dite garde le déplacement.
+            _recognizer = MakeRecognizer(Language.French,
+                recipes: new List<RecipeVocabulary.Recipe>
+                {
+                    new RecipeVocabulary.Recipe("sven:CaesarSalad", "Salade César", isConcrete: true),
+                },
+                objectNames: new List<string> { "Marie" });
+
+            ServeCommand command = RecognizeSingle<ServeCommand>("Toi, amène la salade César à Marie.");
+            Assert.AreEqual("Marie", AllConditions(command).Single(c => c.IsName).Value);
+            Assert.AreEqual("sven:CaesarSalad",
+                command.Parameters.OfType<RecipeParameter>().Single().Value);
+
+            RecognizeSingle<MoveCommand>("Amène Marie ici.");
+        }
+
+        [Test]
         public void FamilleEtIngredientSansEmploi_PasseAuLlmEnHybride()
         {
             // Vu en démo : Whisper écrit « Prépare un sandwich la saumon » pour « au saumon ».
