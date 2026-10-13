@@ -36,6 +36,8 @@ namespace Sc4ve.Multimodality
         /// <summary>Démarre la mesure d'un énoncé (capture l'instant + la phrase).</summary>
         public static void Begin(string phrase)
         {
+            // La tablette suit la même phrase, journal activé ou non : avant le test.
+            IntentPipeline.Begin();
             if (!Enabled) return;
             _start  = DateTime.Now;
             _phrase = phrase ?? "";
@@ -49,6 +51,7 @@ namespace Sc4ve.Multimodality
         /// </summary>
         public static void Complete(Command command, string outcome, int affectedCount)
         {
+            IntentPipeline.Complete(command, outcome, affectedCount);
             if (!Enabled || !_active) return;
             _active = false;
 

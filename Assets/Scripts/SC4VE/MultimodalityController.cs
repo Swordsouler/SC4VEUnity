@@ -352,6 +352,7 @@ namespace Sc4ve.Multimodality
                         MultimodalityMetrics.Engine = "rules";
                         await InitializeVocabulariesAsync();
                         EnsureRuleBasedRecognizer();
+                        IntentPipeline.Start(IntentPipeline.Stage.Rules);
                         commandJson = _ruleBasedRecognizer.Recognize(phrase);
                         if (string.IsNullOrWhiteSpace(commandJson))
                         {
@@ -363,10 +364,16 @@ namespace Sc4ve.Multimodality
                             // AVANT la question sur le paramètre isolé : « peins-la en vert » n'a
                             // aucun verbe connu des règles, mais n'a rien d'ambigu pour le LLM.
                             if (string.IsNullOrWhiteSpace(commandJson) && _recognizerMode == RecognizerMode.Hybrid)
+                            {
+                                IntentPipeline.End(IntentPipeline.Stage.Rules, IntentPipeline.Status.Failed,
+                                                   IntentPipeline.Reason.NothingRecognized);
                                 commandJson = await AskLlmInHybridAsync(phrase, "n'ont reconnu aucune commande");
+                            }
 
                             if (string.IsNullOrWhiteSpace(commandJson))
                             {
+                                IntentPipeline.End(IntentPipeline.Stage.Rules, IntentPipeline.Status.Failed,
+                                                   IntentPipeline.Reason.NothingRecognized);
                                 Debug.LogWarning("[RuleBased] Aucune commande produite pour cette phrase.");
                                 // Paramètre isolé sans commande (« en vert ») → ambiguïté : on nomme
                                 // les actions possibles plutôt qu'un « je n'ai pas compris » générique.
@@ -390,33 +397,54 @@ namespace Sc4ve.Multimodality
                             string reason = _ruleBasedRecognizer.GuessedFromDish
                                 ? "ont deviné le verbe d'après le plat"
                                 : "n'ont pas trouvé la cible";
-                            commandJson = await AskLlmInHybridAsync(phrase, reason) ?? commandJson;
+                            IntentPipeline.End(IntentPipeline.Stage.Rules, IntentPipeline.Status.Relayed,
+                                               _ruleBasedRecognizer.GuessedFromDish
+                                                   ? IntentPipeline.Reason.GuessedVerb
+                                                   : IntentPipeline.Reason.MissedTarget);
+                            string llmJson = await AskLlmInHybridAsync(phrase, reason);
+                            if (llmJson == null)
+                                IntentPipeline.Revise(IntentPipeline.Stage.Rules, IntentPipeline.Status.Done,
+                                                      IntentPipeline.Reason.Kept);
+                            commandJson = llmJson ?? commandJson;
                         }
+                        IntentPipeline.End(IntentPipeline.Stage.Rules, IntentPipeline.Status.Done);
                     }
                     else
                     {
                         Debug.Log($"[LLM] Sending sentence for analysis: \"{phrase.Text}\"");
                         MultimodalityMetrics.Engine = "llm";
+                        IntentPipeline.Start(IntentPipeline.Stage.Llm);
                         commandJson = await GetValidatedCommandJsonFromLlmAsync(phrase);
                         if (string.IsNullOrWhiteSpace(commandJson))
                         {
+                            IntentPipeline.End(IntentPipeline.Stage.Llm, IntentPipeline.Status.Failed,
+                                               IntentPipeline.Reason.NotUnderstood);
                             Debug.LogWarning("[LLM] Received empty or null JSON from LLM after all attempts.");
                             Command.Speak(ClarificationVocabulary.NotUnderstood); // manque de sens
                             MultimodalityMetrics.Complete(null, "not_understood", 0);
                             continue;
                         }
+                        IntentPipeline.End(IntentPipeline.Stage.Llm, IntentPipeline.Status.Done);
                         Debug.Log($"[LLM] Received FINAL JSON: {commandJson}");
                     }
 
                     List<Command> commands = DeserializeCommand(commandJson);
                     if (commands == null || commands.Count == 0 || commands.Any(c => c is UnknownCommand))
                     {
+                        // Le moteur a répondu, mais rien d'exécutable : son étape n'a pas abouti.
+                        IntentPipeline.Revise(UsesRules ? IntentPipeline.Stage.Rules : IntentPipeline.Stage.Llm,
+                                              IntentPipeline.Status.Failed, IntentPipeline.Reason.NotUnderstood);
                         Command.Speak(ClarificationVocabulary.NotUnderstood); // manque de sens
                         MultimodalityMetrics.Complete(commands?.FirstOrDefault(), "not_understood", 0);
                         continue;
                     }
 
+                    // La recherche sémantique n'est sollicitée que si une commande désigne des
+                    // objets : préparer un plat n'en cherche aucun.
+                    if (commands.Any(c => c.Parameters?.OfType<SelectionParameter>().Any() == true))
+                        IntentPipeline.Start(IntentPipeline.Stage.Semantic);
                     await CommandToGraphOutputCommandAsync(commands);
+                    IntentPipeline.End(IntentPipeline.Stage.Semantic, IntentPipeline.Status.Done);
                     ResolveCommands(commands);
                     Debug.Log($"[{_recognizerMode}] Commands resolved successfully.");
                 }
@@ -441,12 +469,14 @@ namespace Sc4ve.Multimodality
         private async Task<string> AskLlmInHybridAsync(Sentence phrase, string reason)
         {
             Debug.Log($"[Hybrid] Les règles {reason} — le LLM prend le relais : \"{phrase.Text}\"");
+            IntentPipeline.Start(IntentPipeline.Stage.Llm);
 
             Task<string> llm = GetValidatedCommandJsonFromLlmAsync(phrase);
             if (await Task.WhenAny(llm, Task.Delay(HybridLlmTimeoutMs)) != llm)
             {
                 Debug.LogWarning($"[Hybrid] Pas de réponse du LLM en {HybridLlmTimeoutMs / 1000} s — les règles gardent la main.");
                 MultimodalityMetrics.Engine = "llm-timeout";
+                IntentPipeline.End(IntentPipeline.Stage.Llm, IntentPipeline.Status.Failed, IntentPipeline.Reason.Timeout);
                 return null;
             }
 
@@ -456,11 +486,13 @@ namespace Sc4ve.Multimodality
             {
                 Debug.LogWarning("[Hybrid] Le LLM n'a produit aucune commande connue — les règles gardent la main.");
                 MultimodalityMetrics.Engine = "llm-failed";
+                IntentPipeline.End(IntentPipeline.Stage.Llm, IntentPipeline.Status.Failed, IntentPipeline.Reason.NotUnderstood);
                 return null;
             }
 
             Debug.Log($"[Hybrid] Commande du LLM retenue : {json}");
             MultimodalityMetrics.Engine = "llm";
+            IntentPipeline.End(IntentPipeline.Stage.Llm, IntentPipeline.Status.Done);
             return json;
         }
 

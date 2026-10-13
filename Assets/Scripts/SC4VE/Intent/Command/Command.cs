@@ -147,6 +147,9 @@ namespace Sc4ve.Multimodality.Intent
         public static void Speak(string text, Component speaker)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
+            // La voix « off » répond à la phrase en cours — question, refus, « je n'ai pas
+            // compris » — et la tablette l'affiche en résultat. Un personnage parle pour lui.
+            if (speaker == null) IntentPipeline.NoteSpoken(text);
             PiperTextToSpeech tts = UnityEngine.Object.FindAnyObjectByType<PiperTextToSpeech>();
             if (tts == null)
             {
