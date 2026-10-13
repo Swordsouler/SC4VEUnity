@@ -92,8 +92,11 @@ public class Outline : MonoBehaviour
     void Awake()
     {
 
-        // Cache renderers
-        renderers = GetComponentsInChildren<Renderer>();
+        // Cache renderers — except text (TextMesh): a customer's name or a speech bubble is
+        // never outlined, the outline of a text draws a box around every glyph (SC4VE).
+        renderers = GetComponentsInChildren<Renderer>()
+            .Where(r => r.GetComponent<TextMesh>() == null)
+            .ToArray();
 
         // Instantiate outline materials
         outlineMaskMaterial = Instantiate(Resources.Load<Material>(@"Materials/OutlineMask"));
