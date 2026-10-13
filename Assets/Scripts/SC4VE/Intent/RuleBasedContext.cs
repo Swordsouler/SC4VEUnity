@@ -97,7 +97,8 @@ namespace Sc4ve.Multimodality.Intent
         /// le paramètre vide — pour les commandes qui transforment l'existant (Move, Duplicate).
         /// Une cible explicite PAR TYPE (annotation/couleur) désactive ce repli.
         /// </summary>
-        public SelectionParameter BuildSelectionParameter(bool useStartedAt = false, bool fallbackToSelection = false)
+        public SelectionParameter BuildSelectionParameter(bool useStartedAt = false, bool fallbackToSelection = false,
+                                                          bool withPointing = true)
         {
             var filters = new List<FilterElement>();
 
@@ -169,7 +170,7 @@ namespace Sc4ve.Multimodality.Intent
                     needsOp = true;
                 }
 
-                foreach (RuleBasedAnnotation d in Deictics ?? Enumerable.Empty<RuleBasedAnnotation>())
+                foreach (RuleBasedAnnotation d in (withPointing ? Deictics : null) ?? Enumerable.Empty<RuleBasedAnnotation>())
                 {
                     if (needsOp) filters.Add(new FilterElement { IsOperator = true, Operator = "AND" });
                     filters.Add(new FilterElement
@@ -210,12 +211,17 @@ namespace Sc4ve.Multimodality.Intent
         ///   deux « débarrasse cette table » sans rien de pointé au premier mot, Table A n'étant
         ///   atteinte que 50 à 260 ms plus tard. Le premier mot reste l'instant des déplacements
         ///   (« mets ça ici »), dont la source se pointe AVANT de parler.
-        /// Toutes les cibles, donc sans désambiguïsation. Un prénom, ou l'absence de pointage,
-        /// gardent la sélection standard.
+        /// Toutes les cibles, donc sans désambiguïsation. Sans pointage, la sélection standard.
+        ///
+        /// Un prénom PRIME sur le pointage : il nomme UN client — deux ne portent jamais le même
+        /// (ServiceProgression.PickName) —, le pointage ne ferait que l'intersecter. Et le « ça »
+        /// de « C'est ça Julia », que Whisper écrit pour « Sers Julia », n'a jamais rien désigné.
         /// </summary>
         public SelectionParameter BuildPointedTargetSelection()
         {
-            if (Deictics == null || Deictics.Count == 0 || Names?.Count > 0 || Words == null || Words.Count == 0)
+            if (Names?.Count > 0)
+                return BuildSelectionParameter(fallbackToSelection: true, withPointing: false);
+            if (Deictics == null || Deictics.Count == 0 || Words == null || Words.Count == 0)
                 return BuildSelectionParameter(fallbackToSelection: true);
 
             return new SelectionParameter

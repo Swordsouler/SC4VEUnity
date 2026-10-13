@@ -837,6 +837,26 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void CEstPlusPrenom_EstUnOrdreDeService()
+        {
+            // Le même homophone que « c'est + plat », devant un prénom : mesuré sur la voix du
+            // jeu, Whisper écrit « C'est Hugo » et « C'est ça Julia » pour « Sers Hugo », « Sers
+            // Julia ». Le prénom prime sur le « ça », qui ne désigne rien. Une question n'est
+            // pas un ordre.
+            _recognizer = MakeRecognizer(Language.French, objectNames: new List<string> { "Julia", "Hugo" });
+
+            ServeCommand hugo = RecognizeSingle<ServeCommand>("C'est Hugo.");
+            Assert.AreEqual("Hugo", AllConditions(hugo).Single().Value);
+
+            ServeCommand julia = RecognizeSingle<ServeCommand>("C'est ça Julia.");
+            Condition only = AllConditions(julia).Single();
+            Assert.IsTrue(only.IsName, "Le « ça » ne doit pas ajouter de filtre de pointage.");
+            Assert.AreEqual("Julia", only.Value);
+
+            Assert.IsNull(_recognizer.Recognize(new Sentence("C'est Julia ?")), "Une question n'est pas un ordre.");
+        }
+
+        [Test]
         public void FamilleEtIngredientSansEmploi_PasseAuLlmEnHybride()
         {
             // Vu en démo : Whisper écrit « Prépare un sandwich la saumon » pour « au saumon ».

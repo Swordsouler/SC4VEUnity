@@ -831,6 +831,15 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 return "PrepareCommand";
             }
 
+            // « C'est Hugo » : le même homophone devant un PRÉNOM — mesuré sur la voix du jeu,
+            // Whisper écrit « C'est Hugo » ou « C'est ça Julia » pour « Sers Hugo », « Sers
+            // Julia ». Un client nommé après « c'est », sans autre verbe reconnu, est à servir ;
+            // les questions (« c'est Julia ? ») restent écartées.
+            if (allowRecipeFallback && !question &&
+                Regex.IsMatch(normalizedText, @"\bc\s?['’]?\s?est\b", RegexOptions.IgnoreCase) &&
+                _objectNames.Any(name => Regex.IsMatch(normalizedText, $@"\b{NamePattern(name)}\b", RegexOptions.IgnoreCase)))
+                return "ServeCommand";
+
             return null;
         }
 
