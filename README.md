@@ -74,10 +74,10 @@ Les modèles sont hébergés sur HuggingFace :
 |--------|--------|---------|----------------|
 | `ggml-tiny.bin` | ~75 Mo | Basique | Tests rapides |
 | `ggml-base.bin` | ~142 Mo | Correcte | — |
-| `ggml-small.bin` | ~466 Mo | Bonne | **Usage quotidien** |
-| `ggml-medium.bin` | ~1,5 Go | Très bonne | Meilleure précision |
+| `ggml-small.bin` | ~466 Mo | Bonne | Plus léger (changer **Model Path**) |
+| `ggml-medium.bin` | ~1,5 Go | Très bonne | **Attendu par la scène `New Demo`** |
 
-Télécharger le fichier `.bin` choisi et le placer dans :
+Télécharger `ggml-medium.bin` (ou un autre modèle, en adaptant **Model Path**) et le placer dans :
 ```
 Assets/StreamingAssets/Whisper/
 ```
@@ -86,11 +86,11 @@ Assets/StreamingAssets/Whisper/
 
 #### Installation du package Unity
 
-Le package `com.whisper.unity` est déjà référencé dans `Packages/manifest.json`. Unity le télécharge automatiquement.
+Le package `com.whisper.unity` est déjà référencé dans `Packages/manifest.json`. Unity le télécharge automatiquement, **à condition que Git soit installé et dans le PATH** (idem pour NuGetForUnity). Sinon la résolution échoue (« No 'git' executable was found ») et `WhisperSpeechToText.cs` ne compile pas. Après avoir installé Git, quitter complètement Unity Hub (barre des tâches → *Quit*) et Unity, puis rouvrir le projet.
 
 Si ce n'est pas le cas, l'ajouter via **Window → Package Manager → Add package from git URL** :
 ```
-https://github.com/Macoron/whisper.unity.git
+https://github.com/Macoron/whisper.unity.git?path=/Packages/com.whisper.unity
 ```
 
 #### Configuration dans l'Inspector
@@ -108,7 +108,8 @@ Sur le composant `WhisperManager` :
 
 | Champ | Valeur |
 |-------|--------|
-| **Model Path** | `StreamingAssets/Whisper/ggml-small.bin` |
+| **Model Path** | `Whisper/ggml-medium.bin` (relatif à StreamingAssets) |
+| **Is Model Path In Streaming Assets** | ✅ |
 | **Language** | `fr` (français) ou laisser vide pour détection automatique |
 | **Enable Tokens** | ✅ (activé automatiquement au démarrage) |
 | **Tokens Timestamps** | ✅ (activé automatiquement au démarrage) |
@@ -164,12 +165,14 @@ Piper est un moteur TTS neuronal offline rapide, avec une bonne qualité en fran
 
 **https://github.com/rhasspy/piper/releases/latest**
 
-Télécharger l'archive correspondant à la plateforme (ex: `piper_windows_amd64.zip`), extraire et placer le contenu dans :
+Le dépôt est archivé ; sa dernière release (`2023.11.14-2`) est la version C++ (`piper.exe`) qu'attend le code.
+
+Télécharger l'archive correspondant à la plateforme (ex: `piper_windows_amd64.zip`), extraire, puis placer le **contenu du dossier `piper/`** de l'archive dans :
 ```
 Assets/StreamingAssets/Piper/
 ```
 
-Le dossier doit contenir `piper.exe` (Windows) ou `piper` (Linux/macOS).
+Le dossier doit contenir `piper.exe` (Windows) ou `piper` (Linux/macOS), ses bibliothèques et le dossier `espeak-ng-data/` (le code le passe à Piper en chemin relatif).
 
 #### Téléchargement des modèles vocaux
 
@@ -179,16 +182,18 @@ Pour chaque modèle, deux fichiers sont nécessaires : le `.onnx` et le `.onnx.j
 
 | Langue | Modèle | Qualité | Lien |
 |--------|--------|---------|------|
-| Français | `fr/fr_FR/mls_1840/medium/` | Moyenne | [Télécharger](https://huggingface.co/rhasspy/piper-voices/tree/main/fr/fr_FR/mls_1840/medium) |
+| Français | `fr/fr_FR/siwis/medium/` | Moyenne | [Télécharger](https://huggingface.co/rhasspy/piper-voices/tree/main/fr/fr_FR/siwis/medium) |
 | Anglais | `en/en_US/lessac/medium/` | Moyenne | [Télécharger](https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/lessac/medium) |
+
+Éviter `fr_FR-mls` (125 locuteurs) : le locuteur par défaut est peu intelligible.
 
 Placer les fichiers dans :
 ```
 Assets/StreamingAssets/Piper/models/
-    fr-fr-mls_1840-medium.onnx
-    fr-fr-mls_1840-medium.onnx.json
-    en-us-lessac-medium.onnx
-    en-us-lessac-medium.onnx.json
+    fr_FR-siwis-medium.onnx
+    fr_FR-siwis-medium.onnx.json
+    en_US-lessac-medium.onnx
+    en_US-lessac-medium.onnx.json
 ```
 
 > **Note :** Le dossier `Piper/` est exclu du dépôt Git (`.gitignore`). Les fichiers doivent être téléchargés manuellement.
@@ -200,8 +205,8 @@ Ajouter le composant `PiperTextToSpeech` sur un GameObject (un `AudioSource` ser
 | Champ | Valeur par défaut | Description |
 |-------|-------------------|-------------|
 | **Piper Exe Path** | `Piper/piper.exe` | Chemin vers piper.exe, relatif à StreamingAssets |
-| **French Model Path** | `Piper/models/fr-fr-mls_1840-medium.onnx` | Modèle français |
-| **English Model Path** | `Piper/models/en-us-lessac-medium.onnx` | Modèle anglais |
+| **French Model Path** | `Piper/models/fr_FR-siwis-medium.onnx` | Modèle français |
+| **English Model Path** | `Piper/models/en_US-lessac-medium.onnx` | Modèle anglais |
 | **Language** | `French` | Langue active (`French` ou `English`) |
 
 #### API C#
@@ -452,14 +457,15 @@ Affiche la transcription en temps réel dans un `TextMeshProUGUI` :
 ```
 Assets/StreamingAssets/
 ├── Whisper/                    ← ignoré par Git
-│   └── ggml-small.bin          ← modèle Whisper (télécharger manuellement)
+│   └── ggml-medium.bin         ← modèle Whisper (télécharger manuellement)
 ├── Piper/                      ← ignoré par Git
 │   ├── piper.exe               ← exécutable Piper (télécharger manuellement)
+│   ├── espeak-ng-data/         ← livré avec piper.exe (avec ses .dll)
 │   └── models/
-│       ├── fr-fr-mls_1840-medium.onnx
-│       ├── fr-fr-mls_1840-medium.onnx.json
-│       ├── en-us-lessac-medium.onnx
-│       └── en-us-lessac-medium.onnx.json
+│       ├── fr_FR-siwis-medium.onnx
+│       ├── fr_FR-siwis-medium.onnx.json
+│       ├── en_US-lessac-medium.onnx
+│       └── en_US-lessac-medium.onnx.json
 └── vosk-model-small-fr-0.22.zip  ← modèle Vosk (si utilisé, ignoré par Git)
 ```
 
