@@ -5,7 +5,8 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "SC4VE",
-        "com.nsaintl.sven"
+        "com.nsaintl.sven",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Editor"

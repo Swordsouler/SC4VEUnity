@@ -88,12 +88,19 @@ namespace Sc4ve.Multimodality.Intent
         /// modèles de client de ServiceProgression, endormis dès la construction, se
         /// réveillaient ici : quatre clients attablés d'un coup à chaque « Rejouer », et plus
         /// de prise en main, faute de table libre.
+        ///
+        /// Le rig XR est épargné (caméra et manettes, sémantisées par PointOfView et Pointer) :
+        /// sa pose vient du suivi et son activation de l'XRInputModalityManager, qui masque les
+        /// manettes tant qu'elles ne sont pas suivies — donc au moment de la capture, en casque
+        /// réel. Restaurer cet état éteignait les manettes à chaque réinitialisation, et le
+        /// gestionnaire, qui ne réagit qu'aux changements de suivi, ne les rallumait jamais.
         /// </summary>
         public static void RestoreAll()
         {
             foreach (var (id, obj) in _objectRefs)
             {
                 if (obj == null) continue; // Détruit définitivement
+                if (obj.GetComponentInParent<UnityEngine.InputSystem.XR.TrackedPoseDriver>(true) != null) continue; // Rig XR
                 obj.gameObject.SetActive(_store[id].Active);
                 RestoreTransform(obj);
                 RestoreColor(obj);
