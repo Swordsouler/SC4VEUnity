@@ -46,11 +46,12 @@ namespace Sc4ve.Voice
 
         /// <summary>
         /// Vrai quand le STT borne lui-même l'énoncé, par SetSpeaking (push-to-talk). La
-        /// détection de volume, si elle est active, filtre toujours les trames, mais n'émet
-        /// plus OnSpeechStart / OnRecordingStop : avec les deux réglages à la fois — la scène
-        /// du banc d'essai, copiée dans la démo —, le moindre bruit, voix de synthèse
-        /// comprise, allumait « J'écoute » sur la tablette et le ralenti du temps hors de
-        /// tout appui.
+        /// détection de volume, même active, ne joue alors plus aucun rôle : elle n'émet plus
+        /// OnSpeechStart / OnRecordingStop, et ne filtre plus les trames. Avec les deux
+        /// réglages à la fois — la scène du banc d'essai, copiée dans la démo —, le moindre
+        /// bruit, voix de synthèse comprise, allumait « J'écoute » sur la tablette et le
+        /// ralenti du temps hors de tout appui ; et pendant l'appui, une voix trop basse pour
+        /// le seuil était jetée — vu en jeu, deux appuis sans transcription.
         /// </summary>
         public bool BoundedBySpeechToText { get; set; }
         public List<string> Devices { get; private set; }
@@ -489,7 +490,10 @@ namespace Sc4ve.Voice
         /// <param name="buffer">Audio buffer to process</param>
         private void ProcessAudioBuffer(float[] buffer)
         {
-            if (_autoDetect == false)
+            // En push-to-talk, tout ce que capte l'appui part au STT : l'appui dit déjà quand
+            // le joueur parle, et le seuil ne ferait que jeter une voix basse et les silences
+            // entre les mots — dont Whisper a besoin pour horodater juste.
+            if (_autoDetect == false || BoundedBySpeechToText)
             {
                 _transmit = _audioDetected = true;
             }

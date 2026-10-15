@@ -217,7 +217,9 @@ le mécanisme ne pouvait pas exister.
 En push-to-talk, la touche borne SEULE l'énoncé (`VoiceProcessor.BoundedBySpeechToText`) : la
 scène du banc d'essai, copiée dans la démo, garde aussi la détection de volume, et le moindre
 bruit — la voix de synthèse comprise — allumait « J'écoute » sur la tablette et le ralenti, hors
-de tout appui. La détection filtre toujours les trames ; elle ne borne plus rien.
+de tout appui. Elle ne filtre plus rien non plus : pendant l'appui, une voix trop basse pour
+son seuil était jetée — vu en jeu, deux appuis sans transcription —, avec les silences entre les
+mots dont Whisper a besoin pour horodater juste. Tout ce que capte l'appui part au STT.
 
 `Time.fixedDeltaTime` suit `Time.timeScale`, sans quoi la physique saccade au ralenti. Le
 suivi de tête n'est **pas** affecté (piloté par le runtime XR), donc pas de risque de
