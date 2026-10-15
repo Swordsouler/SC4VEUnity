@@ -193,6 +193,8 @@ namespace Sc4ve.Voice
             OnStatusUpdated?.Invoke("Initialized");
             VoiceProcessor.OnFrameCaptured += VoiceProcessorOnOnFrameCaptured;
             VoiceProcessor.OnRecordingStop += VoiceProcessorOnOnRecordingStop;
+            // En push-to-talk, la touche seule borne l'énoncé (HandleRecordingStart/Stop).
+            VoiceProcessor.BoundedBySpeechToText = _pushToTalk;
 
             if (startMicrophone || _pushToTalk)
                 VoiceProcessor.StartRecording();

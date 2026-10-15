@@ -208,6 +208,11 @@ existant, déclenché sur la transition `_didDetect` faux → vrai : franchissem
 volume en VAD, première trame après l'appui en push-to-talk. Une seule ligne, mais sans elle
 le mécanisme ne pouvait pas exister.
 
+En push-to-talk, la touche borne SEULE l'énoncé (`VoiceProcessor.BoundedBySpeechToText`) : la
+scène du banc d'essai, copiée dans la démo, garde aussi la détection de volume, et le moindre
+bruit — la voix de synthèse comprise — allumait « J'écoute » sur la tablette et le ralenti, hors
+de tout appui. La détection filtre toujours les trames ; elle ne borne plus rien.
+
 `Time.fixedDeltaTime` suit `Time.timeScale`, sans quoi la physique saccade au ralenti. Le
 suivi de tête n'est **pas** affecté (piloté par le runtime XR), donc pas de risque de
 cinétose — c'est ce qui rend le procédé acceptable en VR.

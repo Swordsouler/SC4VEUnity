@@ -43,6 +43,16 @@ namespace Sc4ve.Voice
         /// après l'appui.
         /// </summary>
         public event Action OnSpeechStart;
+
+        /// <summary>
+        /// Vrai quand le STT borne lui-même l'énoncé, par SetSpeaking (push-to-talk). La
+        /// détection de volume, si elle est active, filtre toujours les trames, mais n'émet
+        /// plus OnSpeechStart / OnRecordingStop : avec les deux réglages à la fois — la scène
+        /// du banc d'essai, copiée dans la démo —, le moindre bruit, voix de synthèse
+        /// comprise, allumait « J'écoute » sur la tablette et le ralenti du temps hors de
+        /// tout appui.
+        /// </summary>
+        public bool BoundedBySpeechToText { get; set; }
         public List<string> Devices { get; private set; }
         public int CurrentDeviceIndex { get; private set; }
         [ShowNativeProperty]
@@ -518,8 +528,9 @@ namespace Sc4ve.Voice
                 // est active. Sinon (_autoDetect == false, le défaut du projet), _audioDetected
                 // est vrai en PERMANENCE : l'événement partirait une fois puis plus jamais, et
                 // la branche else ci-dessous serait inatteignable. Dans ce mode, c'est le STT
-                // qui borne l'énoncé, par SetSpeaking.
-                if (_autoDetect && !_didDetect)
+                // qui borne l'énoncé, par SetSpeaking — de même en push-to-talk
+                // (BoundedBySpeechToText).
+                if (_autoDetect && !BoundedBySpeechToText && !_didDetect)
                 {
                     _didDetect = true;
                     OnSpeechStart?.Invoke();
@@ -545,7 +556,7 @@ namespace Sc4ve.Voice
             }
             else
             {
-                if (_autoDetect && _didDetect)
+                if (_autoDetect && !BoundedBySpeechToText && _didDetect)
                 {
                     _didDetect = false;
                     OnRecordingStop?.Invoke();

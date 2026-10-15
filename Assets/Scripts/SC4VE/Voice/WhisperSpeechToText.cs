@@ -102,6 +102,8 @@ namespace Sc4ve.Voice
         public void StartListening()
         {
             _voiceProcessor.OnFrameCaptured += OnFrameCaptured;
+            // En push-to-talk, la touche seule borne l'énoncé (Update → SetSpeaking).
+            _voiceProcessor.BoundedBySpeechToText = _pushToTalk;
             if (!_pushToTalk)
                 _voiceProcessor.OnRecordingStop += OnVoiceActivityStopped;
             _voiceProcessor.StartRecording();
