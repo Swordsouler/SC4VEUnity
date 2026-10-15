@@ -161,8 +161,13 @@ thèse. Ça n'est pas un détail de communication, ça contraint la conception :
   sous-estimée : le VAD déclenchera sur le bruit ambiant. Prévoir le **push-to-talk** comme
   mode par défaut en salon (`WhisperSpeechToText.PushToTalk` existe déjà), le VAD étant
   réservé aux conditions calmes ;
-- **rien ne doit dépendre du réseau** le jour J — donc mode LLM local ou RuleBased, jamais
-  l'API OpenAI en démonstration publique.
+- **le LLM passe par l'API OpenAI**, malgré le réseau. Il était prévu de ne dépendre d'aucun
+  réseau le jour J (LLM local ou RuleBased) ; mais le LLM local ne tient pas dans les 8 Go de
+  la carte du portable de démonstration. Mesuré le 15 octobre, jeu arrêté : 4,9 Go pour le
+  LLM, 2 Go pour Quest Link, 0,7 Go pour l'éditeur ; en jeu, Whisper medium et le rendu VR
+  font déborder la carte — le LLM tombait à 6 jetons/s, et tous les relais de l'hybride
+  dépassaient leurs dix secondes. Sans réseau, l'hybride retombe sur les règles ; le mode LLM,
+  lui, ne répond plus.
 
 ---
 
@@ -183,6 +188,7 @@ thèse. Ça n'est pas un détail de communication, ça contraint la conception :
 | **La commande client se prend** avec `TakeOrderCommand` ; le client ne parle pas spontanément | acté |
 | **Le joueur ne se déplace pas** : pas de téléportation, pas de locomotion au joystick. Il peut marcher physiquement pour mieux voir | acté |
 | **Le mode de reconnaissance est choisi par le joueur au lancement** (RuleBased / Hybride / LLM) | acté |
+| **Le LLM de la démonstration passe par OpenAI** (`gpt-4o-mini`, `gpt-4o` en repli) : le LLM local ne tient pas dans la carte graphique à côté de la VR et de Whisper medium (§1, Destination) | acté |
 
 ### Le ralenti pendant la parole — implémenté
 
@@ -240,8 +246,8 @@ Ce choix a trois effets, dans l'ordre d'importance :
 2. **Il fait du jeu un instrument de comparaison.** Trois populations de joueurs, trois modes,
    les mêmes métriques du §10 — la comparaison latence/qualité d'interprétation se collecte
    toute seule. À condition de journaliser le mode choisi avec chaque énoncé.
-3. **Il rend la démonstration robuste.** Si le serveur LLM local ne répond pas le jour de la
-   soutenance, le mode RuleBased tourne sans réseau ni GPU.
+3. **Il rend la démonstration robuste.** Si l'API du LLM ne répond pas le jour de la
+   soutenance — réseau absent —, le mode RuleBased tourne sans réseau ni GPU.
 
 Une réserve à assumer : les deux modes ne couvriront pas exactement le même ensemble
 d'énoncés. Il faut donc que **l'écran de départ le dise** (« comprend moins bien ») plutôt que
