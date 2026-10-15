@@ -308,6 +308,10 @@ commande déma » (d'Emma) faisait viser Florence — c'est pourquoi les règles
 soudée, les lettres doublées et les accents, et que le relais n'est sollicité qu'à défaut. Elles
 tolèrent aussi UNE lettre d'écart, mais parmi les clients présents seulement (« Marine » pour
 Marie) : contre les vingt prénoms du bassin, le moindre mot de quatre lettres trouverait un voisin.
+Le prénom d'un client PARTI désigne la table où il était assis, tant que personne ne s'y est
+rassis — pour les ordres de délégation, et quel que soit le moteur
+(`DelegationRoles.RedirectDepartedCustomers`) : vu en jeu, « Va chercher l'assiette sale de
+Logan », Logan à peine parti, répondait « Aucun objet correspondant ».
 
 Les phrases d'un visiteur novice ont élargi les règles : « porter » sert (« Tu peux me porter une
 salade ? »), « aller chercher l'assiette » débarrasse, et « C'est la commande de la table 4 » —

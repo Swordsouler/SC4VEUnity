@@ -199,6 +199,24 @@ namespace Sc4ve.Multimodality
                     .FirstOrDefault(c => c._table == table);
 
         /// <summary>
+        /// La table que le client de ce prénom a quittée, si personne ne s'y est rassis ; null
+        /// s'il est encore en salle, s'il n'est jamais venu, ou si sa table est reprise. Le
+        /// départ le plus récent, si le prénom est revenu dans la partie.
+        /// </summary>
+        public static SemantizationCore FormerTable(string name)
+        {
+            CustomerOrder[] customers = UnityEngine.Object.FindObjectsByType<CustomerOrder>(FindObjectsInactive.Include);
+            bool Named(CustomerOrder c) => string.Equals(c.name, name, StringComparison.OrdinalIgnoreCase);
+            if (customers.Any(c => c.gameObject.activeInHierarchy && Named(c))) return null;
+
+            CustomerOrder departed = customers
+                .Where(c => c.DepartedAt >= 0f && c._table != null && Named(c))
+                .OrderByDescending(c => c.DepartedAt)
+                .FirstOrDefault();
+            return departed != null && At(departed._table) == null ? departed._table : null;
+        }
+
+        /// <summary>
         /// Vrai si ce contenant porte au moins un aliment déjà refusé. Lecture synchrone en
         /// mémoire — le même motif que Delegation.IsPlate, et pour la même raison : appelé
         /// depuis du code qui doit répondre immédiatement.

@@ -162,6 +162,33 @@ namespace Sc4ve.Multimodality.Intent
             return (agent, table, known);
         }
 
+        /// <summary>
+        /// Le prénom d'un client PARTI désigne la table où il était assis, tant que personne
+        /// ne s'y est rassis (CustomerOrder.FormerTable). Vu en jeu : « Va chercher l'assiette
+        /// sale de Logan », Logan à peine parti, cherchait un Logan qui n'était plus dans le
+        /// monde — « Aucun objet correspondant ». Les ordres de délégation seulement : leur
+        /// cible est une table, et « sélectionne Logan » n'a plus rien à trouver. Appelé avant
+        /// la recherche sémantique, pour les règles comme pour le LLM.
+        /// </summary>
+        public static void RedirectDepartedCustomers(IEnumerable<Command> commands)
+        {
+            IEnumerable<Condition> names = commands
+                .Where(command => command.ExpectsTargetAnswer)
+                .SelectMany(command => command.Parameters?.OfType<SelectionParameter>()
+                                       ?? Enumerable.Empty<SelectionParameter>())
+                .SelectMany(selection => selection.Filters ?? new List<FilterElement>())
+                .Where(filter => !filter.IsOperator && filter.Condition != null && filter.Condition.IsName)
+                .Select(filter => filter.Condition);
+
+            foreach (Condition name in names)
+            {
+                SemantizationCore table = CustomerOrder.FormerTable(name.Value);
+                if (table == null) continue;
+                UnityEngine.Debug.Log($"[Délégation] {name.Value} est parti : « {table.name} », sa table, prend sa place.");
+                name.Value = table.name;
+            }
+        }
+
         /// <summary>Le serveur de la scène s'il est SEUL, null sinon.</summary>
         private static Delegation OnlyWaiter()
         {

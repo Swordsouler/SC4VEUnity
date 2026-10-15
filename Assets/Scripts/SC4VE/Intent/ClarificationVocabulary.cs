@@ -121,7 +121,7 @@ namespace Sc4ve.Multimodality.Intent
             // la trouvent seuls quand une seule table est concernée (DelegationRoles) : un
             // pointage, une coréférence ou un repli restés vides n'y disent pas « aucun objet »
             // mais « aucune cible dite ». Seule une cible DÉCRITE et introuvable en est un —
-            // le prénom d'un client parti, par exemple.
+            // le prénom d'un client parti dont la table est reprise, par exemple.
             bool hasCriteria = command.ExpectsTargetAnswer
                 ? sel.Filters != null && sel.Filters.Any(f => !f.IsOperator && f.Condition != null &&
                                                          (f.Condition.IsName || f.Condition.IsAnnotation || f.Condition.IsColor))

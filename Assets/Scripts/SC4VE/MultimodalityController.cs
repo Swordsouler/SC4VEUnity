@@ -504,6 +504,9 @@ namespace Sc4ve.Multimodality
                         continue;
                     }
 
+                    // Le prénom d'un client parti mène à sa table.
+                    DelegationRoles.RedirectDepartedCustomers(commands);
+
                     // La recherche sémantique n'est sollicitée que si une commande désigne des
                     // objets : préparer un plat n'en cherche aucun.
                     if (commands.Any(c => c.Parameters?.OfType<SelectionParameter>().Any() == true))
