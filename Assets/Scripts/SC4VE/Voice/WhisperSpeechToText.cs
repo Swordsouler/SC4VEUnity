@@ -2,6 +2,7 @@ using NaughtyAttributes;
 using Sc4ve.Multimodality;
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
 using Whisper;
@@ -225,13 +226,25 @@ namespace Sc4ve.Voice
             {
                 int sampleRate = _voiceProcessor.SampleRate > 0 ? _voiceProcessor.SampleRate : 16000;
                 WhisperResult result = await _whisperManager.GetTextAsync(buffer, sampleRate, 1);
+                string text = result?.Result?.Trim();
 
-                if (result != null && !string.IsNullOrWhiteSpace(result.Result))
+                if (!string.IsNullOrWhiteSpace(text) && !IsSilenceHallucination(text))
                 {
                     _recognizerStartedAt = audioStart;
                     string json = BuildVoskCompatibleJson(result);
-                    Debug.Log($"[Whisper] Transcription : {result.Result.Trim()}");
+                    Debug.Log($"[Whisper] Transcription : {text}");
                     OnTranscriptionResult?.Invoke(json);
+                }
+                else if (_pushToTalk)
+                {
+                    // Un appui sans parole : le niveau dit pourquoi. Quelques millièmes au plus,
+                    // le micro n'a capté que du silence — pas de voix, ou pas le bon micro.
+                    float peak = 0f;
+                    foreach (float sample in buffer) peak = Mathf.Max(peak, Mathf.Abs(sample));
+                    Debug.LogWarning($"[Whisper] Aucune parole" +
+                                     (string.IsNullOrWhiteSpace(text) ? "" : $" (« {text} » écarté)") +
+                                     $" : {buffer.Length / (float)sampleRate:F1} s captées, niveau max {peak:F3}, " +
+                                     $"micro « {_voiceProcessor.CurrentDeviceName} ».");
                 }
             }
             finally
@@ -242,6 +255,18 @@ namespace Sc4ve.Voice
                 _isTranscribing = false;
             }
         }
+
+        /// <summary>
+        /// Ce que Whisper écrit sur un SILENCE : ses annotations de non-parole, entre crochets
+        /// ou parenthèses (« [Musique] »), et les génériques de sous-titres de ses données
+        /// d'entraînement. Vu en jeu, deux appuis muets sont sortis « [Sous-titres réalisés
+        /// para la communauté d'Amara.org] », et le LLM a été consulté pour rien. Une phrase
+        /// qui n'a AUCUN mot hors des crochets n'est pas une parole ; une annotation autour
+        /// d'une vraie phrase (« [Musique] Prépare une soupe ») la laisse passer.
+        /// </summary>
+        private static bool IsSilenceHallucination(string text)
+            => !Regex.IsMatch(Regex.Replace(text, @"\[[^\]]*\]|\([^)]*\)", ""), @"\p{L}") ||
+               Regex.IsMatch(text, @"amara\.org|sous-titr|subtitles by", RegexOptions.IgnoreCase);
 
         // Construit un JSON identique au format Vosk pour que RecognitionResult/Sentence
         // puissent le parser sans modification.
