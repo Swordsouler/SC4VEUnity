@@ -869,6 +869,14 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 _objectNames.Any(name => Regex.IsMatch(normalizedText, $@"\b{NamePattern(name)}\b", RegexOptions.IgnoreCase)))
                 return "ServeCommand";
 
+            // « C'est la commande de la table numéro 4 » : le même homophone devant la commande
+            // d'une table numérotée — vu en jeu, pour « Sers la commande de la table numéro 4 ».
+            // « La commande » doit être dite : « c'est la table 4 » répond à « Quelle table ? ».
+            if (allowRecipeFallback && !question &&
+                Regex.IsMatch(normalizedText, @"\bc\s?['’]?\s?est\s+la\s+commande\b", RegexOptions.IgnoreCase) &&
+                TableNumberRegex(answering: false).IsMatch(normalizedText))
+                return "ServeCommand";
+
             return null;
         }
 

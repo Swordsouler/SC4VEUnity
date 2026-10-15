@@ -18,6 +18,11 @@ namespace Sc4ve.Multimodality.Intent
         // « debarras » et la commande du métier reste incomprise en jeu.
         "débarasse", "débarasser", "débarassez",
         "vide", "vider", "videz", "nettoie", "nettoyer", "nettoyez",
+        // « chercher l'assiette » : vu en jeu, « Que quelqu'un aille chercher l'assiette de
+        // Logan » et « Va chercher l'assiette sale de Logan » restaient incompris. L'assiette
+        // nommée, et elle seule : « va chercher la commande » prend une commande.
+        "chercher l'assiette", "cherche l'assiette", "cherchez l'assiette",
+        "récupère l'assiette", "récupérer l'assiette", "récupérez l'assiette",
         "clear", "clean", "tidy up", "bus the table")]
     [Serializable, CommandDescription(
         "Envoie un serveur DÉBARRASSER une table : il prend l'assiette vidée par le client " +
@@ -30,9 +35,9 @@ namespace Sc4ve.Multimodality.Intent
     {
         /// <summary>
         /// Une seule sélection, comme ServeCommand : « débarrasse cette table-là 👆 » n'a pas
-        /// de mot pivot, les rôles se lisent dans les objets (DelegationRoles). Les tables
-        /// n'ayant pas de nom, le pointage est le seul chemin — la deixis est FORCÉE par la
-        /// scène elle-même (§3 du README), pas par la grammaire.
+        /// de mot pivot, les rôles se lisent dans les objets (DelegationRoles). La table se
+        /// désigne au pointage, par son numéro ou par le prénom de son client — ou se trouve
+        /// seule quand une seule est à débarrasser.
         /// </summary>
         public override List<Parameter> BuildRuleBasedParameters(RuleBasedContext ctx)
             => new() { ctx.BuildPointedTargetSelection() };

@@ -20,8 +20,9 @@ namespace Sc4ve.Multimodality.Intent
         "prends les commandes", "prend les commandes", "prenez les commandes",
         "prendre les commandes", "va prendre les commandes", "allez prendre les commandes",
         // « chercher » plutôt que « prendre » : on va chercher une commande comme on va la
-        // prendre, et rien d'autre dans le jeu ne se « cherche ». « récupérer » de même (vu
-        // en démo : « Va récupérer la commande de Patricia »).
+        // prendre, et rien d'autre dans le jeu ne se « cherche » — hormis l'assiette sale,
+        // que ses déclencheurs nomment (ClearTableCommand). « récupérer » de même (vu en
+        // démo : « Va récupérer la commande de Patricia »).
         "va chercher la commande", "allez chercher la commande",
         "cherche la commande", "cherchez la commande", "chercher la commande",
         "récupère la commande", "récupérez la commande", "récupérer la commande",

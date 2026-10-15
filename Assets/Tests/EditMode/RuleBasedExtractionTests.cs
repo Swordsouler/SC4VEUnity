@@ -1012,6 +1012,56 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void CestLaCommandeDeLaTable_EstUnService()
+        {
+            // Vu en jeu : « C'est la commande de la table numéro 4 », pour « Sers… » — le même
+            // homophone que « C'est la salade César ». Sans « la commande », « C'est la table 4 »
+            // reste libre de répondre à « Quelle table ? ».
+            _recognizer = MakeRecognizer(Language.French, annotationTypes: new List<string> { "Table" });
+
+            ServeCommand serve = RecognizeSingle<ServeCommand>("C'est la commande de la table numéro 4.");
+            Assert.AreEqual("Table 4", AllConditions(serve).Single().Value);
+
+            Assert.IsNull(_recognizer.Recognize(new Sentence("C'est la table 4.")), "Une réponse, pas un ordre.");
+        }
+
+        [Test]
+        public void Porter_EstUnService()
+        {
+            // Vu en jeu : « Tu peux me porter une salade ? » restait incompris — « porte à » ne
+            // couvrait que la forme suivie de son destinataire.
+            _recognizer = MakeRecognizer(Language.French,
+                recipes: new List<RecipeVocabulary.Recipe>
+                {
+                    new RecipeVocabulary.Recipe("sven:CaesarSalad", "Salade César", isConcrete: true),
+                },
+                objectNames: new List<string> { "Marie" });
+
+            ServeCommand serve = RecognizeSingle<ServeCommand>("Porte la salade César à Marie.");
+            Assert.AreEqual("Marie", AllConditions(serve).Single(c => c.IsName).Value);
+            Assert.AreEqual("sven:CaesarSalad", serve.Parameters.OfType<RecipeParameter>().Single().Value);
+
+            RecognizeSingle<ServeCommand>("Tu peux me porter une salade César ?");
+        }
+
+        [Test]
+        public void ChercherLAssiette_EstUnDebarrassage()
+        {
+            // Vu en jeu : « Que quelqu'un aille chercher l'assiette de Logan » et « Va chercher
+            // l'assiette sale de Logan » restaient incompris. « Va chercher la commande » prend
+            // toujours une commande.
+            _recognizer = MakeRecognizer(Language.French,
+                annotationTypes: new List<string> { "Table", "Assiette" },
+                objectNames: new List<string> { "Logan" });
+
+            ClearTableCommand clear = RecognizeSingle<ClearTableCommand>("Va chercher l'assiette sale de Logan.");
+            Assert.AreEqual("Logan", AllConditions(clear).Single().Value);
+
+            RecognizeSingle<ClearTableCommand>("Que quelqu'un aille chercher l'assiette de Logan.");
+            RecognizeSingle<TakeOrderCommand>("Va chercher la commande de Logan.");
+        }
+
+        [Test]
         public void FamilleEtIngredientSansEmploi_PasseAuLlmEnHybride()
         {
             // Vu en démo : Whisper écrit « Prépare un sandwich la saumon » pour « au saumon ».

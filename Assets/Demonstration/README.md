@@ -309,6 +309,11 @@ soudée, les lettres doublées et les accents, et que le relais n'est sollicité
 tolèrent aussi UNE lettre d'écart, mais parmi les clients présents seulement (« Marine » pour
 Marie) : contre les vingt prénoms du bassin, le moindre mot de quatre lettres trouverait un voisin.
 
+Les phrases d'un visiteur novice ont élargi les règles : « porter » sert (« Tu peux me porter une
+salade ? »), « aller chercher l'assiette » débarrasse, et « C'est la commande de la table 4 » —
+l'homophone de « Sers » — sert la table 4. « C'est la table 4 », lui, reste une réponse à
+« Quelle table ? ».
+
 Conséquence majeure du point « agents = `SemantizationCore` » : **aucun nouveau type de
 paramètre n'est nécessaire pour désigner un serveur.** Le `SelectionParameter` existant sait
 déjà filtrer par annotation, résoudre un déictique et gérer la coréférence — il désignera un

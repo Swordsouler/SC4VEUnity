@@ -11,9 +11,12 @@ namespace Sc4ve.Multimodality.Intent
         // « envoie » (« Envoie le sandwich au saumon à Marie »). « amène » reste à
         // MoveCommand (« amène ça ici 👆 »). « serre » : l'homophone que Whisper écrit pour
         // « sers » devant un prénom (« Serre Florence » — mesuré, small comme medium), un
-        // déclencheur à part entière comme « débarasse » pour ClearTableCommand.
+        // déclencheur à part entière comme « débarasse » pour ClearTableCommand. « porter » :
+        // vu en jeu, « Tu peux me porter une salade ? » restait incompris — « porte à » ne
+        // couvrait que la forme suivie de son destinataire.
         "va servir", "sers", "serre", "servir", "donne", "donner", "donnez",
-        "apporte", "apporter", "porte à", "envoie", "envoyer", "envoyez",
+        "apporte", "apporter", "porte à", "porte", "porter", "portez",
+        "envoie", "envoyer", "envoyez",
         "go serve", "serve", "give", "bring", "send")]
     [Serializable, CommandDescription(
         "Envoie un serveur porter un plat prêt jusqu'à une table (« toi, va servir cette " +
