@@ -281,6 +281,15 @@ l'hybride suppose Whisper. Le premier appel d'une session lit à froid les quelq
 du prompt — 10,9 s mesurées en jeu, au-delà des dix secondes : au choix d'un mode qui consulte
 un LLM local, une phrase vide met le serveur en route (`WarmUpLocalLlmAsync`).
 
+Une commande nouvelle ABANDONNE celle d'avant si le LLM ou la recherche sémantique la traitent
+encore, quel que soit le mode (`MultimodalityController.StartUtterance`) : ni exécutée ni
+répondue — plus de « Je n'ai pas compris » tardif par-dessus la nouvelle —, et sa requête au LLM
+est annulée, serveur compris. Le journal la note « aborted ». Les dix secondes de l'hybride
+annulent de même la requête au lieu de l'abandonner : laissée courir, elle occupait encore le
+serveur à la phrase suivante, et deux prompts de 10 000 jetons ne tiennent pas ensemble dans un
+contexte de 16 384 — vu en jeu, les deux requêtes échouaient (« Context size has been exceeded »).
+Reproduit hors jeu : annulée, la première laisse la suivante répondre en 3,3 s.
+
 Le LLM du jeu connaît les prénoms des clients et les tables numérotées (filtre `Name`), et le
 catalogue des plats (`RecipeParameter`, « Salade de fruits → sven:FruitSalad ») : sections ajoutées au prompt
 par `LlmIntentService.BuildSystemPrompt` ; le prompt du benchmark, qui ne les reçoit pas, reste

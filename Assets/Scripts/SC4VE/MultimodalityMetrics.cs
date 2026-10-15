@@ -47,7 +47,8 @@ namespace Sc4ve.Multimodality
 
         /// <summary>
         /// Clôt la mesure de l'énoncé courant. <paramref name="outcome"/> ∈ { "executed",
-        /// "clarification", "no_match", "not_understood", "orphan", "error" }.
+        /// "clarification", "no_match", "not_understood", "orphan", "error", "aborted" }
+        /// — « aborted » : dépassé par une commande plus récente avant d'aboutir.
         /// </summary>
         public static void Complete(Command command, string outcome, int affectedCount)
         {

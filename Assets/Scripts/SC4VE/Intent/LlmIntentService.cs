@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Sc4ve.Multimodality.Intent
@@ -589,6 +590,10 @@ JSON Attendu:
         /// API OpenAI ; sinon URL de base d'un serveur local compatible (ex:
         /// http://localhost:1234/v1). <paramref name="apiKey"/> vide → pas d'en-tête
         /// Authorization (serveur local sans authentification).
+        /// <paramref name="cancellationToken"/> INTERROMPT la requête : la connexion fermée,
+        /// le serveur local cesse de calculer — une requête seulement abandonnée l'occupait
+        /// encore à la suivante. L'annulation rend une erreur comme les autres ; l'appelant,
+        /// qui l'a demandée, la reconnaît à son jeton.
         /// </summary>
         public static async Task<CallResult> CallChatCompletionsAsync(
             HttpClient httpClient,
@@ -597,7 +602,8 @@ JSON Attendu:
             string model,
             string systemPrompt,
             string userContent,
-            bool jsonObjectFormat)
+            bool jsonObjectFormat,
+            CancellationToken cancellationToken = default)
         {
             var requestObject = new JObject
             {
@@ -635,7 +641,7 @@ JSON Attendu:
             Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
-                HttpResponseMessage response = await httpClient.SendAsync(requestMessage);
+                HttpResponseMessage response = await httpClient.SendAsync(requestMessage, cancellationToken);
                 string body = await response.Content.ReadAsStringAsync();
                 stopwatch.Stop();
                 result.HttpMs = stopwatch.Elapsed.TotalMilliseconds;
@@ -663,8 +669,9 @@ JSON Attendu:
             }
             catch (Exception e)
             {
-                // HttpRequestException (réseau) et TaskCanceledException (timeout HttpClient)
-                // sont remontées comme erreur textuelle : l'appelant décide du repli.
+                // HttpRequestException (réseau) et TaskCanceledException (timeout HttpClient,
+                // ou annulation) sont remontées comme erreur textuelle : l'appelant décide du
+                // repli.
                 stopwatch.Stop();
                 result.HttpMs = stopwatch.Elapsed.TotalMilliseconds;
                 result.Error = $"{e.GetType().Name}: {e.Message} @ {url}";

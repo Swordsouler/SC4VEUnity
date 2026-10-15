@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using VDS.RDF;
@@ -105,6 +106,9 @@ namespace Sc4ve.Multimodality
         // chemin OpenAI peut enchaîner deux appels, modèle rapide puis précis : une à six
         // secondes d'ordinaire.
         private const int HybridLlmTimeoutMs = 10000;
+
+        // La phrase en cours de traitement : une plus récente l'annule (StartUtterance).
+        private CancellationTokenSource _utteranceCancellation;
 
         private RuleBasedIntentRecognizer _ruleBasedRecognizer;
 
@@ -368,8 +372,10 @@ namespace Sc4ve.Multimodality
             // La copie du graphe prise à la fin de cette parole : toutes ses phrases la partagent.
             Task<Graph> snapshot = SceneGraphSnapshot.Current;
             var result = new RecognitionResult(obj, _speechToText.RecognizerStartedAt);
-            if (result.Phrases.Any(p => !string.IsNullOrWhiteSpace(p.Text)))
+            bool heard = result.Phrases.Any(p => !string.IsNullOrWhiteSpace(p.Text));
+            if (heard)
                 Debug.Log($"[LLM] Received transcription result: {obj}");
+            CancellationToken superseded = heard ? StartUtterance() : CancellationToken.None;
             for (int i = 0; i < result.Phrases.Length; i++)
             {
                 if (string.IsNullOrWhiteSpace(result.Phrases[i].Text)) continue;
@@ -399,6 +405,7 @@ namespace Sc4ve.Multimodality
                         Debug.Log($"[RuleBased] Analyse de la phrase : \"{phrase.Text}\"");
                         MultimodalityMetrics.Engine = "rules";
                         await InitializeVocabulariesAsync();
+                        superseded.ThrowIfCancellationRequested();
                         EnsureRuleBasedRecognizer();
                         IntentPipeline.Start(IntentPipeline.Stage.Rules);
                         commandJson = _ruleBasedRecognizer.Recognize(phrase);
@@ -415,7 +422,8 @@ namespace Sc4ve.Multimodality
                             {
                                 IntentPipeline.End(IntentPipeline.Stage.Rules, IntentPipeline.Status.Failed,
                                                    IntentPipeline.Reason.NothingRecognized);
-                                commandJson = await AskLlmInHybridAsync(phrase, "n'ont reconnu aucune commande");
+                                commandJson = await AskLlmInHybridAsync(phrase, "n'ont reconnu aucune commande", superseded);
+                                superseded.ThrowIfCancellationRequested();
                             }
 
                             if (string.IsNullOrWhiteSpace(commandJson))
@@ -456,7 +464,8 @@ namespace Sc4ve.Multimodality
                                                    : _ruleBasedRecognizer.VagueRecipe
                                                        ? IntentPipeline.Reason.VagueDish
                                                        : IntentPipeline.Reason.MissedTarget);
-                            string llmJson = await AskLlmInHybridAsync(phrase, reason);
+                            string llmJson = await AskLlmInHybridAsync(phrase, reason, superseded);
+                            superseded.ThrowIfCancellationRequested();
                             if (llmJson == null)
                                 IntentPipeline.Revise(IntentPipeline.Stage.Rules, IntentPipeline.Status.Done,
                                                       IntentPipeline.Reason.Kept);
@@ -469,7 +478,8 @@ namespace Sc4ve.Multimodality
                         Debug.Log($"[LLM] Sending sentence for analysis: \"{phrase.Text}\"");
                         MultimodalityMetrics.Engine = "llm";
                         IntentPipeline.Start(IntentPipeline.Stage.Llm);
-                        commandJson = await GetValidatedCommandJsonFromLlmAsync(phrase);
+                        commandJson = await GetValidatedCommandJsonFromLlmAsync(phrase, superseded);
+                        superseded.ThrowIfCancellationRequested();
                         if (string.IsNullOrWhiteSpace(commandJson))
                         {
                             IntentPipeline.End(IntentPipeline.Stage.Llm, IntentPipeline.Status.Failed,
@@ -498,10 +508,17 @@ namespace Sc4ve.Multimodality
                     // objets : préparer un plat n'en cherche aucun.
                     if (commands.Any(c => c.Parameters?.OfType<SelectionParameter>().Any() == true))
                         IntentPipeline.Start(IntentPipeline.Stage.Semantic);
-                    await CommandToGraphOutputCommandAsync(commands);
+                    await CommandToGraphOutputCommandAsync(commands, superseded);
                     IntentPipeline.End(IntentPipeline.Stage.Semantic, IntentPipeline.Status.Done);
                     ResolveCommands(commands);
                     Debug.Log($"[{_recognizerMode}] Commands resolved successfully.");
+                }
+                catch (OperationCanceledException) when (superseded.IsCancellationRequested)
+                {
+                    // Une commande plus récente a pris la main (StartUtterance) : rien n'est
+                    // dit ni exécuté, et le trajet comme le journal suivent déjà la nouvelle.
+                    Debug.Log($"[Pipeline] « {phrase.Text} » abandonnée : une nouvelle commande est arrivée.");
+                    break;
                 }
                 catch (Exception e) when (e is not OutOfMemoryException)
                 {
@@ -514,6 +531,22 @@ namespace Sc4ve.Multimodality
         }
 
         /// <summary>
+        /// Une nouvelle commande arrive : celle d'avant, si le LLM ou la recherche sémantique
+        /// la traitent encore, est ABANDONNÉE — ni exécutée ni répondue, et sa requête au LLM
+        /// interrompue, serveur compris. Vu en jeu : le relais de « Va chercher l'assiette
+        /// sale de Logan » disait « Je n'ai pas compris » trois secondes APRÈS l'exécution de
+        /// « Débarrasse la table 3 ». Le journal la clôt « aborted » ; une phrase déjà traitée
+        /// n'est pas touchée — son issue est déjà écrite, Complete n'agit qu'une fois.
+        /// </summary>
+        private CancellationToken StartUtterance()
+        {
+            _utteranceCancellation?.Cancel();
+            MultimodalityMetrics.Complete(null, "aborted", 0);
+            _utteranceCancellation = new CancellationTokenSource();
+            return _utteranceCancellation.Token;
+        }
+
+        /// <summary>
         /// Le relais du mode Hybrid : la phrase part au LLM par le même chemin que le mode
         /// LLM (validation et bascule vers le modèle précis comprises), mais pour un temps
         /// BORNÉ — les règles ont déjà une réponse (supposition, clarification ou « je n'ai
@@ -521,15 +554,24 @@ namespace Sc4ve.Multimodality
         /// l'entendre. Ne rend que des commandes CONNUES : une UnknownCommand du LLM ne vaut
         /// pas mieux que la réponse des règles. Null sinon, et les règles gardent la main.
         /// Le moteur qui a tranché part au journal.
+        ///
+        /// Le délai écoulé, la requête est ANNULÉE, pas seulement abandonnée : laissée
+        /// courir, elle occupait encore le serveur local à la phrase suivante, et deux prompts
+        /// de 11 000 jetons ne tiennent pas ensemble dans ses 16 384 — vu en jeu, les deux
+        /// requêtes échouaient (« Context size has been exceeded »). Phrase dépassée par une
+        /// plus récente (<paramref name="superseded"/>) : null, sans rien toucher.
         /// </summary>
-        private async Task<string> AskLlmInHybridAsync(Sentence phrase, string reason)
+        private async Task<string> AskLlmInHybridAsync(Sentence phrase, string reason, CancellationToken superseded)
         {
             Debug.Log($"[Hybrid] Les règles {reason} — le LLM prend le relais : \"{phrase.Text}\"");
             IntentPipeline.Start(IntentPipeline.Stage.Llm);
 
-            Task<string> llm = GetValidatedCommandJsonFromLlmAsync(phrase);
-            if (await Task.WhenAny(llm, Task.Delay(HybridLlmTimeoutMs)) != llm)
+            var call = CancellationTokenSource.CreateLinkedTokenSource(superseded);
+            Task<string> llm = GetValidatedCommandJsonFromLlmAsync(phrase, call.Token);
+            if (await Task.WhenAny(llm, Task.Delay(HybridLlmTimeoutMs, superseded)) != llm)
             {
+                call.Cancel();
+                if (superseded.IsCancellationRequested) return null;
                 Debug.LogWarning($"[Hybrid] Pas de réponse du LLM en {HybridLlmTimeoutMs / 1000} s — les règles gardent la main.");
                 MultimodalityMetrics.Engine = "llm-timeout";
                 IntentPipeline.End(IntentPipeline.Stage.Llm, IntentPipeline.Status.Failed, IntentPipeline.Reason.Timeout);
@@ -537,6 +579,7 @@ namespace Sc4ve.Multimodality
             }
 
             string json = await llm;
+            if (superseded.IsCancellationRequested) return null;
             List<Command> commands = string.IsNullOrWhiteSpace(json) ? null : DeserializeCommand(json);
             if (commands == null || commands.Count == 0 || commands.Any(c => c is UnknownCommand))
             {
@@ -557,15 +600,16 @@ namespace Sc4ve.Multimodality
         /// la valide, et ne passe à GPT-4 qu'en cas d'erreur connue.
         /// Pour un LLM local, une seule requête est effectuée.
         /// </summary>
-        private async Task<string> GetValidatedCommandJsonFromLlmAsync(Sentence sentence)
+        private async Task<string> GetValidatedCommandJsonFromLlmAsync(Sentence sentence, CancellationToken cancellation)
         {
             if (_llmService == LlmService.Local)
             {
                 Debug.Log("[LLM] Using local LLM...");
-                string jsonResponse = await CallLlmApiAsync(sentence, "local-model");
+                string jsonResponse = await CallLlmApiAsync(sentence, "local-model", cancellation);
                 if (string.IsNullOrWhiteSpace(jsonResponse))
                 {
-                    Debug.LogError("[LLM] Local LLM returned an empty response.");
+                    if (!cancellation.IsCancellationRequested)
+                        Debug.LogError("[LLM] Local LLM returned an empty response.");
                     return null;
                 }
                 return jsonResponse;
@@ -574,11 +618,12 @@ namespace Sc4ve.Multimodality
             // --- Chemin OpenAI avec validation et bascule ---
             // 1. Essai rapide avec le modèle léger
             Debug.Log($"[LLM] Attempting fast path with {_fastModel}...");
-            string fastResponse = await CallLlmApiAsync(sentence, _fastModel);
+            string fastResponse = await CallLlmApiAsync(sentence, _fastModel, cancellation);
 
             if (string.IsNullOrWhiteSpace(fastResponse))
             {
-                Debug.LogError($"[LLM] {_fastModel} returned an empty response. No fallback will be attempted.");
+                if (!cancellation.IsCancellationRequested)
+                    Debug.LogError($"[LLM] {_fastModel} returned an empty response. No fallback will be attempted.");
                 return null;
             }
 
@@ -587,7 +632,7 @@ namespace Sc4ve.Multimodality
             if (commands == null)
             {
                 Debug.LogWarning($"[LLM] Failed to deserialize {_fastModel} response. Retrying with {_preciseModel}.");
-                return await CallLlmApiAsync(sentence, _preciseModel);
+                return await CallLlmApiAsync(sentence, _preciseModel, cancellation);
             }
 
             bool needsCorrection = false;
@@ -660,7 +705,7 @@ namespace Sc4ve.Multimodality
             if (needsCorrection)
             {
                 Debug.LogWarning($"[LLM] {_fastModel} response failed validation. Retrying with {_preciseModel}.");
-                return await CallLlmApiAsync(sentence, _preciseModel);
+                return await CallLlmApiAsync(sentence, _preciseModel, cancellation);
             }
 
             Debug.Log($"[LLM] {_fastModel} response passed validation. Using fast path result.");
@@ -901,7 +946,7 @@ namespace Sc4ve.Multimodality
         /// La construction de la requête et l'appel HTTP vivent dans LlmIntentService
         /// (classe sans dépendance UnityEngine, partagée avec le harnais EditMode).
         /// </summary>
-        private async Task<string> CallLlmApiAsync(Sentence sentence, string model)
+        private async Task<string> CallLlmApiAsync(Sentence sentence, string model, CancellationToken cancellation)
         {
             await InitializeVocabulariesAsync();
 
@@ -942,8 +987,11 @@ namespace Sc4ve.Multimodality
                 _httpClient, endpointBaseUrl, apiKey, model, finalSystemPrompt, userContent,
                 // json_object est supporté par OpenAI gpt-4o/mini mais pas par tous les serveurs
                 // locaux ; on l'omet côté local pour éviter les erreurs de compatibilité.
-                jsonObjectFormat: _llmService == LlmService.OpenAI);
+                jsonObjectFormat: _llmService == LlmService.OpenAI,
+                cancellationToken: cancellation);
 
+            // Annulée (phrase dépassée, délai de l'hybride) : demandé, pas une panne.
+            if (cancellation.IsCancellationRequested) return null;
             if (result.Error != null)
             {
                 Debug.LogError($"[LLM] Appel {model} échoué : {result.Error}");
@@ -995,7 +1043,8 @@ namespace Sc4ve.Multimodality
             }
         }
 
-        public async Task<List<Command>> CommandToGraphOutputCommandAsync(List<Command> commands)
+        public async Task<List<Command>> CommandToGraphOutputCommandAsync(List<Command> commands,
+                                                                          CancellationToken cancellation = default)
         {
             // Sur le thread principal (pas de Task.Run) : Semanticize interroge la copie du
             // graphe de scène et GraphManager.Assert mute le graphe partagé — aucun des deux
@@ -1008,8 +1057,13 @@ namespace Sc4ve.Multimodality
             graph.BaseUri = new Uri(SvenSettings.BaseUri);
             graph.NamespaceMap.AddNamespace("", UriFactory.Create(SvenSettings.BaseUri));
             foreach (Command command in commands)
+            {
+                cancellation.ThrowIfCancellationRequested();
                 await command.Semanticize(graph);
+            }
 
+            // Phrase dépassée en route : rien à verser au graphe, elle ne s'exécutera pas.
+            cancellation.ThrowIfCancellationRequested();
             GraphManager.Assert(graph.Triples);
             return commands;
         }

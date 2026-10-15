@@ -57,7 +57,7 @@ namespace Sc4ve.Multimodality
 
         /// <summary>L'issue de la phrase — celles de MultimodalityMetrics : « executed »,
         /// « clarification », « disambiguation », « no_match », « not_understood »,
-        /// « orphan », « error » —, ou null tant qu'elle est en cours.</summary>
+        /// « orphan », « error », « aborted » —, ou null tant qu'elle est en cours.</summary>
         public static string Outcome { get; private set; }
 
         /// <summary>La commande retenue (la première d'une cascade), ou null.</summary>
@@ -70,7 +70,7 @@ namespace Sc4ve.Multimodality
         /// <summary>
         /// Phrases non comprises D'AFFILÉE. Une phrase comprise — même par une question en
         /// retour — remet le compte à zéro ; une erreur interne n'y touche pas, ce n'est pas
-        /// le joueur qui s'est mal fait comprendre.
+        /// le joueur qui s'est mal fait comprendre — ni une phrase abandonnée pour une autre.
         /// </summary>
         public static int Misunderstood { get; private set; }
 
@@ -152,7 +152,7 @@ namespace Sc4ve.Multimodality
             }
 
             if (outcome == "not_understood" || outcome == "orphan") Misunderstood++;
-            else if (outcome != "error") Misunderstood = 0;
+            else if (outcome != "error" && outcome != "aborted") Misunderstood = 0;
         }
 
         /// <summary>
