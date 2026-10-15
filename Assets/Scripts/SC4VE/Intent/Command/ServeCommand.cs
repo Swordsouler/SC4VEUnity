@@ -22,8 +22,10 @@ namespace Sc4ve.Multimodality.Intent
         "Envoie un serveur porter un plat prêt jusqu'à une table (« toi, va servir cette " +
         "table-là »). Le serveur prend l'assiette pleine la plus proche de la passe, la porte " +
         "jusqu'à la table et l'y dépose. " +
-        "Paramètres: DEUX SelectionParameter — le serveur et la table. Leur ORDRE est " +
-        "indifférent : les rôles se lisent dans les objets désignés.")]
+        // Le serveur sous-entendu : même raison que pour TakeOrderCommand.
+        "Paramètres: UN SelectionParameter — la table ou son client. Le serveur est sous-entendu : " +
+        "un second SelectionParameter ne le désigne que si la phrase le nomme ou le pointe (« toi, va… ») ; " +
+        "leur ORDRE est alors indifférent, les rôles se lisent dans les objets désignés.")]
     public class ServeCommand : Command
     {
         /// <summary>

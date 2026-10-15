@@ -316,6 +316,13 @@ rassis — pour les ordres de délégation, et quel que soit le moteur
 (`DelegationRoles.RedirectDepartedCustomers`) : vu en jeu, « Va chercher l'assiette sale de
 Logan », Logan à peine parti, répondait « Aucun objet correspondant ».
 
+Le LLM sait aussi qu'il est dans un restaurant (section « LE RESTAURANT », ajoutée avec les
+tables). Sans elle, gpt-4o et gpt-4o-mini rejetaient comme hors catalogue « Va chercher sa
+commande » ou « Va chercher Gabriel » : la commande d'un client lue comme une commande JSON. Le
+serveur y est sous-entendu, comme dans les descriptions de la prise de commande et du service, car
+le seul de la salle est pris d'office. Annoncés « DEUX SelectionParameter », les modèles
+inventaient le second, une coréférence qui reprenait les objets de la commande précédente.
+
 Les phrases d'un visiteur novice ont élargi les règles : « porter » sert (« Tu peux me porter une
 salade ? »), « aller chercher l'assiette » débarrasse, et « C'est la commande de la table 4 » —
 l'homophone de « Sers » — sert la table 4. « C'est la table 4 », lui, reste une réponse à

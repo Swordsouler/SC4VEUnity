@@ -461,7 +461,11 @@ JSON Attendu:
         /// pas cette recette ». Omis, même règle que pour les prénoms.
         /// <paramref name="tableNames"/> : les noms des tables numérotées (« Table 3 »). Sans
         /// eux, « la table 3 » devenait une annotation Table et une limite de trois. Omis,
-        /// même règle que pour les prénoms.
+        /// même règle que pour les prénoms. Fournis, ils ajoutent aussi la section du
+        /// restaurant : sans elle, gpt-4o et gpt-4o-mini rejetaient comme hors catalogue
+        /// « Va chercher sa commande », « Va chercher ce client », « Va chercher Gabriel » —
+        /// la « commande » d'un client lue comme une commande JSON —, et désignaient le
+        /// serveur par une coréférence inventée.
         /// </summary>
         public static string BuildSystemPrompt(
             string annotationTypes,
@@ -513,6 +517,25 @@ JSON Attendu:
                     "Un plat nommé produit un paramètre { \"type\": \"RecipeParameter\", \"value\": \"<identifiant>\" }. " +
                     "La 'value' DOIT être l'identifiant 'sven:' de la recette, recopié à l'identique — " +
                     "jamais le nom prononcé. Recettes (nom → identifiant) : " + recipes + "\n\n" +
+                    nextSection);
+
+            if (!string.IsNullOrWhiteSpace(tableNames))
+                prompt = prompt.Replace(nextSection,
+                    "--- LE RESTAURANT ---\n" +
+                    "La scène est un restaurant : l'utilisateur y donne des ordres à un serveur et au cuisinier. " +
+                    "Ces ordres SONT des commandes du catalogue, jamais du hors catalogue (règle 11). Dans la " +
+                    "phrase de l'utilisateur, « commande » désigne ce qu'un CLIENT veut manger, pas une commande JSON.\n" +
+                    "- Prendre la commande d'un client → TakeOrderCommand : « va prendre la commande de Marie », " +
+                    "« va chercher la commande de ce client », « va chercher sa commande », « va voir cette table », " +
+                    "« va chercher Gabriel ».\n" +
+                    "- Apporter un plat prêt → ServeCommand : « apporte la soupe à Marie », « sers cette table ». " +
+                    "Débarrasser → ClearTableCommand. Préparer un plat → PrepareCommand.\n" +
+                    "- Le serveur est sous-entendu : ne produis un SelectionParameter pour lui QUE s'il est nommé ou " +
+                    "pointé (« toi, … », « ce serveur »). La cible — client ou table — a le sien : un prénom → " +
+                    "filtre 'Name' ; « la table 3 » → filtre 'Name' \"Table 3\" ; un déictique (« ce client », " +
+                    "« cette table », « lui, là ») ou un possessif sans prénom (« sa commande ») → filtre 'Event' \"" +
+                    pointerTerm + "\". Jamais de filtre 'Coreference' pour le serveur, jamais de nom de table que " +
+                    "la phrase ne dit pas.\n\n" +
                     nextSection);
 
             return prompt;

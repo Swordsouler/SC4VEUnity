@@ -32,9 +32,13 @@ namespace Sc4ve.Multimodality.Intent
         "take the order", "go take the order", "go get the order", "get the order")]
     [Serializable, CommandDescription(
         "Envoie un serveur prendre la commande d'une table (« va prendre la commande de cette " +
-        "table-là », « va voir Marie »). Le serveur s'y rend ; le client ne parle qu'une fois qu'il est arrivé. " +
-        "Paramètres: DEUX SelectionParameter — le serveur et la table. Leur ORDRE est " +
-        "indifférent : les rôles se lisent dans les objets désignés.")]
+        "table-là », « va voir Marie », « va chercher sa commande »). Le serveur s'y rend ; le client ne parle qu'une fois qu'il est arrivé. " +
+        // Le serveur SOUS-ENTENDU : le seul de la salle est pris d'office (DelegationRoles).
+        // Annoncés « DEUX SelectionParameter », les modèles d'OpenAI inventaient le second —
+        // une coréférence, qui reprenait les objets de la commande précédente.
+        "Paramètres: UN SelectionParameter — la table ou son client. Le serveur est sous-entendu : " +
+        "un second SelectionParameter ne le désigne que si la phrase le nomme ou le pointe (« toi, va… ») ; " +
+        "leur ORDRE est alors indifférent, les rôles se lisent dans les objets désignés.")]
     public class TakeOrderCommand : Command
     {
         /// <summary>

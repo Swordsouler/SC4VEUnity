@@ -1003,6 +1003,9 @@ namespace Sc4ve.Multimodality
             if (result.PromptTokens > 0 || result.CompletionTokens > 0)
                 Debug.Log($"[LLM] Token Usage ({model}): Prompt={result.PromptTokens}, " +
                           $"Completion={result.CompletionTokens}, Total={result.PromptTokens + result.CompletionTokens}");
+            // La réponse brute au journal : un refus (« {} », « { "commands": [] } ») ne se voyait
+            // qu'à son effet, et il fallait rejouer l'appel pour savoir ce que le modèle avait dit.
+            Debug.Log($"[LLM] Réponse de {model} : {result.Content}");
             return result.Content;
         }
 
