@@ -324,7 +324,8 @@ le seul de la salle est pris d'office. Annoncés « DEUX SelectionParameter », 
 inventaient le second, une coréférence qui reprenait les objets de la commande précédente.
 
 Les phrases d'un visiteur novice ont élargi les règles : « porter » sert (« Tu peux me porter une
-salade ? »), « aller chercher l'assiette » débarrasse, et « C'est la commande de la table 4 » —
+salade ? »), « aller chercher l'assiette » débarrasse, « aller chercher » un client, sa table ou
+sa commande la prend (« Va chercher Gabriel », « Va chercher sa commande »), et « C'est la commande de la table 4 » —
 l'homophone de « Sers » — sert la table 4. « C'est la table 4 », lui, reste une réponse à
 « Quelle table ? ».
 

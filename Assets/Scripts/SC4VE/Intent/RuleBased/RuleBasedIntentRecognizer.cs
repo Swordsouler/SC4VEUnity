@@ -877,6 +877,18 @@ namespace Sc4ve.Multimodality.Intent.RuleBased
                 TableNumberRegex(answering: false).IsMatch(normalizedText))
                 return "ServeCommand";
 
+            // « Va chercher sa commande », « va chercher Gabriel », « va chercher ce client » :
+            // aller chercher un client, sa table ou sa commande, c'est la PRENDRE. Vu en jeu :
+            // quatre « Je n'ai pas compris » de suite, dont « Va chercher le commande de lui là »
+            // (le « le » est de Whisper). Après les déclencheurs, où « chercher l'assiette »
+            // débarrasse, et après le plat nommé : « va chercher la soupe » n'est pas une
+            // commande de client. Le client, la table ou la commande sont le COMPLÉMENT de
+            // « chercher » : « cherche les pommes sur la table » ne prend rien.
+            const string sought = @"\bcherche[rz]?\s+(?:(?:la|le|les|sa|son|ses|leur|leurs|ce|cet|cette|ces)\s+)?";
+            if (Regex.IsMatch(normalizedText, sought + @"(?:commandes?|clients?|clientes?|tables?)\b") ||
+                _objectNames.Any(name => Regex.IsMatch(normalizedText, sought + $@"{NamePattern(name)}\b", RegexOptions.IgnoreCase)))
+                return "TakeOrderCommand";
+
             return null;
         }
 

@@ -1062,6 +1062,26 @@ namespace Sc4ve.Tests.EditMode
         }
 
         [Test]
+        public void AllerChercherUnClient_PrendSaCommande()
+        {
+            // Vu en jeu, quatre « Je n'ai pas compris » de suite pour la commande de Gabriel.
+            // Aller chercher un client, sa table ou sa commande, c'est la prendre ; l'assiette
+            // nommée reste un débarrassage.
+            _recognizer = MakeRecognizer(Language.French,
+                annotationTypes: new List<string> { "Table", "Client", "Assiette" },
+                objectNames: new List<string> { "Gabriel" });
+
+            TakeOrderCommand byName = RecognizeSingle<TakeOrderCommand>("Verse, va chercher Gabriel.");
+            Assert.AreEqual("Gabriel", AllConditions(byName).Single().Value);
+
+            RecognizeSingle<TakeOrderCommand>("Va chercher sa commande.");
+            RecognizeSingle<TakeOrderCommand>("Va chercher le commande de lui là.");
+            RecognizeSingle<TakeOrderCommand>("Va chercher ce client.");
+            RecognizeSingle<TakeOrderCommand>("Va chercher cette table.");
+            RecognizeSingle<ClearTableCommand>("Va chercher l'assiette de Gabriel.");
+        }
+
+        [Test]
         public void FamilleEtIngredientSansEmploi_PasseAuLlmEnHybride()
         {
             // Vu en démo : Whisper écrit « Prépare un sandwich la saumon » pour « au saumon ».
