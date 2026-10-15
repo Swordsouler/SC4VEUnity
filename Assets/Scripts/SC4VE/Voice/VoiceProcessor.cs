@@ -163,6 +163,18 @@ namespace Sc4ve.Voice
 
         private Coroutine _recordCoroutine;
 
+        // Relance demandée de l'extérieur (RequestMicrophoneRestart), honorée par la boucle.
+        private bool _restartRequested;
+
+        /// <summary>
+        /// Relance la capture au prochain tour de la boucle. Pour une TROISIÈME mort, que la
+        /// boucle ne voit pas : la capture avance, mais ne rend que des zéros. Vu en jeu, à
+        /// chaque partie ouverte par « XR: Error setting active audio output driver » : des
+        /// appuis entiers à « niveau max 0,000 ». C'est le STT, qui mesure l'appui, qui la
+        /// signale.
+        /// </summary>
+        public void RequestMicrophoneRestart() => _restartRequested = true;
+
         /// <summary>
         /// Start recording audio
         /// </summary>
@@ -351,10 +363,11 @@ namespace Sc4ve.Voice
                     bool stopped = !Microphone.IsRecording(CurrentDeviceName);
                     bool stalled = Time.realtimeSinceStartup - lastProgressAt > MicrophoneStallSeconds;
 
-                    if (stopped || stalled)
+                    if (stopped || stalled || _restartRequested)
                     {
-                        Debug.LogWarning($"[VoiceProcessor] Capture micro {(stopped ? "interrompue" : "figée")} " +
+                        Debug.LogWarning($"[VoiceProcessor] Capture micro {(stopped ? "interrompue" : stalled ? "figée" : "muette")} " +
                                          "(changement de périphérique audio ?) — redémarrage.");
+                        _restartRequested = false;
                         Microphone.End(CurrentDeviceName);
                         if (_audioClip != null) Destroy(_audioClip);
                         _audioClip = Microphone.Start(CurrentDeviceName, true, 1, SampleRate);

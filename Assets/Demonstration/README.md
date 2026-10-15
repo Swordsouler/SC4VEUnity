@@ -223,6 +223,10 @@ mots dont Whisper a besoin pour horodater juste. Tout ce que capte l'appui part 
 appui muet, Whisper invente (« [Sous-titres réalisés par la communauté d'Amara.org] ») : ces
 transcriptions sont écartées (`WhisperSpeechToText.IsSilenceHallucination`), et le journal donne
 le niveau maximal capté et le nom du micro — quelques millièmes, le micro n'a rien entendu.
+Un niveau nul, des zéros exacts sur une demi-seconde, signe une capture morte : le micro est
+relancé (`VoiceProcessor.RequestMicrophoneRestart`). Vu en jeu dans les trois parties ouvertes
+par « XR: Error setting active audio output driver », et dans aucune autre : le micro du casque
+ne rendait rien, aux premiers appuis ou pendant toute la partie.
 
 `Time.fixedDeltaTime` suit `Time.timeScale`, sans quoi la physique saccade au ralenti. Le
 suivi de tête n'est **pas** affecté (piloté par le runtime XR), donc pas de risque de

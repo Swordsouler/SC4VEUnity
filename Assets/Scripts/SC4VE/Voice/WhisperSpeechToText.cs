@@ -241,10 +241,16 @@ namespace Sc4ve.Voice
                     // le micro n'a capté que du silence — pas de voix, ou pas le bon micro.
                     float peak = 0f;
                     foreach (float sample in buffer) peak = Mathf.Max(peak, Mathf.Abs(sample));
+                    // Des zéros EXACTS sur une demi-seconde : un micro ouvert rend toujours un
+                    // peu de bruit. La capture est sans doute morte (VoiceProcessor), on la
+                    // relance — sans frais si elle ne l'était pas.
+                    bool dead = peak == 0f && buffer.Length >= sampleRate / 2;
+                    if (dead) _voiceProcessor.RequestMicrophoneRestart();
                     Debug.LogWarning($"[Whisper] Aucune parole" +
                                      (string.IsNullOrWhiteSpace(text) ? "" : $" (« {text} » écarté)") +
                                      $" : {buffer.Length / (float)sampleRate:F1} s captées, niveau max {peak:F3}, " +
-                                     $"micro « {_voiceProcessor.CurrentDeviceName} ».");
+                                     $"micro « {_voiceProcessor.CurrentDeviceName} »" +
+                                     (dead ? " — silence absolu, micro relancé." : "."));
                 }
             }
             finally
