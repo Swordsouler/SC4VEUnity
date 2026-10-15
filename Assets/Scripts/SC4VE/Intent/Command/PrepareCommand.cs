@@ -41,6 +41,21 @@ namespace Sc4ve.Multimodality.Intent
         // seul énoncé. En temps réel : la règle concerne le joueur, pas le ralenti.
         private static float _lastGazeRefusalAt = -999f;
 
+        // L'instant du dernier « Laquelle : … ? » (Dispatch). Temps réel, comme ci-dessus.
+        private static float _recipeQuestionAt = -999f;
+
+        /// <summary>
+        /// Vrai, une seule fois, si le cuisinier a demandé « Laquelle ? » il y a moins de trente
+        /// secondes : la phrase qui ne nomme qu'un plat y RÉPOND. L'hybride n'y voit alors pas un
+        /// verbe mangé par Whisper, et ne consulte pas le LLM (MultimodalityController).
+        /// </summary>
+        public static bool ConsumeRecipeQuestion()
+        {
+            bool asked = Time.unscaledTime - _recipeQuestionAt < 30f;
+            _recipeQuestionAt = -999f;
+            return asked;
+        }
+
         /// <summary>
         /// Aucun SelectionParameter : une recette ne se pointe pas. C'est le seul énoncé du jeu
         /// qui soit intégralement linguistique, et c'est voulu (§3 du README) — il fait
@@ -134,6 +149,7 @@ namespace Sc4ve.Multimodality.Intent
                 {
                     List<string> children = await ConcreteChildren(recipe, known);
                     string list = string.Join(french ? " ou " : " or ", children);
+                    _recipeQuestionAt = Time.unscaledTime;
                     Speak(french ? $"Laquelle : {list} ?" : $"Which one: {list}?");
                     return;
                 }

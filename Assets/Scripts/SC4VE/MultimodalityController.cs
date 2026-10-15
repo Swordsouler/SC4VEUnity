@@ -441,6 +441,12 @@ namespace Sc4ve.Multimodality
                                 continue;
                             }
                         }
+                        // La réponse au « Laquelle : … ? » du cuisinier nomme un plat sans verbe,
+                        // comme attendu : le verbe deviné est le bon. Le LLM ajoutait une à deux
+                        // secondes à une réponse que le jeu avait lui-même demandée.
+                        else if (_recognizerMode == RecognizerMode.Hybrid &&
+                                 _ruleBasedRecognizer.GuessedFromDish && PrepareCommand.ConsumeRecipeQuestion())
+                            Debug.Log("[Hybrid] Réponse au « Laquelle ? » du cuisinier : les règles gardent la main.");
                         // Hybride : trois suppositions des règles passent au LLM. Un plat nommé
                         // SANS verbe reconnu (« prépare-le »), juste quand Whisper a mangé le
                         // verbe, fausse quand le verbe manque aux déclencheurs (« livre la soupe

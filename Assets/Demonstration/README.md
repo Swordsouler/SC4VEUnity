@@ -275,7 +275,9 @@ cas seulement :
   (`RuleBasedIntentRecognizer.GuessedFromDish`) : juste quand Whisper a mangé le verbe, fausse
   quand le verbe manque aux déclencheurs (« donne la salade César à Florence » refaisait le
   plat avant que « donne » n'y entre). Le repli « c'est + plat → service » n'est PAS soumis :
-  il corrige une confusion mesurée de Whisper (« Sers » → « C'est ») que le LLM ignore ;
+  il corrige une confusion mesurée de Whisper (« Sers » → « C'est ») que le LLM ignore. La
+  réponse au « Laquelle : … ? » du cuisinier non plus (`PrepareCommand.ConsumeRecipeQuestion`) :
+  « Salade de fruits. », moins de trente secondes après la question, est la réponse attendue ;
 - **la commande n'a pas de cible explicite alors qu'un mot de la phrase échappe au vocabulaire
   du domaine** (`RuleBasedIntentRecognizer.MissedTarget`) : sélection vide, ou réduite à une
   coréférence devinée d'un « la » qui peut aussi être un article. La cible a sans doute été
